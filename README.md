@@ -1,3 +1,5 @@
+🚧 Project Status: In Development
+
 <p align="center">
   <img src="assets/banner.png" width="100%">
 </p>
@@ -118,5 +120,9 @@ DB_PORT=1433
 DB_USER=sa
 DB_PASSWORD=password
 
+## 👨‍💻 Authors
 
+<p align="center">
+  <img src="assets/authors.png" width="100%">
+</p>
 
