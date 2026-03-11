@@ -2,7 +2,10 @@
   <img src="assets/banner.png" width="100%">
 </p>
 
-# Staffly
+## 🚀 Staffly – Human Resource Management Platform
 
-Modern Human Resource Management System built with **Spring Boot, React, Docker and MSSQL**.
+Staffly is a modern **Human Resource Management System (HRMS)** designed to streamline workforce operations.  
+The platform provides comprehensive tools for managing employees, organizational structures, leave tracking, payroll processes and performance evaluation.
+
+Built with a modern technology stack including **Spring Boot, React, Docker and Microsoft SQL Server**, Staffly focuses on scalability, security and maintainability.
 
