@@ -1,8 +1,3 @@
-🚧 Project Status: In Development
-<p align="center">
-  <img src="assets/status.png" width="100%">
-</p>
-
 <p align="center">
   <img src="assets/banner.png" width="100%">
 </p>
@@ -129,3 +124,7 @@ Example:
   <img src="assets/authors.jpeg" width="100%">
 </p>
 
+🚧 Project Status: In Development
+<p align="center">
+  <img src="assets/status.png" width="100%">
+</p>
