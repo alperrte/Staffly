@@ -16,7 +16,7 @@ Built with a modern technology stack including **Spring Boot, React, Docker and 
 ## 🏗️ System Architecture
 
 <p align="center">
-  <img src="assets/architecture.png" width="80%">
+  <img src="assets/architecture.png" width="100%">
 </p>
 
 The Staffly system follows a modern three-tier architecture that separates the application into presentation, backend, and data layers.
