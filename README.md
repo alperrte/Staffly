@@ -30,7 +30,7 @@ This architecture ensures scalability, maintainability, and clear separation of 
 ## 🚀 Key Features
 
 <p align="center">
-  <img src="assets/features.png" width="80%">
+  <img src="assets/features.png" width="100%">
 </p>
 
 ### 👥 Employee Management
