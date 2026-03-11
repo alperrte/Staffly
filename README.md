@@ -90,3 +90,33 @@ Modern container-based deployment architecture.
 - Backend service container
 - Database container
 - Easy deployment and scalability
+
+## ⚙️ Getting Started
+
+Clone the repository
+
+git clone https://github.com/username/staffly.git
+
+Navigate to project directory
+
+cd staffly
+
+## 🐳 Docker Setup
+
+Build and start containers
+
+docker-compose up --build
+
+## 🔐 Environment Variables
+
+Create a `.env` file in the root directory.
+
+Example:
+
+DB_HOST=localhost
+DB_PORT=1433
+DB_USER=sa
+DB_PASSWORD=password
+
+
+
