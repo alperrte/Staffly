@@ -26,3 +26,67 @@ The Staffly system follows a modern three-tier architecture that separates the a
 • **MSSQL Database** stores persistent data such as users, departments, tasks, and HR records.
 
 This architecture ensures scalability, maintainability, and clear separation of responsibilities between system components.
+
+## 🚀 Key Features
+
+<p align="center">
+  <img src="assets/features.png" width="80%">
+</p>
+
+### 👥 Employee Management
+
+Manage employee profiles within the organization.
+
+- Employee profile management
+- Department assignment
+- Position and role management
+- Centralized employee records
+
+
+### 🏢 Organization Structure
+
+Model the organizational hierarchy of the company.
+
+- Organization hierarchy
+- Department structure
+- Position–title relationships
+- Organizational mapping
+
+
+### 📋 Task & Project Management
+
+Manage tasks and projects across teams.
+
+- Task assignment
+- Project creation and tracking
+- Task status management
+- Team collaboration workflow
+
+
+### 🔐 Role Based Access Control
+
+Control system permissions through role-based authorization.
+
+- Admin role management
+- HR access permissions
+- Employee access restrictions
+- Secure role hierarchy
+
+
+### 🔑 Secure Authentication
+
+Secure login and authorization system.
+
+- JWT based authentication
+- Protected REST API endpoints
+- Secure user session handling
+
+
+### 🐳 Containerized Infrastructure
+
+Modern container-based deployment architecture.
+
+- Docker containerization
+- Backend service container
+- Database container
+- Easy deployment and scalability
