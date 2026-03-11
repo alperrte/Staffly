@@ -123,6 +123,6 @@ DB_PASSWORD=password
 ## 👨‍💻 Authors
 
 <p align="center">
-  <img src="assets/authors.png" width="100%">
+  <img src="assets/authors.jpeg" width="100%">
 </p>
 
