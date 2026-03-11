@@ -12,3 +12,17 @@ Built with a modern technology stack including **Spring Boot, React, Docker and 
 ## ⚙️ Tech Stack
 
 ![Tech Stack](assets/techstack.png)
+
+## 🏗️ System Architecture
+
+<p align="center">
+  <img src="assets/architecture.png" width="80%">
+</p>
+
+The Staffly system follows a modern three-tier architecture that separates the application into presentation, backend, and data layers.
+
+• **React Frontend** handles the user interface and communicates with the backend using REST APIs.  
+• **Spring Boot REST API** processes business logic, handles authentication, and manages application workflows.  
+• **MSSQL Database** stores persistent data such as users, departments, tasks, and HR records.
+
+This architecture ensures scalability, maintainability, and clear separation of responsibilities between system components.
