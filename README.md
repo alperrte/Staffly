@@ -115,10 +115,10 @@ Create a `.env` file in the root directory.
 
 Example:
 
-DB_HOST=localhost
-DB_PORT=1433
-DB_USER=sa
-DB_PASSWORD=password
+-DB_HOST=localhost
+-DB_PORT=1433
+-DB_USER=sa
+-DB_PASSWORD=password
 
 ## 👨‍💻 Authors
 
