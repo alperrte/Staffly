@@ -97,7 +97,7 @@ Modern container-based deployment architecture.
 
 Clone the repository
 
-git clone https://github.com/username/staffly.git
+git clone https://github.com/alperrte/staffly.git
 
 Navigate to project directory
 
