@@ -9,3 +9,6 @@ The platform provides comprehensive tools for managing employees, organizational
 
 Built with a modern technology stack including **Spring Boot, React, Docker and Microsoft SQL Server**, Staffly focuses on scalability, security and maintainability.
 
+## ⚙️ Tech Stack
+
+![Tech Stack](assets/techstack.png)
