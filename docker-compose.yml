@@ -1,21 +1,80 @@
+version: "3.9"
+
 services:
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: ${MSSQL_CONTAINER}
     restart: always
+
     environment:
-      SA_PASSWORD: ${DB_PASSWORD}
       ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD}
+
     ports:
       - "${MSSQL_PORT}:1433"
+
     volumes:
       - mssql_data:/var/opt/mssql
 
-    #services will be here each service will have its own port and module
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -C -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
 
+    depends_on:
+      mssql:
+        condition: service_healthy
 
+    entrypoint: ["/bin/bash","-lc"]
+
+    command: >
+      "/opt/mssql-tools18/bin/sqlcmd
+      -S mssql
+      -U sa
+      -P \"$DB_PASSWORD\"
+      -C
+      -Q \"IF DB_ID('${DB_NAME}') IS NULL CREATE DATABASE ${DB_NAME};\""
+
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+    restart: "no"
+
+  employee-service:
+    build: ./backend/employee
+    container_name: staffly-employee
+
+    env_file:
+      - .env
+
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+    environment:
+      SERVER_PORT_EMPLOYEE: ${SERVER_PORT_EMPLOYEE}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+
+    ports:
+      - "${SERVER_PORT_EMPLOYEE}:${SERVER_PORT_EMPLOYEE}"
+
+    restart: unless-stopped
 
 volumes:
   mssql_data:
