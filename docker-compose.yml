@@ -44,14 +44,13 @@ services:
 
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
 
     restart: "no"
 
 
-
   auth-service:
     build: ./backend/auth
-
     container_name: staffly-auth
 
     env_file:
@@ -81,6 +80,36 @@ services:
 
     restart: unless-stopped
 
+
+
+  employee-service:
+    build: ./backend/employee
+    container_name: staffly-employee
+
+    env_file:
+      - .env
+
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT_EMPLOYEE}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+
+    ports:
+      - "${SERVER_PORT_EMPLOYEE}:${SERVER_PORT_EMPLOYEE}"
+
+    restart: unless-stopped
 
 
 volumes:
