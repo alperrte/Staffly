@@ -10,7 +10,12 @@ import com.auth_service.auth.repository.RoleRepository;
 import com.auth_service.auth.repository.UserRepository;
 import com.auth_service.auth.security.JwtService;
 import com.auth_service.auth.security.RefreshTokenService;
+
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +24,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -64,7 +68,17 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
-        String accessToken = jwtService.generateToken(user);
+
+        UserDetails userDetails =
+                new org.springframework.security.core.userdetails.User(
+                        user.getEmail(),
+                        user.getPassword(),
+                        user.getRoles().stream()
+                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                                .toList()
+                );
+
+        String accessToken = jwtService.generateToken(userDetails);
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
@@ -73,6 +87,34 @@ public class AuthService {
                 .refresh_token(refreshToken.getToken())
                 .build();
     }
+    public AuthResponse refresh(String refreshToken) {
 
+        RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
 
+        User user = token.getUser();
+
+        UserDetails userDetails =
+                new org.springframework.security.core.userdetails.User(
+                        user.getEmail(),
+                        user.getPassword(),
+                        user.getRoles().stream()
+                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                                .toList()
+                );
+
+        String accessToken = jwtService.generateToken(userDetails);
+
+        return AuthResponse.builder()
+                .access_token(accessToken)
+                .refresh_token(refreshToken)
+                .build();
+    }
+    public void logout(String refreshToken) {
+
+        RefreshToken token = refreshTokenService.verifyRefreshToken(refreshToken);
+
+        User user = token.getUser();
+
+        refreshTokenService.deleteByUser(user);
+    }
 }

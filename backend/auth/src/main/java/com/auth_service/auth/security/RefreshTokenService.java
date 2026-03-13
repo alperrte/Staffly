@@ -3,7 +3,9 @@ package com.auth_service.auth.security;
 import com.auth_service.auth.entity.RefreshToken;
 import com.auth_service.auth.entity.User;
 import com.auth_service.auth.repository.RefreshTokenRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -46,5 +48,4 @@ public class RefreshTokenService {
     public void deleteByUser(User user) {
         refreshTokenRepository.deleteByUser(user);
     }
-
 }
