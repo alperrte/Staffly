@@ -1,6 +1,9 @@
-FROM eclipse-temurin:21-jdk
+# -----------------------------
+# 1️⃣ Build Stage
+# -----------------------------
+FROM eclipse-temurin:21-jdk AS builder
 
-WORKDIR /app
+WORKDIR /build
 
 COPY .mvn .mvn
 COPY mvnw .
@@ -10,8 +13,16 @@ RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
 COPY src src
+
 RUN ./mvnw clean package -DskipTests
 
-EXPOSE 8082
+# -----------------------------
+# 2️⃣ Runtime Stage
+# -----------------------------
+FROM eclipse-temurin:21-jdk
 
-CMD ["java", "-jar", "target/employee-0.0.1-SNAPSHOT.jar"]
+WORKDIR /app
+
+COPY --from=builder /build/target/*.jar app.jar
+
+ENTRYPOINT ["java","-jar","app.jar"]
