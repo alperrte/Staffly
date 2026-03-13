@@ -12,7 +12,7 @@
         </processorPath>
         <module name="api" />
       </profile>
-      <profile name="Annotation profile for employee" enabled="true">
+      <profile name="Annotation profile for auth" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
