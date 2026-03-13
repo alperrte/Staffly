@@ -29,34 +29,47 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+
+                // CSRF kapalı (JWT kullanıyoruz)
                 .csrf(csrf -> csrf.disable())
+
+                // CORS açık
                 .cors(cors -> {})
 
+                // Session kullanmıyoruz
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+                // Default login sistemlerini kapatıyoruz
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // swagger
+                        // Swagger
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // auth
-                        .requestMatchers("/auth/**").permitAll()
+                        // AUTH endpoints
+                        .requestMatchers(
+                                "/auth/register",
+                                "/auth/login",
+                                "/auth/refresh",
+                                "/auth/logout"
+                        ).permitAll()
 
                         // preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // diğer tüm endpointler JWT ister
                         .anyRequest().authenticated()
                 )
 
+                // JWT filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
