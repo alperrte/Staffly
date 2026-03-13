@@ -22,13 +22,16 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name="password_hash", nullable=false)
     private String password;
 
+    @Column(name="is_active")
     private Boolean active;
 
+    @Column(name="created_at")
     private LocalDateTime createdAt;
 
+    @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
     @ManyToMany(fetch = FetchType.EAGER)
