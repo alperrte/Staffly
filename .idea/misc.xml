@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/backend/auth/pom.xml" />
         <option value="$PROJECT_DIR$/backend/user/pom.xml" />
         <option value="$PROJECT_DIR$/backend/employee/pom.xml" />
+        <option value="$PROJECT_DIR$/backend/departmentservice/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
@@ -16,7 +17,7 @@
       </set>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_23" project-jdk-name="24" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_21" project-jdk-name="24" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
