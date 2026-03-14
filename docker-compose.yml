@@ -111,6 +111,34 @@ services:
 
     restart: unless-stopped
 
+  department-service:
+    build: ./backend/departmentservice
+    container_name: staffly-department
+
+    env_file:
+      - .env
+
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT_DEPARTMENT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+
+    ports:
+      - "${SERVER_PORT_DEPARTMENT}:${SERVER_PORT_DEPARTMENT}"
+
+    restart: unless-stopped
 
 volumes:
   mssql_data:
