@@ -50,8 +50,8 @@ public class AuthService {
         userRepository.save(user);
 
         return AuthResponse.builder()
-                .access_token("REGISTER_SUCCESS")
-                .refresh_token("REGISTER_SUCCESS")
+                .accessToken("REGISTER_SUCCESS")
+                .refreshToken("REGISTER_SUCCESS")
                 .build();
     }
 
@@ -83,8 +83,8 @@ public class AuthService {
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return AuthResponse.builder()
-                .access_token(accessToken)
-                .refresh_token(refreshToken.getToken())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
                 .build();
     }
     public AuthResponse refresh(String refreshToken) {
@@ -105,8 +105,8 @@ public class AuthService {
         String accessToken = jwtService.generateToken(userDetails);
 
         return AuthResponse.builder()
-                .access_token(accessToken)
-                .refresh_token(refreshToken)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
     public void logout(String refreshToken) {

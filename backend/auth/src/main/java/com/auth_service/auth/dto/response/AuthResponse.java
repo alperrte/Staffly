@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class AuthResponse {
 
-    private String access_token;
+    private String accessToken;
 
-    private String refresh_token;
+    private String refreshToken;
 }
