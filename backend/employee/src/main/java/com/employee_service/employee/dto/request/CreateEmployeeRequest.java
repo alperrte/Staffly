@@ -10,9 +10,6 @@ import java.time.LocalDate;
 public class CreateEmployeeRequest {
 
     @NotBlank
-    private String employeeNumber;
-
-    @NotBlank
     private String firstName;
 
     @NotBlank

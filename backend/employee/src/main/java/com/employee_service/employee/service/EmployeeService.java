@@ -26,7 +26,6 @@ public class EmployeeService {
     public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
 
         Employee employee = Employee.builder()
-                .employeeNumber(request.getEmployeeNumber())
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
@@ -62,22 +61,53 @@ public class EmployeeService {
 
         Employee employee = employeeRepository.findById(id).orElseThrow();
 
-        return mapToResponse(employee, null);
+        EmployeePersonalInfo personalInfo =
+                personalInfoRepository.findByEmployeeId(id).orElse(null);
+
+        EmployeeJobInfo jobInfo =
+                jobInfoRepository.findByEmployeeId(id).orElse(null);
+
+        return EmployeeResponse.builder()
+                .id(employee.getId())
+                .firstName(employee.getFirstName())
+                .lastName(employee.getLastName())
+                .email(employee.getEmail())
+                .hireDate(employee.getHireDate())
+                .status(employee.getStatus())
+                .phone(personalInfo != null ? personalInfo.getPhone() : null)
+                .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
+                .gender(personalInfo != null ? personalInfo.getGender() : null)
+                .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
+                .positionName(jobInfo != null ? jobInfo.getPositionName() : null)
+                .build();
     }
 
     public List<EmployeeResponse> getAllEmployees() {
 
-        return employeeRepository.findAll()
+        return employeeRepository.findByIsDeletedFalse()
                 .stream()
-                .map(employee -> EmployeeResponse.builder()
-                        .id(employee.getId())
-                        .employeeNumber(employee.getEmployeeNumber())
-                        .firstName(employee.getFirstName())
-                        .lastName(employee.getLastName())
-                        .email(employee.getEmail())
-                        .hireDate(employee.getHireDate())
-                        .status(employee.getStatus())
-                        .build())
+                .map(employee -> {
+
+                    EmployeePersonalInfo personalInfo =
+                            personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+                    EmployeeJobInfo jobInfo =
+                            jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+                    return EmployeeResponse.builder()
+                            .id(employee.getId())
+                            .firstName(employee.getFirstName())
+                            .lastName(employee.getLastName())
+                            .email(employee.getEmail())
+                            .hireDate(employee.getHireDate())
+                            .status(employee.getStatus())
+                            .phone(personalInfo != null ? personalInfo.getPhone() : null)
+                            .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
+                            .gender(personalInfo != null ? personalInfo.getGender() : null)
+                            .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
+                            .positionName(jobInfo != null ? jobInfo.getPositionName() : null)
+                            .build();
+                })
                 .toList();
     }
 
@@ -101,7 +131,8 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id).orElseThrow();
 
         employee.setIsDeleted(true);
-
+        employee.setStatus("PASSIVE");
+        employee.setUpdatedAt(LocalDateTime.now());
 
         employeeRepository.save(employee);
     }
@@ -110,7 +141,6 @@ public class EmployeeService {
 
         return EmployeeResponse.builder()
                 .id(employee.getId())
-                .employeeNumber(employee.getEmployeeNumber())
                 .firstName(employee.getFirstName())
                 .lastName(employee.getLastName())
                 .email(employee.getEmail())

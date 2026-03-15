@@ -3,9 +3,6 @@ package com.employee_service.employee.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "employee_job_info")
 @Getter
