@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import LoginPage from "./pages/LoginPage"
+import LoginPage from "./pages/auth/LoginPage.tsx"
 import TestPage from "./pages/TestPage"
 
 function App() {

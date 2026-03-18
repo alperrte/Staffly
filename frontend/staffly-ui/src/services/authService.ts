@@ -1,15 +1,18 @@
-import axios from "axios"
+import api from "../services/api"; // path doğruysa tamam
 
-const API = axios.create({
-    baseURL: "http://localhost:8081/api"
-})
+export const login = async (email: string, password: string) => {
+    const response = await api.post(
+        "/auth/login",
+        {
+            email,
+            password
+        },
+        {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }
+    );
 
-export const login = async (email: string,password: string) => {
-
-    const response = await API.post("/auth/login",{
-        email,
-        password
-    })
-
-    return response.data
-}
+    return response.data;
+};
