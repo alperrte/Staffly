@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
-import loginBg from "../assets/login-bg.jpg"
-import stafflyLogo from "../assets/logo.png"
+import loginBg from "../../assets/login-bg.jpg"
+import stafflyLogo from "../../assets/logo.png"
 import { Mail, Lock, Eye, EyeOff, Upload, ChevronDown, ArrowRight, ShieldCheck } from "lucide-react"
+import { login } from "../../services/authService";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
@@ -13,34 +14,19 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
 
     const handleLogin = async (e: React.FormEvent) => {
-
-        e.preventDefault()
+        e.preventDefault();
 
         try {
+            const data = await login(email, password);
 
-            const res = await fetch("http://localhost:8081/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    email,
-                    password
-                })
-            })
+            localStorage.setItem("token", data.accessToken);
 
-            const data = await res.json()
+            navigate("/test");
 
-            localStorage.setItem("token", data.accessToken)
-            navigate("/test")
-
-        } catch {
-
-            alert("Login başarısız")
-
+        } catch (error) {
+            alert("Login başarısız");
         }
-
-    }
+    };
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-black">
             {/* Background Image + Overlay + Glow */}
