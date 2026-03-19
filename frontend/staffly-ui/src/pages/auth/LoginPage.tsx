@@ -21,7 +21,7 @@ export default function LoginPage() {
 
             localStorage.setItem("token", data.accessToken);
 
-            navigate("/test");
+            navigate("/app");
 
         } catch (error) {
             alert("Login başarısız");
