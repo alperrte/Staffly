@@ -9,3 +9,4 @@ export const createEmployee = async (data: any) => {
     const response = await API.post("/employees", data);
     return response.data;
 };
+//Push

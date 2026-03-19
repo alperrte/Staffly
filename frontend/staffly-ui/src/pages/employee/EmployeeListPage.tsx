@@ -27,6 +27,7 @@ const statusLabelTR: Record<string, string> = {
     ACTIVE: "Aktif",
     INACTIVE: "Pasif",
 };
+//Push
 
 const genderLabelTR: Record<string, string> = {
     MALE: "Erkek",
