@@ -45,7 +45,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaHome /> Dashboard
+            <FaHome /> Ana Sayfa
           </NavLink>
 
           <NavLink
@@ -54,7 +54,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaUsers /> Employees
+            <FaUsers /> Çalışanlar
           </NavLink>
 
           <NavLink
@@ -63,7 +63,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaBuilding /> Departments
+            <FaBuilding /> Departmanlar
           </NavLink>
 
           <NavLink
@@ -72,7 +72,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaUsers /> Users (Auth Service)
+            <FaUsers /> Kullanıcılar
           </NavLink>
 
 
@@ -88,7 +88,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaHeadset /> Support
+            <FaHeadset /> Destek
           </NavLink>
 
         </nav>
@@ -101,7 +101,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaCog /> Settings
+            <FaCog /> Ayarlar
           </NavLink>
         </div>
       </aside>
