@@ -1,5 +1,6 @@
 package com.auth_service.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,17 +23,20 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name="password_hash", nullable=false)
+
+    @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
     private String password;
 
-    @Column(name="is_active")
+    @Column(name = "is_active")
     private Boolean active;
 
-    @Column(name="created_at")
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name="updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -41,5 +45,4 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles;
-
 }

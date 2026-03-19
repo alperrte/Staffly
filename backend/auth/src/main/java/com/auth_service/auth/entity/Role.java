@@ -1,13 +1,13 @@
 package com.auth_service.auth.entity;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Set;
 
 @Entity
-@Table(name="roles")
+@Table(name = "roles")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,8 +24,11 @@ public class Role {
 
     private String description;
 
+
     @ManyToMany(mappedBy = "roles")
+    @JsonIgnore
     private Set<User> users;
+
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -33,6 +36,6 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
+    @JsonIgnore
     private Set<Permission> permissions;
-
 }

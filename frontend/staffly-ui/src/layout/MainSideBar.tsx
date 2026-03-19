@@ -72,7 +72,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaUsers /> Users (Auth Service)
+            <FaUsers /> Kullanıcılar
           </NavLink>
 
 
