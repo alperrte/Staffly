@@ -13,6 +13,7 @@ const linkBase =
 const linkInactive = "text-slate-300 hover:bg-[#1E293B]";
 const linkActive =
     "bg-[#1E293B] text-white shadow-[0_0_18px_rgba(15,23,42,0.8)]";
+//Push
 
 const Sidebar = () => {
   return (
@@ -45,7 +46,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaHome /> Dashboard
+            <FaHome /> Ana Sayfa
           </NavLink>
 
           <NavLink
@@ -54,7 +55,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaUsers /> Employees
+            <FaUsers /> Çalışanlar
           </NavLink>
 
           <NavLink
@@ -63,7 +64,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaBuilding /> Departments
+            <FaBuilding /> Departmanlar
           </NavLink>
 
           <NavLink
@@ -88,7 +89,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaHeadset /> Support
+            <FaHeadset /> Destek
           </NavLink>
 
         </nav>
@@ -101,7 +102,7 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
-            <FaCog /> Settings
+            <FaCog /> Ayarlar
           </NavLink>
         </div>
       </aside>

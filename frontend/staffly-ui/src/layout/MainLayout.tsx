@@ -3,6 +3,7 @@ import Sidebar from "./MainSideBar";
 import stafflyLogo from "../assets/logo.png";
 import { Bell, ChevronDown, Search } from "lucide-react";
 import { Power } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const MainLayout = () => {
     const navigate = useNavigate();
@@ -14,6 +15,20 @@ const MainLayout = () => {
         sessionStorage.clear();
         navigate("/", { replace: true });
     };
+    const [email, setEmail] = useState("");
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            setEmail(payload.sub || payload.email);
+        } catch (e) {
+            setEmail("");
+        }
+    }, []);
+//Push
 
     return (
         <div className="flex h-screen bg-[#020617] text-white overflow-hidden">
@@ -58,7 +73,7 @@ const MainLayout = () => {
                                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search employee, department, or task"
+                                    placeholder=" "
                                     className="w-full rounded-full border border-white/10 bg-slate-900/50 py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
                                 />
                             </div>
@@ -74,8 +89,8 @@ const MainLayout = () => {
                             </button>
 
                             <button className="flex items-center gap-2 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs border border-white/10 hover:border-sky-400/60 hover:bg-slate-900">
-                                <span className="truncate max-w-[130px] text-slate-100">
-                                    example@hotmail.com
+                               <span className="truncate max-w-[130px] text-slate-100">
+                                  {email || "User"}
                                 </span>
                                 <ChevronDown className="h-4 w-4 text-slate-300" />
                             </button>
