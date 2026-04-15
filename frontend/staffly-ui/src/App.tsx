@@ -8,7 +8,8 @@ import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 
 // User page
 import UserPage from "./pages/userService/UserPage";
-
+// Task Page
+import TaskPage from "./pages/task/TaskPage";
 function App() {
     return (
         <BrowserRouter>
@@ -35,6 +36,9 @@ function App() {
 
                     {/* USER */}
                     <Route path="users" element={<UserPage />} />
+
+                     {/* TASK */}
+                    <Route path="tasks" element={<TaskPage />} />
 
                     {/* SETTINGS */}
                     <Route path="settings" element={<div>Settings</div>} />
