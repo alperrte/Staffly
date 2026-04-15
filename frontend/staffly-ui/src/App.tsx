@@ -9,6 +9,12 @@ import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 
 import UserPage from "./pages/userService/UserPage";
 
+// Department page
+import DepartmentsPage from "./pages/department/DepartmentsPage";
+
+// Task Page
+import TaskPage from "./pages/task/TaskPage";
+
 function App() {
     return (
         <BrowserRouter>
