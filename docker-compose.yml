@@ -6,17 +6,13 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: ${MSSQL_CONTAINER}
     restart: always
-
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${DB_PASSWORD}
-
     ports:
       - "${MSSQL_PORT}:1433"
-
     volumes:
       - mssql_data:/var/opt/mssql
-
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -C -Q 'SELECT 1'"]
       interval: 10s
@@ -24,16 +20,12 @@ services:
       retries: 20
       start_period: 30s
 
-
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
-
     depends_on:
       mssql:
         condition: service_healthy
-
     entrypoint: ["/bin/bash","-lc"]
-
     command: >
       "/opt/mssql-tools18/bin/sqlcmd
       -S mssql
@@ -41,162 +33,124 @@ services:
       -P \"$DB_PASSWORD\"
       -C
       -Q \"IF DB_ID('${DB_NAME}') IS NULL CREATE DATABASE ${DB_NAME};\""
-
     environment:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
-
     restart: "no"
-
 
   auth-service:
     build: ./backend/auth
     container_name: staffly-auth
-
     env_file:
       - .env
-
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-
     environment:
       SERVER_PORT: ${SERVER_PORT_AUTH}
-
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
       REFRESH_TOKEN_EXPIRATION: ${REFRESH_TOKEN_EXPIRATION}
-
     ports:
       - "${SERVER_PORT_AUTH}:${SERVER_PORT_AUTH}"
-
     restart: unless-stopped
-
-
 
   employee-service:
     build: ./backend/employee
     container_name: staffly-employee
-
     env_file:
       - .env
-
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-
     environment:
       SERVER_PORT: ${SERVER_PORT_EMPLOYEE}
-
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
-
     ports:
       - "${SERVER_PORT_EMPLOYEE}:${SERVER_PORT_EMPLOYEE}"
-
     restart: unless-stopped
 
   department-service:
     build: ./backend/departmentservice
     container_name: staffly-department
-
     env_file:
       - .env
-
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-
     environment:
       SERVER_PORT: ${SERVER_PORT_DEPARTMENT}
-
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
-
     ports:
       - "${SERVER_PORT_DEPARTMENT}:${SERVER_PORT_DEPARTMENT}"
-
     restart: unless-stopped
 
   task-service:
     build: ./backend/task
     container_name: staffly-task
-
     env_file:
       - .env
-
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-
     environment:
       SERVER_PORT: ${SERVER_PORT_TASK}
-
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
-
     ports:
       - "${SERVER_PORT_TASK}:${SERVER_PORT_TASK}"
-
     restart: unless-stopped
-    
-      cv-service:
+
+  cv-service:
     build: ./backend/cv-service
     container_name: staffly-cv-service
-
     env_file:
       - .env
-
     depends_on:
       mssql:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
-
     environment:
       SERVER_PORT: ${SERVER_PORT_CV}
-
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
-
     ports:
       - "${SERVER_PORT_CV}:${SERVER_PORT_CV}"
-
+    volumes:
+      - ./backend/cv-service/uploads:/app/uploads
     restart: unless-stopped
-    
+
 volumes:
   mssql_data:
