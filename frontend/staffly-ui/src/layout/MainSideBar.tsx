@@ -7,6 +7,7 @@ import {
   FaCog,
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
+import { FaTasks } from "react-icons/fa";
 
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
@@ -66,7 +67,14 @@ const Sidebar = () => {
           >
             <FaBuilding /> Departmanlar
           </NavLink>
-
+            <NavLink
+                to="/app/tasks"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaTasks /> Görevler
+            </NavLink>
           <NavLink
               to="/app/users"
               className={({ isActive }) =>

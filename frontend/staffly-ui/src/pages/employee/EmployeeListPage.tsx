@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { getAllEmployees } from "../../services/employeeService";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type Employee = {
     id: number;
@@ -88,12 +88,14 @@ const toHumanLabel = (key: string) => {
 
 const EmployeeListPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [filtered, setFiltered] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
 
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -125,6 +127,23 @@ const EmployeeListPage = () => {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        const state = location.state as
+            | { employeeCreated?: boolean; createdEmployeeName?: string }
+            | null;
+
+        if (state?.employeeCreated) {
+            const name = state.createdEmployeeName?.trim();
+            setSuccessMessage(
+                name
+                    ? `${name} başarıyla oluşturuldu.`
+                    : "Çalışan başarıyla oluşturuldu."
+            );
+
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -215,6 +234,11 @@ const EmployeeListPage = () => {
             </div>
 
             {error && <div className="text-red-400 text-sm">{error}</div>}
+            {successMessage && (
+                <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                    {successMessage}
+                </div>
+            )}
 
             <div className="rounded-xl border border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">

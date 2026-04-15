@@ -169,7 +169,12 @@ const CreateEmployeePage = () => {
             setLoading(true);
             await createEmployee(form);
 
-            navigate("/app/employees");
+            navigate("/app/employees", {
+                state: {
+                    employeeCreated: true,
+                    createdEmployeeName: `${form.firstName} ${form.lastName}`.trim(),
+                },
+            });
         } catch (err) {
             console.error(err);
             setError("Çalışan oluşturulamadı");

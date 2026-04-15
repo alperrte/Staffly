@@ -8,8 +8,12 @@ import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 
 // User page
 import UserPage from "./pages/userService/UserPage";
+
 // Department page
 import DepartmentsPage from "./pages/department/DepartmentsPage";
+
+// Task Page
+import TaskPage from "./pages/task/TaskPage";
 
 function App() {
     return (
@@ -33,7 +37,7 @@ function App() {
                     <Route path="employees/create" element={<CreateEmployeePage />} />
 
                     {/* DEPARTMENT */}
-                    <Route path="departments" element={<DepartmentsPage />} />
+                    <Route path="departments" element={<div>Departments</div>} />
 
                     {/* USER */}
                     <Route path="users" element={<UserPage />} />
