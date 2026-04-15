@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/auth/LoginPage";
 import MainLayout from "./layout/MainLayout";
+import CvServicePage from "./pages/cvService/CvServicePage";
 
-// Employee pages
 import EmployeeListPage from "./pages/employee/EmployeeListPage";
 import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 
-// User page
+
 import UserPage from "./pages/userService/UserPage";
 
 function App() {
@@ -35,6 +35,9 @@ function App() {
 
                     {/* USER */}
                     <Route path="users" element={<UserPage />} />
+
+                    {/* CV */}
+                    <Route path="applications" element={<CvServicePage />} />
 
                     {/* SETTINGS */}
                     <Route path="settings" element={<div>Settings</div>} />

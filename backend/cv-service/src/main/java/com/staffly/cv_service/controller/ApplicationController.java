@@ -5,6 +5,7 @@ import com.staffly.cv_service.dto.response.ApplicationResponseDto;
 import com.staffly.cv_service.service.ApplicationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,5 +46,18 @@ public class ApplicationController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ApplicationResponseDto>> getApplicationsByStatus(@PathVariable String status) {
         return ResponseEntity.ok(applicationService.getApplicationsByStatus(status));
+    }
+
+    @GetMapping("/{id}/cv")
+    public ResponseEntity<Resource> getApplicationCv(@PathVariable Long id) {
+        return applicationService.getApplicationCv(id);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApplicationResponseDto> updateApplicationStatus(
+            @PathVariable Long id,
+            @RequestParam String status
+    ) {
+        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, status));
     }
 }

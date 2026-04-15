@@ -6,11 +6,19 @@ import com.staffly.cv_service.entity.Application;
 import com.staffly.cv_service.repository.ApplicationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -85,6 +93,44 @@ public class ApplicationService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public ResponseEntity<Resource> getApplicationCv(Long id) {
+        try {
+            Application application = applicationRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Application not found with id: " + id));
+
+            Path filePath = Path.of(application.getCvFilePath());
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new RuntimeException("CV file not found or not readable");
+            }
+
+            return ResponseEntity.ok()
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + application.getCvOriginalFileName() + "\""
+                    )
+                    .contentType(MediaType.parseMediaType(application.getCvContentType()))
+                    .body(resource);
+
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Error while reading CV file", e);
+        }
+    }
+
+    public ApplicationResponseDto updateApplicationStatus(Long id, String status) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + id));
+
+        application.setStatus(status);
+        application.setIsReviewed(true);
+        application.setReviewedAt(LocalDateTime.now());
+
+        Application updated = applicationRepository.save(application);
+
+        return mapToResponse(updated);
     }
 
     private ApplicationResponseDto mapToResponse(Application app) {

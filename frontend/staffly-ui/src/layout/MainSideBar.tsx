@@ -8,6 +8,8 @@ import {
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
 
+import { FaFileAlt } from "react-icons/fa";
+
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
 const linkInactive = "text-slate-300 hover:bg-[#1E293B]";
@@ -57,6 +59,15 @@ const Sidebar = () => {
           >
             <FaUsers /> Çalışanlar
           </NavLink>
+
+            <NavLink
+                to="/app/applications"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaFileAlt /> Başvurular
+            </NavLink>
 
           <NavLink
               to="/app/departments"
