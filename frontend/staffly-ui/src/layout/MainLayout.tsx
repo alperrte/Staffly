@@ -36,16 +36,16 @@ const MainLayout = () => {
             <Sidebar />
 
             {/* ARKA PLAN */}
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex h-full flex-1 flex-col">
                 <div className="pointer-events-none absolute inset-0 opacity-60">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(56,189,248,0.4),transparent_55%),radial-gradient(circle_at_100%_100%,rgba(59,130,246,0.45),transparent_55%)]" />
                     <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900/95 to-slate-950" />
                 </div>
 
                 {/* İÇERİK ALANI */}
-                <div className="relative z-10 flex flex-col h-full px-8 py-6">
+                <div className="relative z-10 flex min-h-0 flex-1 flex-col px-8 py-6">
                     {/* HEADER */}
-                    <header className="mb-6 flex items-center justify-between">
+                    <header className="mb-6 flex shrink-0 items-center justify-between">
                         {/* Sol: Logo + Başlık */}
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-[2px] shadow-[0_0_18px_rgba(59,130,246,0.7)]">
@@ -116,8 +116,8 @@ const MainLayout = () => {
                     </header>
 
                     {/* CAM PANEL + SAYFA İÇERİĞİ */}
-                    <main className="flex-1">
-                        <div className="h-full w-full rounded-3xl border border-white/10 bg-slate-900/40 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl p-6">
+                    <main className="staffly-scroll flex-1 min-h-0 overflow-y-auto pr-2">
+                        <div className="w-full rounded-3xl border border-white/10 bg-slate-900/40 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl p-6">
                             <Outlet />
                         </div>
                     </main>

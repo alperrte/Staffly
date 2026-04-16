@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* Fade üst-alt efekt */
+.staffly-scroll {
+    mask-image: linear-gradient(
+            to bottom,
+            transparent,
+            black 20px,
+            black calc(100% - 20px),
+            transparent
+    );
+
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+/* Scroll genişliği */
+.staffly-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* Track görünmez */
+.staffly-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Default → görünmez */
+.staffly-scroll::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+    transition: all 0.3s ease;
+}
+
+/* Hover → görünür + gradient */
+.staffly-scroll:hover::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+            180deg,
+            rgba(56, 189, 248, 0.45),
+            rgba(37, 99, 235, 0.45)
+    );
+}
+
+/* Hover üstünde glow */
+.staffly-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+            180deg,
+            rgba(56, 189, 248, 0.65),
+            rgba(37, 99, 235, 0.65)
+    );
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+}
+
