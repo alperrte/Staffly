@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import loginBg from "../../assets/login-bg.jpg";
 import stafflyLogo from "../../assets/logo.png";
 import {
@@ -10,19 +10,126 @@ import {
     Upload,
     ChevronDown,
     ArrowRight,
-    ShieldCheck
+    ShieldCheck,
+    X,
+    CheckCircle2,
+    AlertTriangle,
+    Info,
 } from "lucide-react";
 import { login } from "../../services/authService";
 import { createApplication } from "../../services/applicationService";
 
+type ModalType = "success" | "error" | "info" | "confirm";
+
+type ModalState = {
+    open: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+};
+
+const COUNTRY_CODES = [
+    { code: "+90", label: "TR (+90)" },
+    { code: "+1", label: "US (+1)" },
+    { code: "+44", label: "UK (+44)" },
+    { code: "+49", label: "DE (+49)" },
+    { code: "+33", label: "FR (+33)" },
+    { code: "+39", label: "IT (+39)" },
+    { code: "+31", label: "NL (+31)" },
+    { code: "+34", label: "ES (+34)" },
+];
+
+const emailRegex =
+    /^[^\s@]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|icloud\.com)$/i;
+
+const nameRegex = /^[A-Za-zÀ-ž\s]+$/;
+const phoneRegex = /^[0-9]{7,14}$/;
+
+function FeedbackModal({
+                           modal,
+                           onClose,
+                           onConfirm,
+                       }: {
+    modal: ModalState;
+    onClose: () => void;
+    onConfirm?: () => void;
+}) {
+    if (!modal.open) return null;
+
+    const iconMap = {
+        success: <CheckCircle2 className="h-10 w-10 text-emerald-400" />,
+        error: <AlertTriangle className="h-10 w-10 text-rose-400" />,
+        info: <Info className="h-10 w-10 text-sky-400" />,
+        confirm: <Info className="h-10 w-10 text-amber-400" />,
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="w-full max-w-md rounded-3xl border border-white/15 bg-slate-950/95 p-6 shadow-[0_0_50px_rgba(15,23,42,0.95)] animate-in zoom-in-95 duration-300">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        {iconMap[modal.type]}
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">
+                                {modal.title}
+                            </h3>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <p className="mb-6 text-sm leading-6 text-slate-300">
+                    {modal.message}
+                </p>
+
+                {modal.type === "confirm" ? (
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                        >
+                            Vazgeç
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onConfirm}
+                            className="flex-1 rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                        >
+                            Onayla
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                    >
+                        Tamam
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function LoginPage() {
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
     const [selectedPosition, setSelectedPosition] = useState("");
+    const [selectedCountryCode, setSelectedCountryCode] = useState("+90");
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -38,18 +145,112 @@ export default function LoginPage() {
 
     const [cvFile, setCvFile] = useState<File | null>(null);
     const [applicationLoading, setApplicationLoading] = useState(false);
-    const [applicationSuccess, setApplicationSuccess] = useState("");
-    const [applicationError, setApplicationError] = useState("");
+
+    const [fieldErrors, setFieldErrors] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+    });
+
+    const [modal, setModal] = useState<ModalState>({
+        open: false,
+        type: "info",
+        title: "",
+        message: "",
+    });
+
+    useEffect(() => {
+        return () => {
+            if (autoCloseTimerRef.current) {
+                clearTimeout(autoCloseTimerRef.current);
+            }
+        };
+    }, []);
+
+    const openModal = (
+        type: ModalType,
+        title: string,
+        message: string,
+        autoClose = false
+    ) => {
+        setModal({
+            open: true,
+            type,
+            title,
+            message,
+        });
+
+        if (autoClose) {
+            if (autoCloseTimerRef.current) {
+                clearTimeout(autoCloseTimerRef.current);
+            }
+
+            autoCloseTimerRef.current = setTimeout(() => {
+                setModal((prev) => ({ ...prev, open: false }));
+            }, 5000);
+        }
+    };
+
+    const closeModal = () => {
+        if (autoCloseTimerRef.current) {
+            clearTimeout(autoCloseTimerRef.current);
+        }
+        setModal((prev) => ({ ...prev, open: false }));
+    };
+
+    const validateNameField = (value: string) => {
+        if (!value.trim()) return "";
+        return nameRegex.test(value)
+            ? ""
+            : "Ad soyad alanında sayı veya özel karakter olamaz.";
+    };
+
+    const validateEmailField = (value: string) => {
+        if (!value.trim()) return "";
+        return emailRegex.test(value)
+            ? ""
+            : "E-posta geçersiz. Örnek: example@gmail.com";
+    };
+
+    const validatePhoneField = (value: string) => {
+        if (!value.trim()) return "";
+        return phoneRegex.test(value)
+            ? ""
+            : "Telefon numarası sadece rakamlardan oluşmalı ve geçerli uzunlukta olmalıdır.";
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!emailRegex.test(email)) {
+            openModal(
+                "error",
+                "Geçersiz E-posta",
+                "Lütfen giriş için geçerli bir e-posta adresi girin. Örnek: example@gmail.com"
+            );
+            return;
+        }
+
+        if (!password.trim()) {
+            openModal(
+                "error",
+                "Eksik Şifre",
+                "Lütfen şifre alanını doldurun."
+            );
+            return;
+        }
 
         try {
             const data = await login(email, password);
             localStorage.setItem("token", data.accessToken);
             navigate("/app");
         } catch (error) {
-            alert("Login başarısız");
+            openModal(
+                "error",
+                "Giriş Başarısız",
+                "Yanlış e-posta veya yanlış şifre girdiniz. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
+            );
         }
     };
 
@@ -57,10 +258,44 @@ export default function LoginPage() {
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
+
         setApplicationForm((prev) => ({
             ...prev,
             [name]: value,
         }));
+
+        if (name === "firstName") {
+            setFieldErrors((prev) => ({
+                ...prev,
+                firstName: validateNameField(value),
+            }));
+        }
+
+        if (name === "lastName") {
+            setFieldErrors((prev) => ({
+                ...prev,
+                lastName: validateNameField(value),
+            }));
+        }
+
+        if (name === "email") {
+            setFieldErrors((prev) => ({
+                ...prev,
+                email: validateEmailField(value),
+            }));
+        }
+
+        if (name === "phone") {
+            const numericValue = value.replace(/\D/g, "");
+            setApplicationForm((prev) => ({
+                ...prev,
+                phone: numericValue,
+            }));
+            setFieldErrors((prev) => ({
+                ...prev,
+                phone: validatePhoneField(numericValue),
+            }));
+        }
     };
 
     const handleSelectFileClick = () => {
@@ -69,36 +304,137 @@ export default function LoginPage() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
-        setCvFile(file);
-    };
 
-    const handleApplicationSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        if (!file) return;
 
-        setApplicationSuccess("");
-        setApplicationError("");
+        const isPdf =
+            file.type === "application/pdf" ||
+            file.name.toLowerCase().endsWith(".pdf");
+        const isValidSize = file.size <= 5 * 1024 * 1024;
 
-        if (!cvFile) {
-            setApplicationError("Lütfen bir CV dosyası seçin.");
+        if (!isPdf) {
+            setCvFile(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+            openModal(
+                "error",
+                "Geçersiz Dosya",
+                "Sadece PDF formatında dosya yükleyebilirsiniz."
+            );
             return;
         }
 
+        if (!isValidSize) {
+            setCvFile(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+            openModal(
+                "error",
+                "Dosya Boyutu Hatası",
+                "Yüklemek istediğiniz dosya en fazla 5 MB olabilir."
+            );
+            return;
+        }
+
+        setCvFile(file);
+        openModal(
+            "success",
+            "Dosya Yüklendi",
+            "Dosyanız başarıyla yüklendi.",
+            true
+        );
+    };
+
+    const validateApplicationForm = () => {
+        const newErrors = {
+            firstName: validateNameField(applicationForm.firstName),
+            lastName: validateNameField(applicationForm.lastName),
+            email: validateEmailField(applicationForm.email),
+            phone: validatePhoneField(applicationForm.phone),
+        };
+
+        setFieldErrors(newErrors);
+
+        if (!applicationForm.firstName.trim()) {
+            openModal("error", "Eksik Bilgi", "Lütfen ad alanını doldurun.");
+            return false;
+        }
+
+        if (!applicationForm.lastName.trim()) {
+            openModal("error", "Eksik Bilgi", "Lütfen soyad alanını doldurun.");
+            return false;
+        }
+
+        if (!applicationForm.email.trim()) {
+            openModal("error", "Eksik Bilgi", "Lütfen e-posta alanını doldurun.");
+            return false;
+        }
+
+        if (!applicationForm.phone.trim()) {
+            openModal("error", "Eksik Bilgi", "Lütfen telefon alanını doldurun.");
+            return false;
+        }
+
+        if (!applicationForm.department.trim()) {
+            openModal(
+                "error",
+                "Eksik Bilgi",
+                "Lütfen departman alanını doldurun."
+            );
+            return false;
+        }
+
+        if (!applicationForm.position.trim()) {
+            openModal("error", "Eksik Bilgi", "Lütfen bir pozisyon seçin.");
+            return false;
+        }
+
+        if (!cvFile) {
+            openModal(
+                "error",
+                "CV Eksik",
+                "Lütfen PDF formatında bir CV dosyası seçin."
+            );
+            return false;
+        }
+
+        if (
+            newErrors.firstName ||
+            newErrors.lastName ||
+            newErrors.email ||
+            newErrors.phone
+        ) {
+            openModal(
+                "error",
+                "Form Hatası",
+                "Lütfen kırmızı hata mesajı görünen alanları düzeltin."
+            );
+            return false;
+        }
+
+        return true;
+    };
+
+    const submitApplication = async () => {
         try {
             setApplicationLoading(true);
+            closeModal();
 
             const formData = new FormData();
-            formData.append("firstName", applicationForm.firstName);
-            formData.append("lastName", applicationForm.lastName);
-            formData.append("email", applicationForm.email);
-            formData.append("phone", applicationForm.phone);
-            formData.append("department", applicationForm.department);
+            formData.append("firstName", applicationForm.firstName.trim());
+            formData.append("lastName", applicationForm.lastName.trim());
+            formData.append("email", applicationForm.email.trim());
+            formData.append(
+                "phone",
+                `${selectedCountryCode}${applicationForm.phone.trim()}`
+            );
+            formData.append("department", applicationForm.department.trim());
             formData.append("position", applicationForm.position);
-            formData.append("cvFile", cvFile);
+            formData.append("cvFile", cvFile as File);
 
             await createApplication(formData);
-
-            setApplicationSuccess("Başvurunuz başarıyla gönderildi.");
-            setApplicationError("");
 
             setApplicationForm({
                 firstName: "",
@@ -109,17 +445,51 @@ export default function LoginPage() {
                 position: "",
             });
             setSelectedPosition("");
+            setSelectedCountryCode("+90");
             setCvFile(null);
+            setFieldErrors({
+                firstName: "",
+                lastName: "",
+                email: "",
+                phone: "",
+            });
 
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
             }
+
+            openModal(
+                "success",
+                "Başvurunuz Alınmıştır",
+                "Başvurunuz alınmıştır. Mail yoluyla sizinle iletişime geçilecektir.",
+                true
+            );
         } catch (error) {
             console.error("Başvuru gönderme hatası:", error);
-            setApplicationError("Başvuru gönderilirken bir hata oluştu.");
+            openModal(
+                "error",
+                "Başvuru Hatası",
+                "Başvuru gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+            );
         } finally {
             setApplicationLoading(false);
         }
+    };
+
+    const handleApplicationSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const isValid = validateApplicationForm();
+
+        if (!isValid) return;
+
+        setModal({
+            open: true,
+            type: "confirm",
+            title: "Başvuruyu Onayla",
+            message:
+                "İş başvurunuzu göndermek istediğinize emin misiniz? Onayladıktan sonra bilgileriniz İnsan Kaynakları ekibine iletilecektir.",
+        });
     };
 
     return (
@@ -134,6 +504,12 @@ export default function LoginPage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-black/90 via-black/70 to-slate-950/80" />
             </div>
 
+            <FeedbackModal
+                modal={modal}
+                onClose={closeModal}
+                onConfirm={submitApplication}
+            />
+
             <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10">
                 <div className="mb-10 flex items-center gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-[3px] shadow-[0_0_25px_rgba(59,130,246,0.7)]">
@@ -147,10 +523,10 @@ export default function LoginPage() {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-[2.1rem] font-semibold tracking-[0.35em] text-white/95 leading-none">
+                        <h1 className="leading-none text-[2.1rem] font-semibold tracking-[0.35em] text-white/95">
                             STAFFLY
                         </h1>
-                        <p className="text-[0.7rem] font-light tracking-[0.45em] text-sky-300/90 uppercase">
+                        <p className="text-[0.7rem] font-light uppercase tracking-[0.45em] text-sky-300/90">
                             HR MANAGEMENT SYSTEM
                         </p>
                     </div>
@@ -228,7 +604,10 @@ export default function LoginPage() {
                         <h2 className="mb-1 text-[1.6rem] font-semibold tracking-wide text-white">
                             İş Başvurusu Yap
                         </h2>
-                        <p className="mb-7 text-sm text-slate-300"></p>
+                        <p className="mb-7 text-sm leading-6 text-slate-300">
+                            Lütfen bilgilerinizi eksiksiz doldurun, CV dosyanızı PDF
+                            formatında yükleyin ve başvurunuzu güvenle iletin.
+                        </p>
 
                         <form className="space-y-5" onSubmit={handleApplicationSubmit}>
                             <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/40 p-6">
@@ -255,53 +634,102 @@ export default function LoginPage() {
                                 </button>
 
                                 {cvFile && (
-                                    <p className="mt-3 text-xs text-sky-300">
+                                    <p className="mt-3 text-center text-xs text-sky-300">
                                         {cvFile.name}
                                     </p>
                                 )}
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <input
-                                    type="text"
-                                    name="firstName"
-                                    placeholder="Ad"
-                                    value={applicationForm.firstName}
-                                    onChange={handleApplicationChange}
-                                    className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                    required
-                                />
+                                <div>
+                                    <input
+                                        type="text"
+                                        name="firstName"
+                                        placeholder="Ad"
+                                        value={applicationForm.firstName}
+                                        onChange={handleApplicationChange}
+                                        className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
+                                        required
+                                    />
+                                    {fieldErrors.firstName && (
+                                        <p className="mt-1 text-xs text-red-400">
+                                            {fieldErrors.firstName}
+                                        </p>
+                                    )}
+                                </div>
 
-                                <input
-                                    type="text"
-                                    name="lastName"
-                                    placeholder="Soyad"
-                                    value={applicationForm.lastName}
-                                    onChange={handleApplicationChange}
-                                    className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                    required
-                                />
+                                <div>
+                                    <input
+                                        type="text"
+                                        name="lastName"
+                                        placeholder="Soyad"
+                                        value={applicationForm.lastName}
+                                        onChange={handleApplicationChange}
+                                        className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
+                                        required
+                                    />
+                                    {fieldErrors.lastName && (
+                                        <p className="mt-1 text-xs text-red-400">
+                                            {fieldErrors.lastName}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
-                            <input
-                                type="email"
-                                name="email"
-                                placeholder="E-posta"
-                                value={applicationForm.email}
-                                onChange={handleApplicationChange}
-                                className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                required
-                            />
+                            <div>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    placeholder="E-posta"
+                                    value={applicationForm.email}
+                                    onChange={handleApplicationChange}
+                                    className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
+                                    required
+                                />
+                                {fieldErrors.email && (
+                                    <p className="mt-1 text-xs text-red-400">
+                                        {fieldErrors.email}
+                                    </p>
+                                )}
+                            </div>
 
-                            <input
-                                type="tel"
-                                name="phone"
-                                placeholder="Telefon"
-                                value={applicationForm.phone}
-                                onChange={handleApplicationChange}
-                                className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                required
-                            />
+                            <div className="flex gap-3">
+                                <div className="relative w-36">
+                                    <select
+                                        value={selectedCountryCode}
+                                        onChange={(e) => setSelectedCountryCode(e.target.value)}
+                                        className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-4 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
+                                    >
+                                        {COUNTRY_CODES.map((country) => (
+                                            <option
+                                                key={country.code}
+                                                value={country.code}
+                                                className="bg-slate-900"
+                                            >
+                                                {country.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                </div>
+
+                                <div className="flex-1">
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        placeholder="Telefon Numarası"
+                                        value={applicationForm.phone}
+                                        onChange={handleApplicationChange}
+                                        className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
+                                        required
+                                    />
+                                    {fieldErrors.phone && (
+                                        <p className="mt-1 text-xs text-red-400">
+                                            {fieldErrors.phone}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
                             <input
                                 type="text"
@@ -348,14 +776,6 @@ export default function LoginPage() {
                                 </select>
                                 <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                             </div>
-
-                            {applicationSuccess && (
-                                <p className="text-sm text-green-400">{applicationSuccess}</p>
-                            )}
-
-                            {applicationError && (
-                                <p className="text-sm text-red-400">{applicationError}</p>
-                            )}
 
                             <button
                                 type="submit"
