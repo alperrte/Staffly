@@ -7,14 +7,17 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "department")
+@Table(name = "sub_departments")
 @Getter
 @Setter
-public class Department {
+public class SubDepartment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "department_id", nullable = false)
+    private Long departmentId;
 
     @Column(nullable = false)
     private String name;

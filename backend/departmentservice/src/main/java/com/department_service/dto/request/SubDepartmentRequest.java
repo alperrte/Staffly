@@ -7,11 +7,11 @@ import java.util.List;
 
 @Getter
 @Setter
-public class CreateDepartmentRequest {
+public class SubDepartmentRequest {
 
     private String name;
     private String description;
     private Long managerId;
 
-    private List<SubDepartmentRequest> subDepartments;
+    private List<DepartmentPositionRequest> positions;
 }
