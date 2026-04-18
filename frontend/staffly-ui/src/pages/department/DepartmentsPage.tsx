@@ -2,6 +2,7 @@ type Department = {
     id: number;
     name: string;
     description: string;
+    deleted: boolean;
 };
 import { useState } from "react";
 import { useEffect } from "react";
@@ -19,9 +20,6 @@ function DepartmentsPage() {
     const [updateName, setUpdateName] = useState("");
     const [updateDescription, setUpdateDescription] = useState("");
     const [showDropdown, setShowDropdown] = useState(false);
-    const [deletedDepartments, setDeletedDepartments] = useState<Department[]>([]);
-    const [showDeleted, setShowDeleted] = useState(false);
-
 
     const loadDepartments = async () => {
         try {
@@ -50,6 +48,64 @@ function DepartmentsPage() {
         cursor: "pointer",
         transition: "0.2s",
 
+    };
+    const handleActivate = async (id: number) => {
+
+        const token = localStorage.getItem("token");
+
+        try {
+            const response = await fetch(
+                `http://localhost:8083/departments/${id}/activate`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                alert("Açma başarısız");
+                return;
+            }
+
+            alert("Departman açıldı");
+
+            await loadDepartments();
+
+        } catch (err) {
+            console.error(err);
+            alert("Hata oluştu");
+        }
+    };
+    const handleDeactivate = async (id: number) => {
+
+        const token = localStorage.getItem("token");
+
+        try {
+            const response = await fetch(
+                `http://localhost:8083/departments/${id}/deactivate`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                alert("Kapatma başarısız");
+                return;
+            }
+
+            alert("Departman kapatıldı");
+
+            await loadDepartments();
+
+        } catch (err) {
+            console.error(err);
+            alert("Hata oluştu");
+        }
     };
 
     const handleCreate = async () => {
@@ -128,47 +184,7 @@ function DepartmentsPage() {
             alert("Hata oluştu");
         }
     };
-    const handleDelete = async () => {
 
-        if (!selectedDepartmentId) {
-            alert("Lütfen departman seç");
-            return;
-        }
-
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(
-                `http://localhost:8083/departments/${selectedDepartmentId}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
-                }
-            );
-
-            if (!response.ok) {
-                alert("Silme başarısız");
-                return;
-            }
-
-            alert("Silindi!");
-
-            // 🔥 SİLİNENİ LİSTEYE EKLE
-            const deleted = departments.find(d => d.id === selectedDepartmentId);
-            if (deleted) {
-                setDeletedDepartments(prev => [...prev, deleted]);
-            }
-
-            // 🔥 ANA LİSTEDEN ÇIKAR
-            setDepartments(prev => prev.filter(d => d.id !== selectedDepartmentId));
-
-        } catch (err) {
-            console.error(err);
-            alert("Hata oluştu");
-        }
-    };
     return (
         <div style={{
             padding: "40px",
@@ -243,37 +259,71 @@ function DepartmentsPage() {
                     }}>
                         {departments.map((dep) => (
                             <div key={dep.id} style={{
-                                padding: "8px",
-                                borderBottom: "1px solid rgba(255,255,255,0.1)"
+                                padding: "10px",
+                                borderBottom: "1px solid rgba(255,255,255,0.1)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center"
                             }}>
-                                {dep.name} - {dep.description}
+
+                                <div>
+                                    {dep.name} - {dep.description}
+                                    {dep.deleted && <span style={{ color: "red", marginLeft: "10px" }}>(Kapalı)</span>}
+                                </div>
+
+                                <div style={{
+                                    display: "flex",
+                                    gap: "10px"
+                                }}>
+
+                                    {!dep.deleted && (
+                                        <button
+                                            onClick={() => {
+                                                const confirmClose = window.confirm("Departmanı kapatmak istediğine emin misin?");
+                                                if (!confirmClose) return;
+
+                                                handleDeactivate(dep.id);
+                                            }}
+                                            style={{
+                                                background: "#7c2d12",
+                                                color: "white",
+                                                border: "none",
+                                                padding: "6px 10px",
+                                                borderRadius: "6px",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            ⛔ Kapat
+                                        </button>
+                                    )}
+
+                                    {dep.deleted && (
+                                        <button
+                                            onClick={() => {
+                                                const confirmOpen = window.confirm("Departmanı açmak istediğine emin misin?");
+                                                if (!confirmOpen) return;
+
+                                                handleActivate(dep.id);
+                                            }}
+                                            style={{
+                                                background: "#065f46",
+                                                color: "white",
+                                                border: "none",
+                                                padding: "6px 10px",
+                                                borderRadius: "6px",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            🔓 Aç
+                                        </button>
+                                    )}
+
+                                </div>
+
                             </div>
                         ))}
                     </div>
                 )}
-                <div
-                    onClick={() => setShowDeleted(!showDeleted)}
-                    style={{
-                        background: "#020617",
-                        border: "1px solid #1e293b",
-                        padding: "12px",
-                        borderRadius: "10px",
-                        marginTop: "10px",
-                        cursor: "pointer"
-                    }}
-                >
-                    🗑️ Silinen Departmanlar
-                </div>
-
-                {showDeleted && deletedDepartments.map((dep) => (
-                    <div key={dep.id} style={{
-                        padding: "8px",
-                        borderBottom: "1px solid rgba(255,255,255,0.1)",
-                        color: "gray"
-                    }}>
-                        {dep.name} - {dep.description}
-                    </div>
-                ))}
 
                 {/* 🔹 SABİT BAŞLIKLAR */}
                 <div
@@ -282,42 +332,6 @@ function DepartmentsPage() {
                 >
                     ✏️ Departman güncelle
                 </div>
-                <div
-                    style={btnStyle}
-                    onClick={() => setShowDropdown(!showDropdown)}
-                >
-                    🗑️ Soft delete
-                </div>
-                {showDropdown && (
-                    <div style={{
-                        background: "#020617",
-                        border: "1px solid #1e293b",
-                        borderRadius: "8px",
-                        marginBottom: "10px"
-                    }}>
-                        {departments.map((dep) => (
-                            <div
-                                key={dep.id}
-                                onClick={() => {
-                                    const confirmDelete = window.confirm("Bu departmanı silmek istediğine emin misin?");
-
-                                    if (!confirmDelete) return;
-
-                                    setSelectedDepartmentId(dep.id);
-                                    handleDelete();
-                                    setShowDropdown(false);
-                                }}
-                                style={{
-                                    padding: "10px",
-                                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                                    cursor: "pointer"
-                                }}
-                            >
-                                {dep.name}
-                            </div>
-                        ))}
-                    </div>
-                )}
 
                 <div style={btnStyle}>👑 Yönetici belirle</div>
 
