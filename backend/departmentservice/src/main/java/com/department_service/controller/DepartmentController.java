@@ -1,7 +1,9 @@
 package com.department_service.controller;
 
 import com.department_service.dto.request.CreateDepartmentRequest;
+import com.department_service.dto.response.DepartmentPositionResponse;
 import com.department_service.dto.response.DepartmentResponse;
+import com.department_service.dto.response.SubDepartmentResponse;
 import com.department_service.entity.Department;
 import com.department_service.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
@@ -37,5 +39,34 @@ public class DepartmentController {
     public ResponseEntity<Void> deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{departmentId}/sub-departments")
+    public ResponseEntity<List<SubDepartmentResponse>> getSubDepartmentsByDepartmentId(
+            @PathVariable Long departmentId
+    ) {
+        return ResponseEntity.ok(departmentService.getSubDepartmentsByDepartmentId(departmentId));
+    }
+
+    @GetMapping("/sub-departments/{subDepartmentId}/positions")
+    public ResponseEntity<List<DepartmentPositionResponse>> getPositionsBySubDepartmentId(
+            @PathVariable Long subDepartmentId
+    ) {
+        return ResponseEntity.ok(departmentService.getPositionsBySubDepartmentId(subDepartmentId));
+    }
+
+    @GetMapping("/sub-departments/{id}")
+    public ResponseEntity<SubDepartmentResponse> getSubDepartmentById(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getSubDepartmentById(id));
+    }
+
+    @GetMapping("/positions/{id}")
+    public ResponseEntity<DepartmentPositionResponse> getPositionById(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getPositionById(id));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DepartmentResponse> getDepartmentById(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getDepartmentById(id));
     }
 }

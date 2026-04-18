@@ -4,6 +4,10 @@ const cvApi = axios.create({
     baseURL: "http://localhost:8085",
 });
 
+const departmentApi = axios.create({
+    baseURL: "http://localhost:8083",
+});
+
 export const createApplication = async (formData: FormData) => {
     const response = await cvApi.post("/applications", formData, {
         headers: {
@@ -37,5 +41,22 @@ export const getApplicationCv = async (id: number, token?: string | null) => {
             : undefined,
     });
 
+    return response.data;
+};
+
+export const getDepartments = async () => {
+    const response = await departmentApi.get("/departments");
+    return response.data;
+};
+
+export const getSubDepartmentsByDepartmentId = async (departmentId: number) => {
+    const response = await departmentApi.get(`/departments/${departmentId}/sub-departments`);
+    return response.data;
+};
+
+export const getPositionsBySubDepartmentId = async (subDepartmentId: number) => {
+    const response = await departmentApi.get(
+        `/departments/sub-departments/${subDepartmentId}/positions`
+    );
     return response.data;
 };

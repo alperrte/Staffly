@@ -13,6 +13,7 @@ public class SubDepartmentResponse {
     private String name;
     private String description;
     private Long managerId;
+    private Long departmentId;
 
     private List<DepartmentPositionResponse> positions;
 }

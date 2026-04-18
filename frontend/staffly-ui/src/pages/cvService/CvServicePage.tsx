@@ -23,9 +23,15 @@ interface Application {
     lastName: string;
     email: string;
     phone?: string;
-    countryCode?: string;
-    department: string;
-    position: string;
+
+    departmentId: number;
+    subDepartmentId: number;
+    positionId: number;
+
+    departmentName: string;
+    subDepartmentName: string;
+    positionName: string;
+
     status: string;
     appliedAt?: string;
     reviewedAt?: string;
@@ -34,7 +40,7 @@ interface Application {
 }
 
 type TabType = "PENDING" | "ACCEPTED" | "REJECTED";
-type SortField = "firstName" | "lastName" | "department" | "position";
+type SortField = "firstName" | "lastName" | "departmentName" | "positionName";
 type SortDirection = "asc" | "desc";
 type ActionType = "ACCEPTED" | "REJECTED" | null;
 
@@ -274,12 +280,11 @@ const CvServicePage = () => {
 
             const matchesSearch =
                 `${app.firstName} ${app.lastName}`.toLowerCase().includes(normalizedSearch) ||
-                app.department.toLowerCase().includes(normalizedSearch) ||
-                app.position.toLowerCase().includes(normalizedSearch) ||
+                app.departmentName.toLowerCase().includes(normalizedSearch) ||
+                app.subDepartmentName.toLowerCase().includes(normalizedSearch) ||
+                app.positionName.toLowerCase().includes(normalizedSearch) ||
                 app.email.toLowerCase().includes(normalizedSearch) ||
-                `${app.countryCode || ""} ${app.phone || ""}`
-                    .toLowerCase()
-                    .includes(normalizedSearch);
+                (app.phone || "").toLowerCase().includes(normalizedSearch);
 
             return matchesTab && matchesSearch;
         });
@@ -554,22 +559,22 @@ const CvServicePage = () => {
 
                         <button
                             type="button"
-                            onClick={() => handleSort("department")}
+                            onClick={() => handleSort("departmentName")}
                             className="col-span-3 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
                         >
                             <Building2 className="h-3.5 w-3.5" />
                             Departman
-                            {renderSortIcon("department")}
+                            {renderSortIcon("departmentName")}
                         </button>
 
                         <button
                             type="button"
-                            onClick={() => handleSort("position")}
+                            onClick={() => handleSort("positionName")}
                             className="col-span-3 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
                         >
                             <BriefcaseBusiness className="h-3.5 w-3.5" />
                             Pozisyon
-                            {renderSortIcon("position")}
+                            {renderSortIcon("positionName")}
                         </button>
                     </div>
 
@@ -610,10 +615,10 @@ const CvServicePage = () => {
                                                 {app.lastName}
                                             </div>
                                             <div className="col-span-3 flex items-center text-sm text-slate-300">
-                                                {app.department}
+                                                {app.departmentName}
                                             </div>
                                             <div className="col-span-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-                                                <span>{app.position}</span>
+                                                <span>{app.positionName}</span>
                                                 {isExpanded ? (
                                                     <ChevronUp className="h-4 w-4 text-slate-400" />
                                                 ) : (
@@ -655,13 +660,20 @@ const CvServicePage = () => {
 
                                                             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
                                                                 <span className="text-slate-400">Departman</span>
-                                                                <span className="text-white">{app.department}</span>
+                                                                <span className="text-white">{app.departmentName}</span>
+                                                            </div>
+
+                                                            <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
+                                                                <span className="text-slate-400">Alt Departman</span>
+                                                                <span className="text-white">{app.subDepartmentName}</span>
                                                             </div>
 
                                                             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
                                                                 <span className="text-slate-400">Pozisyon</span>
-                                                                <span className="text-white">{app.position}</span>
+                                                                <span className="text-white">{app.positionName}</span>
                                                             </div>
+
+
 
                                                             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
                                                                 <span className="text-slate-400">Durum</span>
