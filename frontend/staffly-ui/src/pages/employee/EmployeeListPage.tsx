@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { getAllEmployees } from "../../services/employeeService";
+import { getAllEmployees, updateEmployee } from "../../services/employeeService";
 import { useLocation, useNavigate } from "react-router-dom";
+import { POSITION_OPTIONS_TR } from "../../constants/positions";
 
 type Employee = {
     id: number;
@@ -98,6 +99,16 @@ const EmployeeListPage = () => {
     const [successMessage, setSuccessMessage] = useState("");
 
     const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [savingId, setSavingId] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        positionName: "",
+        status: "ACTIVE",
+        gender: "",
+    });
 
     useEffect(() => {
         let isMounted = true;
@@ -206,6 +217,67 @@ const EmployeeListPage = () => {
         []
     );
 
+    const statusOptions = useMemo(() => ["ACTIVE", "INACTIVE"], []);
+
+    const positionOptions = useMemo(() => [...POSITION_OPTIONS_TR], []);
+
+    const genderOptions = useMemo(() => ["", "MALE", "FEMALE"], []);
+
+    const startEdit = (emp: Employee) => {
+        setEditingId(emp.id);
+        setEditForm({
+            firstName: String(emp.firstName ?? ""),
+            lastName: String(emp.lastName ?? ""),
+            email: String(emp.email ?? ""),
+            positionName: String(emp.positionName ?? ""),
+            status: String(emp.status ?? "ACTIVE"),
+            gender: String(emp.gender ?? ""),
+        });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setSavingId(null);
+    };
+
+    const saveEdit = async (empId: number) => {
+        try {
+            setSavingId(empId);
+            setError("");
+
+            const payload = {
+                firstName: editForm.firstName.trim(),
+                lastName: editForm.lastName.trim(),
+                email: editForm.email.trim(),
+                positionName: editForm.positionName.trim(),
+                status: editForm.status,
+                gender: editForm.gender || null,
+            };
+
+            const updated = await updateEmployee(empId, payload);
+
+            setEmployees((prev) =>
+                prev.map((emp) =>
+                    emp.id === empId
+                        ? {
+                              ...emp,
+                              ...payload,
+                              ...(updated && typeof updated === "object" ? updated : {}),
+                          }
+                        : emp
+                )
+            );
+
+            setSuccessMessage("Çalışan bilgileri güncellendi.");
+            setEditingId(null);
+        } catch (err) {
+            console.error(err);
+            setError("Çalışan güncellenemedi");
+        } finally {
+            setSavingId(null);
+        }
+    };
+
     if (loading) {
         return <div className="text-slate-400">Çalışanlar yükleniyor...</div>;
     }
@@ -242,7 +314,7 @@ const EmployeeListPage = () => {
 
             <div className="rounded-xl border border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[1160px]">
+                    <table className="w-full text-sm min-w-[1240px]">
                         <thead className="bg-slate-800/60 text-slate-300">
                         <tr>
                             <th className="p-3 text-left">Ad Soyad</th>
@@ -252,6 +324,7 @@ const EmployeeListPage = () => {
                             <th className="p-3 text-left">İşe Giriş Tarihi</th>
                             <th className="p-3 text-left">Cinsiyet</th>
                             <th className="p-3 text-left">Durum</th>
+                            <th className="p-3 text-right">İşlemler</th>
                         </tr>
                         </thead>
 
@@ -302,11 +375,174 @@ const EmployeeListPage = () => {
                           {statusLabelTR[emp.status] ?? emp.status}
                         </span>
                                         </td>
+
+                                        <td className="p-3 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (editingId === emp.id) {
+                                                        cancelEdit();
+                                                        return;
+                                                    }
+                                                    startEdit(emp);
+                                                }}
+                                                className="inline-flex items-center justify-center rounded-md border border-slate-600 bg-slate-900/60 p-2 text-slate-200 hover:border-sky-400 hover:text-sky-300 transition"
+                                                aria-label="Çalışanı güncelle"
+                                                title="Çalışanı güncelle"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.8"
+                                                    className="h-4 w-4"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M14.7 6.3a4 4 0 0 0 2.44 2.44l.37.12a1 1 0 0 1 .57 1.44l-1.04 1.8a6 6 0 0 1-5.2 3h-2.1a2 2 0 0 0-1.74 1l-.7 1.2a1 1 0 0 1-1.45.34l-1.36-.92a1 1 0 0 1-.22-1.47l1.03-1.31a2 2 0 0 0-.18-2.68l-.81-.8a1 1 0 0 1-.02-1.42l1.44-1.47a1 1 0 0 1 1.4-.02l.88.87a2 2 0 0 0 2.77.11l1.18-.96a1 1 0 0 1 1.45.3l.14.23Z"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </td>
                                     </tr>
+
+                                    {editingId === emp.id && (
+                                        <tr>
+                                            <td colSpan={8} className="p-4 bg-slate-900/50 border-t border-slate-700">
+                                                <div className="rounded-xl border border-slate-700 bg-slate-950/30 p-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-sm font-semibold text-slate-100">
+                                                            Çalışan Güncelle
+                                                        </h3>
+                                                        <span className="text-xs text-slate-400">
+                                                            Açılır düzenleme formu
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <input
+                                                            type="text"
+                                                            value={editForm.firstName}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    firstName: e.target.value,
+                                                                }))
+                                                            }
+                                                            placeholder="Ad"
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
+                                                        />
+
+                                                        <input
+                                                            type="text"
+                                                            value={editForm.lastName}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    lastName: e.target.value,
+                                                                }))
+                                                            }
+                                                            placeholder="Soyad"
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
+                                                        />
+
+                                                        <input
+                                                            type="email"
+                                                            value={editForm.email}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    email: e.target.value,
+                                                                }))
+                                                            }
+                                                            placeholder="E-posta"
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
+                                                        />
+
+                                                        <select
+                                                            value={editForm.positionName}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    positionName: e.target.value,
+                                                                }))
+                                                            }
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
+                                                        >
+                                                            <option value="">Pozisyon seç</option>
+                                                            {positionOptions.map((position) => (
+                                                                <option key={position} value={position}>
+                                                                    {position}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+
+                                                        <select
+                                                            value={editForm.status}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    status: e.target.value,
+                                                                }))
+                                                            }
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
+                                                        >
+                                                            {statusOptions.map((status) => (
+                                                                <option key={status} value={status}>
+                                                                    {statusLabelTR[status] ?? status}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+
+                                                        <select
+                                                            value={editForm.gender}
+                                                            onChange={(e) =>
+                                                                setEditForm((prev) => ({
+                                                                    ...prev,
+                                                                    gender: e.target.value,
+                                                                }))
+                                                            }
+                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
+                                                        >
+                                                            <option value="">Cinsiyet seç</option>
+                                                            {genderOptions
+                                                                .filter((g) => g)
+                                                                .map((gender) => (
+                                                                    <option key={gender} value={gender}>
+                                                                        {formatGenderTR(gender)}
+                                                                    </option>
+                                                                ))}
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="mt-4 flex items-center justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={cancelEdit}
+                                                            className="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-200 hover:border-slate-500 hover:text-white transition"
+                                                        >
+                                                            Vazgeç
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={savingId === emp.id}
+                                                            onClick={() => saveEdit(emp.id)}
+                                                            className="px-4 py-2 text-sm rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white font-medium transition"
+                                                        >
+                                                            {savingId === emp.id ? "Kaydediliyor..." : "Kaydet"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
 
                                     {isOpen && (
                                         <tr>
-                                            <td colSpan={7} className="p-4 bg-slate-900/35">
+                                            <td colSpan={8} className="p-4 bg-slate-900/35">
                                                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
                                                     {/* Sabit kartlar */}
                                                     <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3">

@@ -30,7 +30,7 @@ public class EmployeeService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .hireDate(request.getHireDate())
-                .status(request.getStatus())
+                .status("ACTIVE")
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
                 .build();
