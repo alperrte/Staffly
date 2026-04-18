@@ -1,25 +1,44 @@
-type Department = {
-    id: number;
-    name: string;
-    description: string;
-    deleted: boolean;
-};
-import { useState } from "react";
-import { useEffect } from "react";
-import { getDepartments } from "../../services/departmentService";
+import { useEffect, useState } from "react";
+import {
+    createDepartment,
+    deleteDepartment,
+    getDepartments,
+    updateDepartment,
+    type Department,
+    type SubDepartment,
+    type DepartmentPosition
+} from "../../services/departmentService";
 
 function DepartmentsPage() {
-
-    const [isOpen, setIsOpen] = useState(false);
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
     const [departments, setDepartments] = useState<Department[]>([]);
-    const [showDepartments, setShowDepartments] = useState(false);
+    const [expandedDepartmentIds, setExpandedDepartmentIds] = useState<number[]>([]);
+
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+
     const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
-    const [updateName, setUpdateName] = useState("");
-    const [updateDescription, setUpdateDescription] = useState("");
-    const [showDropdown, setShowDropdown] = useState(false);
+
+    const emptyPosition: DepartmentPosition = {
+        name: "",
+        description: ""
+    };
+
+    const emptySubDepartment: SubDepartment = {
+        name: "",
+        description: "",
+        managerId: null,
+        positions: [{ ...emptyPosition }]
+    };
+
+    const emptyDepartmentForm: Department = {
+        name: "",
+        description: "",
+        managerId: null,
+        subDepartments: [{ ...emptySubDepartment }]
+    };
+
+    const [createForm, setCreateForm] = useState<Department>(emptyDepartmentForm);
+    const [updateForm, setUpdateForm] = useState<Department>(emptyDepartmentForm);
 
     const loadDepartments = async () => {
         try {
@@ -27,535 +46,790 @@ function DepartmentsPage() {
             setDepartments(data);
         } catch (err) {
             console.error(err);
+            alert("Departmanlar alınamadı");
         }
     };
 
     useEffect(() => {
-        const fetchData = async () => {
-            await loadDepartments();
-        };
-
-        fetchData().catch(console.error);
+        loadDepartments().catch(console.error);
     }, []);
 
-    const btnStyle = {
-        background: "#020617",
-        border: "1px solid #1e293b",
-        padding: "12px",
-        borderRadius: "10px",
-        color: "white",
-        textAlign: "left" as const,
-        cursor: "pointer",
-        transition: "0.2s",
-
+    const toggleDepartmentExpand = (id: number) => {
+        setExpandedDepartmentIds((prev) =>
+            prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id]
+        );
     };
-    const handleActivate = async (id: number) => {
 
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(
-                `http://localhost:8083/departments/${id}/activate`,
+    const resetCreateForm = () => {
+        setCreateForm({
+            name: "",
+            description: "",
+            managerId: null,
+            subDepartments: [
                 {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
+                    name: "",
+                    description: "",
+                    managerId: null,
+                    positions: [{ name: "", description: "" }]
                 }
-            );
-
-            if (!response.ok) {
-                alert("Açma başarısız");
-                return;
-            }
-
-            alert("Departman açıldı");
-
-            await loadDepartments();
-
-        } catch (err) {
-            console.error(err);
-            alert("Hata oluştu");
-        }
+            ]
+        });
     };
-    const handleDeactivate = async (id: number) => {
 
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(
-                `http://localhost:8083/departments/${id}/deactivate`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": "Bearer " + token
+    const mapDepartmentToForm = (dep: Department): Department => ({
+        id: dep.id,
+        name: dep.name,
+        description: dep.description,
+        managerId: dep.managerId ?? null,
+        subDepartments:
+            dep.subDepartments?.length > 0
+                ? dep.subDepartments.map((sub) => ({
+                    name: sub.name,
+                    description: sub.description,
+                    managerId: sub.managerId ?? null,
+                    positions:
+                        sub.positions?.length > 0
+                            ? sub.positions.map((pos) => ({
+                                name: pos.name,
+                                description: pos.description
+                            }))
+                            : [{ name: "", description: "" }]
+                }))
+                : [
+                    {
+                        name: "",
+                        description: "",
+                        managerId: null,
+                        positions: [{ name: "", description: "" }]
                     }
+                ]
+    });
+
+    const handleCreateChange = (field: keyof Department, value: string | number | null) => {
+        setCreateForm((prev) => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleUpdateChange = (field: keyof Department, value: string | number | null) => {
+        setUpdateForm((prev) => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleCreateSubDepartmentChange = (
+        subIndex: number,
+        field: keyof SubDepartment,
+        value: string | number | null
+    ) => {
+        setCreateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                [field]: value
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const handleUpdateSubDepartmentChange = (
+        subIndex: number,
+        field: keyof SubDepartment,
+        value: string | number | null
+    ) => {
+        setUpdateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                [field]: value
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const handleCreatePositionChange = (
+        subIndex: number,
+        posIndex: number,
+        field: keyof DepartmentPosition,
+        value: string
+    ) => {
+        setCreateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            const updatedPositions = [...updatedSubs[subIndex].positions];
+            updatedPositions[posIndex] = {
+                ...updatedPositions[posIndex],
+                [field]: value
+            };
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: updatedPositions
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const handleUpdatePositionChange = (
+        subIndex: number,
+        posIndex: number,
+        field: keyof DepartmentPosition,
+        value: string
+    ) => {
+        setUpdateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            const updatedPositions = [...updatedSubs[subIndex].positions];
+            updatedPositions[posIndex] = {
+                ...updatedPositions[posIndex],
+                [field]: value
+            };
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: updatedPositions
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const addCreateSubDepartment = () => {
+        setCreateForm((prev) => ({
+            ...prev,
+            subDepartments: [
+                ...prev.subDepartments,
+                {
+                    name: "",
+                    description: "",
+                    managerId: null,
+                    positions: [{ name: "", description: "" }]
                 }
-            );
+            ]
+        }));
+    };
 
-            if (!response.ok) {
-                alert("Kapatma başarısız");
-                return;
-            }
+    const addUpdateSubDepartment = () => {
+        setUpdateForm((prev) => ({
+            ...prev,
+            subDepartments: [
+                ...prev.subDepartments,
+                {
+                    name: "",
+                    description: "",
+                    managerId: null,
+                    positions: [{ name: "", description: "" }]
+                }
+            ]
+        }));
+    };
 
-            alert("Departman kapatıldı");
+    const addCreatePosition = (subIndex: number) => {
+        setCreateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: [
+                    ...updatedSubs[subIndex].positions,
+                    { name: "", description: "" }
+                ]
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
 
-            await loadDepartments();
+    const addUpdatePosition = (subIndex: number) => {
+        setUpdateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: [
+                    ...updatedSubs[subIndex].positions,
+                    { name: "", description: "" }
+                ]
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
 
-        } catch (err) {
-            console.error(err);
-            alert("Hata oluştu");
-        }
+    const removeCreateSubDepartment = (subIndex: number) => {
+        setCreateForm((prev) => ({
+            ...prev,
+            subDepartments: prev.subDepartments.filter((_, i) => i !== subIndex)
+        }));
+    };
+
+    const removeUpdateSubDepartment = (subIndex: number) => {
+        setUpdateForm((prev) => ({
+            ...prev,
+            subDepartments: prev.subDepartments.filter((_, i) => i !== subIndex)
+        }));
+    };
+
+    const removeCreatePosition = (subIndex: number, posIndex: number) => {
+        setCreateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: updatedSubs[subIndex].positions.filter((_, i) => i !== posIndex)
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const removeUpdatePosition = (subIndex: number, posIndex: number) => {
+        setUpdateForm((prev) => {
+            const updatedSubs = [...prev.subDepartments];
+            updatedSubs[subIndex] = {
+                ...updatedSubs[subIndex],
+                positions: updatedSubs[subIndex].positions.filter((_, i) => i !== posIndex)
+            };
+            return { ...prev, subDepartments: updatedSubs };
+        });
+    };
+
+    const sanitizeDepartmentPayload = (data: Department): Department => {
+        return {
+            ...data,
+            name: data.name.trim(),
+            description: data.description.trim(),
+            subDepartments: data.subDepartments
+                .filter((sub) => sub.name.trim() !== "")
+                .map((sub) => ({
+                    ...sub,
+                    name: sub.name.trim(),
+                    description: sub.description.trim(),
+                    positions: sub.positions
+                        .filter((pos) => pos.name.trim() !== "")
+                        .map((pos) => ({
+                            name: pos.name.trim(),
+                            description: pos.description.trim()
+                        }))
+                }))
+        };
     };
 
     const handleCreate = async () => {
-
-        const token = localStorage.getItem("token");
-
-        console.log("CREATE BAŞLADI");
         try {
-            const response = await fetch("http://localhost:8083/departments", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify({
-                    name,
-                    description
-                })
-            });
-
-
-            console.log("STATUS:", response.status);
-
-            if (!response.ok) {
-                const text = await response.text();
-                console.error("HATA:", text);
-                alert("Hata oluştu! Status: " + response.status);
-                return;
-            }
-
-            const data = await response.json();
-            console.log("BAŞARILI:", data);
-            alert("Departman oluşturuldu!");
-
-            setIsOpen(false);
-            setName("");
-            setDescription("");
-
-        } catch (err) {
-            console.error("NETWORK HATA:", err);
-            alert("Sunucuya ulaşılamadı!");
-        }
-        await loadDepartments();
-    };
-    const handleUpdate = async () => {
-        const token = localStorage.getItem("token");
-
-        try {
-            const response = await fetch(
-                `http://localhost:8083/departments/${selectedDepartmentId}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({
-                        name: updateName,
-                        description: updateDescription
-                    })
-                }
-            );
-
-            if (!response.ok) {
-                alert("Güncelleme başarısız");
-                return;
-            }
-
-            alert("Güncellendi!");
-
-            setIsUpdateOpen(false);
+            const payload = sanitizeDepartmentPayload(createForm);
+            await createDepartment(payload);
+            alert("Departman oluşturuldu");
+            setIsCreateOpen(false);
+            resetCreateForm();
             await loadDepartments();
-
         } catch (err) {
             console.error(err);
-            alert("Hata oluştu");
+            alert("Departman oluşturulamadı");
+        }
+    };
+
+    const handleOpenUpdate = (dep: Department) => {
+        setSelectedDepartmentId(dep.id!);
+        setUpdateForm(mapDepartmentToForm(dep));
+        setIsUpdateOpen(true);
+    };
+
+    const handleUpdate = async () => {
+        if (!selectedDepartmentId) {
+            alert("Lütfen düzenlenecek departmanı seç");
+            return;
+        }
+
+        try {
+            const payload = sanitizeDepartmentPayload(updateForm);
+            await updateDepartment(selectedDepartmentId, payload);
+            alert("Departman güncellendi");
+            setIsUpdateOpen(false);
+            await loadDepartments();
+        } catch (err) {
+            console.error(err);
+            alert("Departman güncellenemedi");
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        const confirmDelete = window.confirm("Departmanı silmek istediğine emin misin?");
+        if (!confirmDelete) return;
+
+        try {
+            await deleteDepartment(id);
+            alert("Departman silindi");
+            await loadDepartments();
+        } catch (err) {
+            console.error(err);
+            alert("Departman silinemedi");
         }
     };
 
     return (
-        <div style={{
-            padding: "40px",
-            background: "#020617",
-            minHeight: "100vh",
-            color: "white",
-            overflowY: "auto"
-        }}>
-
-            {/* 🔷 ÜST KART */}
-            <div style={{
-                background: "#0f172a",
-                border: "1px solid #1e293b",
-                padding: "25px",
-                borderRadius: "16px",
-                marginBottom: "20px",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)"
-            }}>
+        <div
+            style={{
+                padding: "40px",
+                background: "#020617",
+                minHeight: "100vh",
+                color: "white",
+                overflowY: "auto"
+            }}
+        >
+            <div
+                style={{
+                    background: "#0f172a",
+                    border: "1px solid #1e293b",
+                    padding: "25px",
+                    borderRadius: "16px",
+                    marginBottom: "20px",
+                    boxShadow: "0 0 20px rgba(0,0,0,0.4)"
+                }}
+            >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                        <h2 style={{ margin: 0 }}>Departman Yönetimi</h2>
-
-                    </div>
+                    <h2 style={{ margin: 0 }}>Departman Yönetimi</h2>
                     <button
-                        onClick={() => setIsOpen(true)}
-                        style={{
-                            background: "#38bdf8",
-                            color: "white",
-                            padding: "10px 15px",
-                            borderRadius: "8px",
-                            border: "none"
-                        }}
+                        onClick={() => setIsCreateOpen(true)}
+                        style={primaryTopButtonStyle}
                     >
                         + Departman Ekle
                     </button>
                 </div>
-
             </div>
 
-            {/* 🔷 ALT KART */}
-            <div style={{
-                background: "#0f172a",
-                border: "1px solid #1e293b",
-                padding: "20px",
-                borderRadius: "16px",
-                boxShadow: "0 0 20px rgba(0,0,0,0.4)"
-            }}>
-
-                {/* 🔽 DEPARTMANLAR */}
+            <div
+                style={{
+                    background: "#0f172a",
+                    border: "1px solid #1e293b",
+                    padding: "20px",
+                    borderRadius: "16px",
+                    boxShadow: "0 0 20px rgba(0,0,0,0.4)"
+                }}
+            >
                 <div
-                    onClick={() => setShowDepartments(!showDepartments)}
                     style={{
                         background: "#020617",
                         border: "1px solid #1e293b",
                         padding: "12px",
                         borderRadius: "10px",
-                        cursor: "pointer",
-                        marginBottom: "10px"
+                        marginBottom: "12px"
                     }}
                 >
                     📂 Departmanlar
                 </div>
 
-                {/* AÇILAN LİSTE */}
-                {showDepartments && (
-                    <div style={{
+                <div
+                    style={{
                         background: "#020617",
                         border: "1px solid #1e293b",
                         borderRadius: "10px",
-                        padding: "10px",
-                        marginBottom: "10px"
-                    }}>
-                        {departments.map((dep) => (
-                            <div key={dep.id} style={{
-                                padding: "10px",
-                                borderBottom: "1px solid rgba(255,255,255,0.1)",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center"
-                            }}>
-
-                                <div>
-                                    {dep.name} - {dep.description}
-                                    {dep.deleted && <span style={{ color: "red", marginLeft: "10px" }}>(Kapalı)</span>}
-                                </div>
-
-                                <div style={{
-                                    display: "flex",
-                                    gap: "10px"
-                                }}>
-
-                                    {!dep.deleted && (
-                                        <button
-                                            onClick={() => {
-                                                const confirmClose = window.confirm("Departmanı kapatmak istediğine emin misin?");
-                                                if (!confirmClose) return;
-
-                                                handleDeactivate(dep.id);
-                                            }}
-                                            style={{
-                                                background: "#7c2d12",
-                                                color: "white",
-                                                border: "none",
-                                                padding: "6px 10px",
-                                                borderRadius: "6px",
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            ⛔ Kapat
-                                        </button>
-                                    )}
-
-                                    {dep.deleted && (
-                                        <button
-                                            onClick={() => {
-                                                const confirmOpen = window.confirm("Departmanı açmak istediğine emin misin?");
-                                                if (!confirmOpen) return;
-
-                                                handleActivate(dep.id);
-                                            }}
-                                            style={{
-                                                background: "#065f46",
-                                                color: "white",
-                                                border: "none",
-                                                padding: "6px 10px",
-                                                borderRadius: "6px",
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            🔓 Aç
-                                        </button>
-                                    )}
-
-                                </div>
-
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 🔹 SABİT BAŞLIKLAR */}
-                <div
-                    style={btnStyle}
-                    onClick={() => setIsUpdateOpen(true)}
+                        padding: "10px"
+                    }}
                 >
-                    ✏️ Departman güncelle
-                </div>
+                    {departments.map((dep) => {
+                        const isExpanded = expandedDepartmentIds.includes(dep.id!);
 
-                <div style={btnStyle}>👑 Yönetici belirle</div>
-
-            </div>
-
-            {/* 🔥 MODAL AYNI KALDI */}
-            {isOpen && (
-                <div style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: "rgba(0,0,0,0.6)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center"
-                }}>
-
-                    <div style={{
-                        background: "#0F1B3D",
-                        padding: "30px",
-                        borderRadius: "20px",
-                        width: "400px",
-                        boxShadow: "0 0 20px rgba(0,0,0,0.5)"
-                    }}>
-
-                        <h2 style={{ color: "white", marginBottom: "20px" }}>
-                            Yeni Departman
-                        </h2>
-
-                        <input
-                            placeholder="Departman Adı"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            style={{
-                                width: "100%",
-                                marginBottom: "10px",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                background: "#020617",
-                                border: "1px solid #334155",
-                                color: "white"
-                            }}
-                        />
-
-                        <input
-                            placeholder="Açıklama"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            style={{
-                                width: "100%",
-                                marginBottom: "20px",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                border: "none",
-                                background: "#1B2A6B",
-                                color: "white"
-                            }}
-                        />
-
-                        <button
-                            onClick={handleCreate}
-                            style={{
-                                background: "#1B2A6B",
-                                color: "white",
-                                padding: "10px",
-                                borderRadius: "10px",
-                                width: "100%",
-                                marginBottom: "10px",
-                                border: "none"
-                            }}
-                        >
-                            Oluştur
-                        </button>
-
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            style={{
-                                background: "red",
-                                color: "white",
-                                padding: "10px",
-                                borderRadius: "10px",
-                                width: "100%",
-                                border: "none"
-                            }}
-                        >
-                            İptal
-                        </button>
-
-                    </div>
-                </div>
-
-            )}
-            {isUpdateOpen && (
-                <div style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: "rgba(0,0,0,0.6)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center"
-                }}>
-                    <div style={{
-                        background: "#0f172a",
-                        border: "1px solid #1e293b",
-                        padding: "30px",
-                        borderRadius: "20px",
-                        width: "400px"
-                    }}>
-                        <h2 style={{ marginBottom: "20px" }}>
-                            Departman Güncelle
-                        </h2>
-                        <div
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            style={{
-                                background: "#020617",
-                                border: "1px solid #334155",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                marginBottom: "10px",
-                                cursor: "pointer"
-                            }}
-                        >
-                            {selectedDepartmentId
-                                ? departments.find(d => d.id === selectedDepartmentId)?.name
-                                : "Departman seç"}
-                        </div>
-
-                        {showDropdown && (
-                            <div style={{
-                                background: "#020617",
-                                border: "1px solid #1e293b",
-                                borderRadius: "8px",
-                                marginBottom: "10px"
-                            }}>
-                                {departments.map((dep) => (
+                        return (
+                            <div
+                                key={dep.id}
+                                style={{
+                                    padding: "12px",
+                                    borderBottom: "1px solid rgba(255,255,255,0.08)"
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        gap: "15px"
+                                    }}
+                                >
                                     <div
-                                        key={dep.id}
-                                        onClick={() => {
-                                            setSelectedDepartmentId(dep.id);
-                                            setUpdateName(dep.name);
-                                            setUpdateDescription(dep.description);
-                                            setShowDropdown(false);
-                                        }}
+                                        onClick={() => toggleDepartmentExpand(dep.id!)}
                                         style={{
-                                            padding: "10px",
-                                            borderBottom: "1px solid rgba(255,255,255,0.1)",
+                                            flex: 1,
                                             cursor: "pointer"
                                         }}
                                     >
-                                        {dep.name}
+                                        <div style={{ fontWeight: 700 }}>
+                                            {isExpanded ? "▼" : "▶"} {dep.name}
+                                        </div>
+                                        <div style={{ opacity: 0.85, marginTop: "3px" }}>
+                                            {dep.description}
+                                        </div>
                                     </div>
-                                ))}
+
+                                    <div style={{ display: "flex", gap: "10px" }}>
+                                        <button
+                                            onClick={() => handleOpenUpdate(dep)}
+                                            style={editButtonStyle}
+                                        >
+                                            Düzenle
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleDelete(dep.id!)}
+                                            style={dangerButtonStyle}
+                                        >
+                                            Sil
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {isExpanded && (
+                                    <div
+                                        style={{
+                                            marginTop: "14px",
+                                            marginLeft: "18px",
+                                            paddingLeft: "14px",
+                                            borderLeft: "2px solid #1e40af"
+                                        }}
+                                    >
+                                        {dep.subDepartments && dep.subDepartments.length > 0 ? (
+                                            dep.subDepartments.map((sub, subIndex) => (
+                                                <div
+                                                    key={subIndex}
+                                                    style={{
+                                                        marginBottom: "14px",
+                                                        background: "#081226",
+                                                        border: "1px solid #1e293b",
+                                                        borderRadius: "10px",
+                                                        padding: "12px"
+                                                    }}
+                                                >
+                                                    <div style={{ fontWeight: 700, color: "#93c5fd" }}>
+                                                        ↳ {sub.name}
+                                                    </div>
+                                                    <div style={{ marginTop: "4px", opacity: 0.9 }}>
+                                                        {sub.description}
+                                                    </div>
+
+                                                    {sub.positions && sub.positions.length > 0 && (
+                                                        <div style={{ marginTop: "10px", paddingLeft: "14px" }}>
+                                                            {sub.positions.map((pos, posIndex) => (
+                                                                <div
+                                                                    key={posIndex}
+                                                                    style={{
+                                                                        padding: "6px 0",
+                                                                        borderBottom: "1px solid rgba(255,255,255,0.05)"
+                                                                    }}
+                                                                >
+                                                                    • <strong>{pos.name}</strong> — {pos.description}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ opacity: 0.7 }}>Alt departman bulunmuyor</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        <input
-                            placeholder="Yeni isim"
-                            value={updateName}
-                            onChange={(e) => setUpdateName(e.target.value)}
-                            style={{
-                                width: "100%",
-                                marginBottom: "10px",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                border: "1px solid #334155",
-                                background: "#020617",
-                                color: "white"
-                            }}
-                        />
-
-                        <input
-                            placeholder="Yeni açıklama"
-                            value={updateDescription}
-                            onChange={(e) => setUpdateDescription(e.target.value)}
-                            style={{
-                                width: "100%",
-                                marginBottom: "20px",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                border: "1px solid #334155",
-                                background: "#020617",
-                                color: "white"
-                            }}
-                        />
-
-                        <button
-                            onClick={handleUpdate}
-                            style={{
-                                background: "#38bdf8",
-                                color: "white",
-                                padding: "10px",
-                                borderRadius: "10px",
-                                width: "100%",
-                                marginBottom: "10px",
-                                border: "none"
-                            }}
-                        >
-                            Güncelle
-                        </button>
-
-                        <button
-                            onClick={() => setIsUpdateOpen(false)}
-                            style={{
-                                background: "red",
-                                color: "white",
-                                padding: "10px",
-                                borderRadius: "10px",
-                                width: "100%",
-                                border: "none"
-                            }}
-                        >
-                            İptal
-                        </button>
-                    </div>
+                        );
+                    })}
                 </div>
+            </div>
+
+            {isCreateOpen && (
+                <ModalWrapper title="Yeni Departman">
+                    <input
+                        placeholder="Departman Adı"
+                        value={createForm.name}
+                        onChange={(e) => handleCreateChange("name", e.target.value)}
+                        style={inputStyle}
+                    />
+
+                    <input
+                        placeholder="Departman Açıklama"
+                        value={createForm.description}
+                        onChange={(e) => handleCreateChange("description", e.target.value)}
+                        style={inputStyle}
+                    />
+
+                    {createForm.subDepartments.map((sub, subIndex) => (
+                        <div key={subIndex} style={subCardStyle}>
+                            <input
+                                placeholder="Alt Departman Adı"
+                                value={sub.name}
+                                onChange={(e) =>
+                                    handleCreateSubDepartmentChange(subIndex, "name", e.target.value)
+                                }
+                                style={inputStyle}
+                            />
+
+                            <input
+                                placeholder="Alt Departman Açıklama"
+                                value={sub.description}
+                                onChange={(e) =>
+                                    handleCreateSubDepartmentChange(subIndex, "description", e.target.value)
+                                }
+                                style={inputStyle}
+                            />
+
+                            {sub.positions.map((pos, posIndex) => (
+                                <div key={posIndex} style={{ marginLeft: "15px", marginBottom: "10px" }}>
+                                    <input
+                                        placeholder="Pozisyon Adı"
+                                        value={pos.name}
+                                        onChange={(e) =>
+                                            handleCreatePositionChange(subIndex, posIndex, "name", e.target.value)
+                                        }
+                                        style={inputStyle}
+                                    />
+
+                                    <input
+                                        placeholder="Pozisyon Açıklama"
+                                        value={pos.description}
+                                        onChange={(e) =>
+                                            handleCreatePositionChange(subIndex, posIndex, "description", e.target.value)
+                                        }
+                                        style={inputStyle}
+                                    />
+
+                                    <button
+                                        onClick={() => removeCreatePosition(subIndex, posIndex)}
+                                        style={dangerButtonStyle}
+                                    >
+                                        Pozisyon Sil
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button onClick={() => addCreatePosition(subIndex)} style={secondaryButtonStyle}>
+                                + Pozisyon Ekle
+                            </button>
+
+                            <button
+                                onClick={() => removeCreateSubDepartment(subIndex)}
+                                style={{ ...dangerButtonStyle, marginLeft: "10px" }}
+                            >
+                                Alt Departman Sil
+                            </button>
+                        </div>
+                    ))}
+
+                    <button onClick={addCreateSubDepartment} style={secondaryButtonStyle}>
+                        + Alt Departman Ekle
+                    </button>
+
+                    <button onClick={handleCreate} style={primaryButtonStyle}>
+                        Oluştur
+                    </button>
+
+                    <button onClick={() => setIsCreateOpen(false)} style={dangerFullButtonStyle}>
+                        İptal
+                    </button>
+                </ModalWrapper>
+            )}
+
+            {isUpdateOpen && (
+                <ModalWrapper title="Departman Düzenle">
+                    <input
+                        placeholder="Departman Adı"
+                        value={updateForm.name}
+                        onChange={(e) => handleUpdateChange("name", e.target.value)}
+                        style={inputStyle}
+                    />
+
+                    <input
+                        placeholder="Departman Açıklama"
+                        value={updateForm.description}
+                        onChange={(e) => handleUpdateChange("description", e.target.value)}
+                        style={inputStyle}
+                    />
+
+                    {updateForm.subDepartments.map((sub, subIndex) => (
+                        <div key={subIndex} style={subCardStyle}>
+                            <input
+                                placeholder="Alt Departman Adı"
+                                value={sub.name}
+                                onChange={(e) =>
+                                    handleUpdateSubDepartmentChange(subIndex, "name", e.target.value)
+                                }
+                                style={inputStyle}
+                            />
+
+                            <input
+                                placeholder="Alt Departman Açıklama"
+                                value={sub.description}
+                                onChange={(e) =>
+                                    handleUpdateSubDepartmentChange(subIndex, "description", e.target.value)
+                                }
+                                style={inputStyle}
+                            />
+
+                            {sub.positions.map((pos, posIndex) => (
+                                <div key={posIndex} style={{ marginLeft: "15px", marginBottom: "10px" }}>
+                                    <input
+                                        placeholder="Pozisyon Adı"
+                                        value={pos.name}
+                                        onChange={(e) =>
+                                            handleUpdatePositionChange(subIndex, posIndex, "name", e.target.value)
+                                        }
+                                        style={inputStyle}
+                                    />
+
+                                    <input
+                                        placeholder="Pozisyon Açıklama"
+                                        value={pos.description}
+                                        onChange={(e) =>
+                                            handleUpdatePositionChange(subIndex, posIndex, "description", e.target.value)
+                                        }
+                                        style={inputStyle}
+                                    />
+
+                                    <button
+                                        onClick={() => removeUpdatePosition(subIndex, posIndex)}
+                                        style={dangerButtonStyle}
+                                    >
+                                        Pozisyon Sil
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button onClick={() => addUpdatePosition(subIndex)} style={secondaryButtonStyle}>
+                                + Pozisyon Ekle
+                            </button>
+
+                            <button
+                                onClick={() => removeUpdateSubDepartment(subIndex)}
+                                style={{ ...dangerButtonStyle, marginLeft: "10px" }}
+                            >
+                                Alt Departman Sil
+                            </button>
+                        </div>
+                    ))}
+
+                    <button onClick={addUpdateSubDepartment} style={secondaryButtonStyle}>
+                        + Alt Departman Ekle
+                    </button>
+
+                    <button onClick={handleUpdate} style={primaryButtonStyle}>
+                        Güncelle
+                    </button>
+
+                    <button onClick={() => setIsUpdateOpen(false)} style={dangerFullButtonStyle}>
+                        İptal
+                    </button>
+                </ModalWrapper>
             )}
         </div>
-
     );
-
 }
+
+function ModalWrapper({
+                          title,
+                          children
+                      }: {
+    title: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div
+            style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "rgba(0,0,0,0.6)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 999
+            }}
+        >
+            <div
+                style={{
+                    background: "#0f172a",
+                    border: "1px solid #1e293b",
+                    padding: "30px",
+                    borderRadius: "20px",
+                    width: "720px",
+                    maxHeight: "90vh",
+                    overflowY: "auto",
+                    boxShadow: "0 0 20px rgba(0,0,0,0.5)"
+                }}
+            >
+                <h2 style={{ marginBottom: "20px" }}>{title}</h2>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+const inputStyle = {
+    width: "100%",
+    marginBottom: "10px",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #334155",
+    background: "#020617",
+    color: "white"
+};
+
+const subCardStyle = {
+    border: "1px solid #334155",
+    borderRadius: "12px",
+    padding: "15px",
+    marginBottom: "15px",
+    background: "#081226"
+};
+
+const primaryTopButtonStyle = {
+    background: "#38bdf8",
+    color: "white",
+    padding: "10px 15px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer"
+};
+
+const primaryButtonStyle = {
+    background: "#38bdf8",
+    color: "white",
+    padding: "10px",
+    borderRadius: "10px",
+    width: "100%",
+    marginTop: "15px",
+    marginBottom: "10px",
+    border: "none",
+    cursor: "pointer"
+};
+
+const secondaryButtonStyle = {
+    background: "#1d4ed8",
+    color: "white",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    marginTop: "10px"
+};
+
+const editButtonStyle = {
+    background: "#2563eb",
+    color: "white",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer"
+};
+
+const dangerButtonStyle = {
+    background: "#991b1b",
+    color: "white",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer"
+};
+
+const dangerFullButtonStyle = {
+    background: "#dc2626",
+    color: "white",
+    padding: "10px",
+    borderRadius: "10px",
+    width: "100%",
+    border: "none",
+    cursor: "pointer"
+};
 
 export default DepartmentsPage;
