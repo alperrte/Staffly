@@ -1,0 +1,16 @@
+INSERT INTO department (name, description, manager_id, deleted) VALUES
+                                                                    ('İnsan Kaynakları', 'İK süreçlerini yönetir', NULL, 0),
+                                                                    ('Finans', 'Finansal süreçleri yönetir', NULL, 0),
+                                                                    ('Muhasebe', 'Muhasebe işlemlerini yürütür', NULL, 0),
+                                                                    ('Satış', 'Satış faaliyetlerini yürütür', NULL, 0),
+                                                                    ('Pazarlama', 'Pazarlama stratejilerini yönetir', NULL, 0),
+                                                                    ('Bilgi Teknolojileri', 'IT ve sistem yönetimi', NULL, 0),
+                                                                    ('Operasyon', 'Operasyonel süreçleri yönetir', NULL, 0),
+                                                                    ('Müşteri Destek', 'Müşteri destek süreçleri', NULL, 0),
+                                                                    ('Hukuk', 'Hukuki süreçleri yönetir', NULL, 0),
+                                                                    ('Satın Alma', 'Tedarik ve satın alma işlemleri', NULL, 0),
+                                                                    ('Lojistik', 'Lojistik ve dağıtım süreçleri', NULL, 0),
+                                                                    ('AR-GE', 'Araştırma ve geliştirme', NULL, 0),
+                                                                    ('Ürün Yönetimi', 'Ürün süreçlerini yönetir', NULL, 0),
+                                                                    ('Kalite Yönetimi', 'Kalite kontrol süreçleri', NULL, 0),
+                                                                    ('Eğitim ve Gelişim', 'Çalışan eğitim süreçleri', NULL, 0);
