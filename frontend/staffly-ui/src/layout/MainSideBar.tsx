@@ -10,6 +10,7 @@ import stafflyLogo from "../assets/logo.png";
 import { FaTasks } from "react-icons/fa";
 
 import { FaFileAlt } from "react-icons/fa";
+import { FaMoneyBillWave } from "react-icons/fa";
 
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
@@ -59,6 +60,15 @@ const Sidebar = () => {
               }
           >
             <FaUsers /> Çalışanlar
+          </NavLink>
+
+          <NavLink
+              to="/app/payroll"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaMoneyBillWave /> Maaş &amp; bordro
           </NavLink>
 
             <NavLink

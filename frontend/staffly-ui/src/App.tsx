@@ -9,6 +9,7 @@ import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
+import PayrollPage from "./pages/payroll/PayrollPage";
 
 function App() {
     return (
@@ -31,6 +32,8 @@ function App() {
                     <Route path="applications" element={<CvServicePage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
+
+                    <Route path="payroll" element={<PayrollPage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>

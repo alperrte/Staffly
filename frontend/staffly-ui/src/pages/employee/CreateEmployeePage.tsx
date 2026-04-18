@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ChangeEvent, FormEvent } from "react";
 import { createEmployee } from "../../services/employeeService";
+import { getDepartments } from "../../services/departmentService";
+import { POSITION_OPTIONS_TR } from "../../constants/positions";
 
 type CreateEmployeeForm = {
     firstName: string;
@@ -10,13 +12,13 @@ type CreateEmployeeForm = {
     phone: string;
     birthDate: string;
     hireDate: string;
-    status: string; // ACTIVE | INACTIVE
     gender: string; // MALE | FEMALE
     positionName: string;
     departmentId: number;
 };
 
 type DropdownOption = { value: string; label: string };
+type Department = { id: number; name: string; description?: string };
 
 function DarkDropdown(props: {
     name: string;
@@ -66,7 +68,7 @@ function DarkDropdown(props: {
 
             {open && (
                 <div className="absolute left-0 right-0 mt-2 z-20 rounded-xl border border-white/10 bg-slate-950/90 shadow-[0_0_45px_rgba(15,23,42,0.9)] overflow-hidden">
-                    <div className="p-1">
+                    <div className="p-1 max-h-60 overflow-y-auto overscroll-contain">
                         {options.map((opt) => {
                             const active = opt.value === value;
                             return (
@@ -104,14 +106,14 @@ const CreateEmployeePage = () => {
         phone: "",
         birthDate: "",
         hireDate: "",
-        status: "ACTIVE",
         gender: "",
         positionName: "",
-        departmentId: 1,
+        departmentId: 0,
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     const inputClass =
         "block w-full rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2.5 text-sm text-white placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30 disabled:opacity-60 disabled:cursor-not-allowed";
@@ -165,9 +167,13 @@ const CreateEmployeePage = () => {
             if (!isAdult(form.birthDate)) return setError("Çalışan en az 18 yaşında olmalıdır");
             if (!form.gender) return setError("Cinsiyet zorunludur");
             if (!form.positionName.trim()) return setError("Pozisyon zorunludur");
+            if (!form.departmentId) return setError("Departman zorunludur");
 
             setLoading(true);
-            await createEmployee(form);
+            await createEmployee({
+                ...form,
+                status: "ACTIVE",
+            });
 
             navigate("/app/employees", {
                 state: {
@@ -191,15 +197,34 @@ const CreateEmployeePage = () => {
         }));
     }, []);
 
+    useEffect(() => {
+        const loadDepartments = async () => {
+            try {
+                const data = await getDepartments();
+                const list = Array.isArray(data) ? data : data?.content ?? [];
+                setDepartments(list);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        loadDepartments().catch(console.error);
+    }, []);
+
     const genderOptions: DropdownOption[] = [
         { value: "MALE", label: "Erkek" },
         { value: "FEMALE", label: "Kadın" },
     ];
 
-    const statusOptions: DropdownOption[] = [
-        { value: "ACTIVE", label: "Aktif" },
-        { value: "INACTIVE", label: "Pasif" },
-    ];
+    const positionOptions: DropdownOption[] = POSITION_OPTIONS_TR.map((position) => ({
+        value: position,
+        label: position,
+    }));
+
+    const departmentOptions: DropdownOption[] = departments.map((department) => ({
+        value: String(department.id),
+        label: department.name,
+    }));
 
     return (
         <div className="w-full px-3 sm:px-6">
@@ -304,26 +329,28 @@ const CreateEmployeePage = () => {
 
                     <div className="flex flex-col gap-2">
                         <label className={labelClass}>Pozisyon</label>
-                        <input
+                        <DarkDropdown
                             name="positionName"
-                            placeholder="Software Engineer"
                             value={form.positionName}
-                            onChange={handleChange}
-                            className={inputClass}
-                            required
+                            options={positionOptions}
+                            placeholder="Pozisyon seçin"
+                            onChange={(v) => {
+                                setError("");
+                                setForm((prev) => ({ ...prev, positionName: v }));
+                            }}
                         />
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label className={labelClass}>Durum</label>
+                        <label className={labelClass}>Departman</label>
                         <DarkDropdown
-                            name="status"
-                            value={form.status}
-                            options={statusOptions}
-                            placeholder="Durum seçin"
+                            name="departmentId"
+                            value={form.departmentId ? String(form.departmentId) : ""}
+                            options={departmentOptions}
+                            placeholder="Departman seçin"
                             onChange={(v) => {
                                 setError("");
-                                setForm((prev) => ({ ...prev, status: v }));
+                                setForm((prev) => ({ ...prev, departmentId: Number(v) }));
                             }}
                         />
                     </div>

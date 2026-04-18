@@ -22,13 +22,13 @@ public class CreateEmployeeRequest {
     @NotNull
     private LocalDate hireDate;
 
-    @NotBlank
-    private String status;
-
     private String phone;
     private LocalDate birthDate;
     private String gender;
 
+    @NotNull
     private Long departmentId;
+
+    @NotBlank
     private String positionName;
 }
