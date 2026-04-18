@@ -2,6 +2,7 @@ package com.staffly.cv_service.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,9 +27,12 @@ public class ApplicationCreateRequestDto {
     @NotBlank(message = "Phone cannot be blank")
     private String phone;
 
-    @NotBlank(message = "Department cannot be blank")
-    private String department;
+    @NotNull(message = "Department id cannot be null")
+    private Long departmentId;
 
-    @NotBlank(message = "Position cannot be blank")
-    private String position;
+    @NotNull(message = "Sub department id cannot be null")
+    private Long subDepartmentId;
+
+    @NotNull(message = "Position id cannot be null")
+    private Long positionId;
 }

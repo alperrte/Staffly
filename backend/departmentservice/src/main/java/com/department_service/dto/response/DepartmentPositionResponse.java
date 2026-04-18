@@ -10,4 +10,5 @@ public class DepartmentPositionResponse {
     private Long id;
     private String name;
     private String description;
+    private Long subDepartmentId;
 }

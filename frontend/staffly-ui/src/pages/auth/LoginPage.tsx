@@ -17,7 +17,12 @@ import {
     Info,
 } from "lucide-react";
 import { login } from "../../services/authService";
-import { createApplication } from "../../services/applicationService";
+import {
+    createApplication,
+    getDepartments,
+    getSubDepartmentsByDepartmentId,
+    getPositionsBySubDepartmentId,
+} from "../../services/applicationService";
 
 type ModalType = "success" | "error" | "info" | "confirm";
 
@@ -26,6 +31,23 @@ type ModalState = {
     type: ModalType;
     title: string;
     message: string;
+};
+
+type Department = {
+    id: number;
+    name: string;
+};
+
+type SubDepartment = {
+    id: number;
+    name: string;
+    departmentId: number;
+};
+
+type Position = {
+    id: number;
+    name: string;
+    subDepartmentId: number;
 };
 
 const COUNTRY_CODES = [
@@ -128,7 +150,13 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
-    const [selectedPosition, setSelectedPosition] = useState("");
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([]);
+    const [positions, setPositions] = useState<Position[]>([]);
+
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | "">("");
+    const [selectedSubDepartmentId, setSelectedSubDepartmentId] = useState<number | "">("");
+    const [selectedPositionId, setSelectedPositionId] = useState<number | "">("");
     const [selectedCountryCode, setSelectedCountryCode] = useState("+90");
 
     const [email, setEmail] = useState("");
@@ -139,8 +167,6 @@ export default function LoginPage() {
         lastName: "",
         email: "",
         phone: "",
-        department: "",
-        position: "",
     });
 
     const [cvFile, setCvFile] = useState<File | null>(null);
@@ -166,6 +192,20 @@ export default function LoginPage() {
                 clearTimeout(autoCloseTimerRef.current);
             }
         };
+    }, []);
+
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const data = await getDepartments();
+                setDepartments(data);
+            } catch (error) {
+                console.error("Departmanlar yüklenemedi:", error);
+            }
+        };
+
+        fetchDepartments();
     }, []);
 
     const openModal = (
@@ -253,6 +293,38 @@ export default function LoginPage() {
             );
         }
     };
+
+
+    const handleDepartmentSelect = async (departmentId: number) => {
+        setSelectedDepartmentId(departmentId);
+        setSelectedSubDepartmentId("");
+        setSelectedPositionId("");
+        setSubDepartments([]);
+        setPositions([]);
+
+        try {
+            const data = await getSubDepartmentsByDepartmentId(departmentId);
+            setSubDepartments(data);
+        } catch (error) {
+            console.error("Alt departmanlar yüklenemedi:", error);
+        }
+    };
+
+
+    const handleSubDepartmentSelect = async (subDepartmentId: number) => {
+        setSelectedSubDepartmentId(subDepartmentId);
+        setSelectedPositionId("");
+        setPositions([]);
+
+        try {
+            const data = await getPositionsBySubDepartmentId(subDepartmentId);
+            setPositions(data);
+        } catch (error) {
+            console.error("Pozisyonlar yüklenemedi:", error);
+        }
+    };
+
+
 
     const handleApplicationChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -377,16 +449,17 @@ export default function LoginPage() {
             return false;
         }
 
-        if (!applicationForm.department.trim()) {
-            openModal(
-                "error",
-                "Eksik Bilgi",
-                "Lütfen departman alanını doldurun."
-            );
+        if (!selectedDepartmentId) {
+            openModal("error", "Eksik Bilgi", "Lütfen bir departman seçin.");
             return false;
         }
 
-        if (!applicationForm.position.trim()) {
+        if (!selectedSubDepartmentId) {
+            openModal("error", "Eksik Bilgi", "Lütfen bir alt departman seçin.");
+            return false;
+        }
+
+        if (!selectedPositionId) {
             openModal("error", "Eksik Bilgi", "Lütfen bir pozisyon seçin.");
             return false;
         }
@@ -430,8 +503,9 @@ export default function LoginPage() {
                 "phone",
                 `${selectedCountryCode}${applicationForm.phone.trim()}`
             );
-            formData.append("department", applicationForm.department.trim());
-            formData.append("position", applicationForm.position);
+            formData.append("departmentId", selectedDepartmentId.toString());
+            formData.append("subDepartmentId", selectedSubDepartmentId.toString());
+            formData.append("positionId", selectedPositionId.toString());
             formData.append("cvFile", cvFile as File);
 
             await createApplication(formData);
@@ -441,10 +515,12 @@ export default function LoginPage() {
                 lastName: "",
                 email: "",
                 phone: "",
-                department: "",
-                position: "",
             });
-            setSelectedPosition("");
+            setSelectedDepartmentId("");
+            setSelectedSubDepartmentId("");
+            setSelectedPositionId("");
+            setSubDepartments([]);
+            setPositions([]);
             setSelectedCountryCode("+90");
             setCvFile(null);
             setFieldErrors({
@@ -731,48 +807,84 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <input
-                                type="text"
-                                name="department"
-                                placeholder="Departman"
-                                value={applicationForm.department}
-                                onChange={handleApplicationChange}
-                                className="w-full rounded-xl border border-white/15 bg-slate-900/40 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                required
-                            />
+
 
                             <div className="relative">
-                                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-                                    Pozisyon
-                                </span>
+    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+        Departman
+    </span>
                                 <select
-                                    name="position"
-                                    value={selectedPosition}
-                                    onChange={(e) => {
-                                        setSelectedPosition(e.target.value);
-                                        setApplicationForm((prev) => ({
-                                            ...prev,
-                                            position: e.target.value,
-                                        }));
-                                    }}
+                                    value={selectedDepartmentId}
+                                    onChange={(e) => handleDepartmentSelect(Number(e.target.value))}
                                     className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-24 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
                                     required
                                 >
                                     <option value="" className="bg-slate-900">
                                         Seçiniz
                                     </option>
-                                    <option value="Backend Developer" className="bg-slate-900">
-                                        Backend Developer
+                                    {departments.map((department) => (
+                                        <option
+                                            key={department.id}
+                                            value={department.id}
+                                            className="bg-slate-900"
+                                        >
+                                            {department.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            </div>
+
+                            <div className="relative">
+    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+        Alt Departman
+    </span>
+                                <select
+                                    value={selectedSubDepartmentId}
+                                    onChange={(e) => handleSubDepartmentSelect(Number(e.target.value))}
+                                    disabled={!selectedDepartmentId}
+                                    className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-28 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70 disabled:cursor-not-allowed disabled:opacity-50"
+                                    required
+                                >
+                                    <option value="" className="bg-slate-900">
+                                        Seçiniz
                                     </option>
-                                    <option value="Frontend Developer" className="bg-slate-900">
-                                        Frontend Developer
+                                    {subDepartments.map((subDepartment) => (
+                                        <option
+                                            key={subDepartment.id}
+                                            value={subDepartment.id}
+                                            className="bg-slate-900"
+                                        >
+                                            {subDepartment.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            </div>
+
+                            <div className="relative">
+    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+        Pozisyon
+    </span>
+                                <select
+                                    value={selectedPositionId}
+                                    onChange={(e) => setSelectedPositionId(Number(e.target.value))}
+                                    disabled={!selectedSubDepartmentId}
+                                    className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-24 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70 disabled:cursor-not-allowed disabled:opacity-50"
+                                    required
+                                >
+                                    <option value="" className="bg-slate-900">
+                                        Seçiniz
                                     </option>
-                                    <option value="UI/UX Designer" className="bg-slate-900">
-                                        UI/UX Designer
-                                    </option>
-                                    <option value="HR Specialist" className="bg-slate-900">
-                                        HR Specialist
-                                    </option>
+                                    {positions.map((position) => (
+                                        <option
+                                            key={position.id}
+                                            value={position.id}
+                                            className="bg-slate-900"
+                                        >
+                                            {position.name}
+                                        </option>
+                                    ))}
                                 </select>
                                 <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                             </div>

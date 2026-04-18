@@ -26,7 +26,6 @@ public class DepartmentService {
     private final SubDepartmentRepository subDepartmentRepository;
     private final DepartmentPositionRepository departmentPositionRepository;
 
-    // ✅ CREATE
     public DepartmentResponse createDepartment(CreateDepartmentRequest request) {
 
         Department department = new Department();
@@ -96,7 +95,6 @@ public class DepartmentService {
         return response;
     }
 
-    // ✅ GET ALL
     public List<DepartmentResponse> getAllDepartments() {
 
         List<Department> departments = departmentRepository.findByDeletedFalse();
@@ -146,7 +144,34 @@ public class DepartmentService {
         }).toList();
     }
 
-    // ✅ UPDATE
+    public List<SubDepartmentResponse> getSubDepartmentsByDepartmentId(Long departmentId) {
+        List<SubDepartment> subDepartments =
+                subDepartmentRepository.findByDepartmentIdAndDeletedFalse(departmentId);
+
+        return subDepartments.stream().map(subDepartment -> {
+            SubDepartmentResponse response = new SubDepartmentResponse();
+            response.setId(subDepartment.getId());
+            response.setName(subDepartment.getName());
+            response.setDescription(subDepartment.getDescription());
+            response.setManagerId(subDepartment.getManagerId());
+            response.setPositions(new ArrayList<>());
+            return response;
+        }).toList();
+    }
+
+    public List<DepartmentPositionResponse> getPositionsBySubDepartmentId(Long subDepartmentId) {
+        List<DepartmentPosition> positions =
+                departmentPositionRepository.findBySubDepartmentIdAndDeletedFalse(subDepartmentId);
+
+        return positions.stream().map(position -> {
+            DepartmentPositionResponse response = new DepartmentPositionResponse();
+            response.setId(position.getId());
+            response.setName(position.getName());
+            response.setDescription(position.getDescription());
+            return response;
+        }).toList();
+    }
+
     public Department updateDepartment(Long id, Department department) {
 
         Department existingDepartment = departmentRepository.findById(id)
@@ -159,7 +184,6 @@ public class DepartmentService {
         return departmentRepository.save(existingDepartment);
     }
 
-    // ✅ DELETE (SOFT)
     public void deleteDepartment(Long id) {
 
         Department department = departmentRepository.findById(id)
@@ -169,4 +193,43 @@ public class DepartmentService {
 
         departmentRepository.save(department);
     }
+
+    public SubDepartmentResponse getSubDepartmentById(Long id) {
+        SubDepartment subDepartment = subDepartmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sub department not found"));
+
+        SubDepartmentResponse response = new SubDepartmentResponse();
+        response.setId(subDepartment.getId());
+        response.setDepartmentId(subDepartment.getDepartmentId());
+        response.setName(subDepartment.getName());
+        response.setDescription(subDepartment.getDescription());
+        response.setManagerId(subDepartment.getManagerId());
+        return response;
+    }
+
+    public DepartmentPositionResponse getPositionById(Long id) {
+        DepartmentPosition position = departmentPositionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Position not found"));
+
+        DepartmentPositionResponse response = new DepartmentPositionResponse();
+        response.setId(position.getId());
+        response.setSubDepartmentId(position.getSubDepartmentId());
+        response.setName(position.getName());
+        response.setDescription(position.getDescription());
+        return response;
+    }
+
+    public DepartmentResponse getDepartmentById(Long id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        DepartmentResponse response = new DepartmentResponse();
+        response.setId(department.getId());
+        response.setName(department.getName());
+        response.setDescription(department.getDescription());
+        response.setManagerId(department.getManagerId());
+        response.setSubDepartments(new ArrayList<>());
+        return response;
+    }
+
 }

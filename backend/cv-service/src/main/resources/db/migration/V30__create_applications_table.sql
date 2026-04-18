@@ -6,8 +6,13 @@ CREATE TABLE applications (
                               email NVARCHAR(150) NOT NULL,
                               phone NVARCHAR(30) NOT NULL,
 
-                              department NVARCHAR(100) NOT NULL,
-                              position NVARCHAR(100) NOT NULL,
+                              department_id BIGINT NOT NULL,
+                              sub_department_id BIGINT NOT NULL,
+                              position_id BIGINT NOT NULL,
+
+                              department_name NVARCHAR(100) NOT NULL,
+                              sub_department_name NVARCHAR(100) NOT NULL,
+                              position_name NVARCHAR(100) NOT NULL,
 
                               cv_original_file_name NVARCHAR(255) NOT NULL,
                               cv_stored_file_name NVARCHAR(255) NOT NULL,

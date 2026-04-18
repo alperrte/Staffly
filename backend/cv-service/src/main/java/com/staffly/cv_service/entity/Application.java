@@ -30,12 +30,27 @@ public class Application {
     @Column(name = "phone", nullable = false, length = 30)
     private String phone;
 
-    @Column(name = "department", nullable = false, length = 100)
-    private String department;
+    // 🔥 ID'ler (ilişki için)
+    @Column(name = "department_id", nullable = false)
+    private Long departmentId;
 
-    @Column(name = "position", nullable = false, length = 100)
-    private String position;
+    @Column(name = "sub_department_id", nullable = false)
+    private Long subDepartmentId;
 
+    @Column(name = "position_id", nullable = false)
+    private Long positionId;
+
+    // 🔥 Snapshot (o anki isimler)
+    @Column(name = "department_name", nullable = false, length = 100)
+    private String departmentName;
+
+    @Column(name = "sub_department_name", nullable = false, length = 100)
+    private String subDepartmentName;
+
+    @Column(name = "position_name", nullable = false, length = 100)
+    private String positionName;
+
+    // 📄 CV bilgileri
     @Column(name = "cv_original_file_name", nullable = false, length = 255)
     private String cvOriginalFileName;
 
@@ -51,12 +66,14 @@ public class Application {
     @Column(name = "cv_file_size", nullable = false)
     private Long cvFileSize;
 
+    // 📊 Durum
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
     @Column(name = "is_reviewed", nullable = false)
     private Boolean isReviewed;
 
+    // ⏱ Tarihler
     @Column(name = "applied_at", nullable = false)
     private LocalDateTime appliedAt;
 
@@ -69,6 +86,7 @@ public class Application {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // 🔁 Default değerler
     @PrePersist
     public void prePersist() {
         if (this.status == null) {

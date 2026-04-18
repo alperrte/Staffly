@@ -20,8 +20,13 @@ public class ApplicationResponseDto {
     private String email;
     private String phone;
 
-    private String department;
-    private String position;
+    private Long departmentId;
+    private Long subDepartmentId;
+    private Long positionId;
+
+    private String departmentName;
+    private String subDepartmentName;
+    private String positionName;
 
     private String cvOriginalFileName;
     private String cvStoredFileName;

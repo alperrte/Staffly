@@ -1,5 +1,6 @@
 package com.staffly.cv_service.service;
 
+import com.staffly.cv_service.client.DepartmentClient;
 import com.staffly.cv_service.dto.request.ApplicationCreateRequestDto;
 import com.staffly.cv_service.dto.response.ApplicationResponseDto;
 import com.staffly.cv_service.entity.Application;
@@ -20,12 +21,14 @@ import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
 
+    private final DepartmentClient departmentClient;
     private final ApplicationRepository applicationRepository;
 
     @Value("${file.upload-dir}")
@@ -44,13 +47,48 @@ public class ApplicationService {
             File destination = new File(directory, storedFileName);
             cvFile.transferTo(destination);
 
+            Map<String, Object> department = departmentClient.getDepartment(request.getDepartmentId());
+            Map<String, Object> subDepartment = departmentClient.getSubDepartment(request.getSubDepartmentId());
+            Map<String, Object> position = departmentClient.getPosition(request.getPositionId());
+
+            if (department == null) {
+                throw new RuntimeException("Department not found");
+            }
+
+            if (subDepartment == null) {
+                throw new RuntimeException("Sub department not found");
+            }
+
+            if (position == null) {
+                throw new RuntimeException("Position not found");
+            }
+
+            Object subDepartmentDepartmentId = subDepartment.get("departmentId");
+            if (subDepartmentDepartmentId == null ||
+                    Long.parseLong(subDepartmentDepartmentId.toString()) != request.getDepartmentId()) {
+                throw new RuntimeException("Sub department does not belong to selected department");
+            }
+
+            Object positionSubDepartmentId = position.get("subDepartmentId");
+            if (positionSubDepartmentId == null ||
+                    Long.parseLong(positionSubDepartmentId.toString()) != request.getSubDepartmentId()) {
+                throw new RuntimeException("Position does not belong to selected sub department");
+            }
+
             Application application = Application.builder()
                     .firstName(request.getFirstName())
                     .lastName(request.getLastName())
                     .email(request.getEmail())
                     .phone(request.getPhone())
-                    .department(request.getDepartment())
-                    .position(request.getPosition())
+
+                    .departmentId(request.getDepartmentId())
+                    .subDepartmentId(request.getSubDepartmentId())
+                    .positionId(request.getPositionId())
+
+                    .departmentName(String.valueOf(department.get("name")))
+                    .subDepartmentName(String.valueOf(subDepartment.get("name")))
+                    .positionName(String.valueOf(position.get("name")))
+
                     .cvOriginalFileName(originalFileName)
                     .cvStoredFileName(storedFileName)
                     .cvFilePath(destination.getAbsolutePath())
@@ -140,8 +178,15 @@ public class ApplicationService {
                 .lastName(app.getLastName())
                 .email(app.getEmail())
                 .phone(app.getPhone())
-                .department(app.getDepartment())
-                .position(app.getPosition())
+
+                .departmentId(app.getDepartmentId())
+                .subDepartmentId(app.getSubDepartmentId())
+                .positionId(app.getPositionId())
+
+                .departmentName(app.getDepartmentName())
+                .subDepartmentName(app.getSubDepartmentName())
+                .positionName(app.getPositionName())
+
                 .cvOriginalFileName(app.getCvOriginalFileName())
                 .cvStoredFileName(app.getCvStoredFileName())
                 .cvFilePath(app.getCvFilePath())
