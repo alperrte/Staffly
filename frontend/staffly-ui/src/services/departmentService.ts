@@ -16,6 +16,7 @@ export type Department = {
     description: string;
     managerId?: number | null;
     subDepartments: SubDepartment[];
+    deleted?: boolean;
 };
 
 const BASE_URL = "http://localhost:8083/departments";

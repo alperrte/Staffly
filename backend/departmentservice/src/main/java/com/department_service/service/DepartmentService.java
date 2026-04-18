@@ -99,7 +99,7 @@ public class DepartmentService {
     // ✅ GET ALL
     public List<DepartmentResponse> getAllDepartments() {
 
-        List<Department> departments = departmentRepository.findByDeletedFalse();
+        List<Department> departments = departmentRepository.findAll();
 
         return departments.stream().map(department -> {
 
@@ -108,6 +108,7 @@ public class DepartmentService {
             response.setName(department.getName());
             response.setDescription(department.getDescription());
             response.setManagerId(department.getManagerId());
+            response.setDeleted(department.getDeleted());
 
             List<SubDepartment> subDepartments =
                     subDepartmentRepository.findByDepartmentIdAndDeletedFalse(department.getId());
@@ -155,6 +156,11 @@ public class DepartmentService {
         existingDepartment.setName(department.getName());
         existingDepartment.setDescription(department.getDescription());
         existingDepartment.setManagerId(department.getManagerId());
+
+        // 🔥 EKLE BURAYI
+        if (department.getDeleted() != null) {
+            existingDepartment.setDeleted(department.getDeleted());
+        }
 
         return departmentRepository.save(existingDepartment);
     }
