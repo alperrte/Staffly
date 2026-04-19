@@ -13,6 +13,6 @@ public class DepartmentResponse {
     private String name;
     private String description;
     private Long managerId;
-
+    private Boolean deleted;
     private List<SubDepartmentResponse> subDepartments;
 }
