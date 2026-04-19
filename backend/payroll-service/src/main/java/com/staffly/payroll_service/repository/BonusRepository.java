@@ -16,4 +16,6 @@ public interface BonusRepository extends JpaRepository<Bonus, Long> {
             LocalDateTime start,
             LocalDateTime end
     );
+
+    List<Bonus> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId);
 }

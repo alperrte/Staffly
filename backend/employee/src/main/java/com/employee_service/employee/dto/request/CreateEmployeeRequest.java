@@ -29,6 +29,6 @@ public class CreateEmployeeRequest {
     @NotNull
     private Long departmentId;
 
-    @NotBlank
-    private String positionName;
+    @NotNull
+    private Long positionId;
 }

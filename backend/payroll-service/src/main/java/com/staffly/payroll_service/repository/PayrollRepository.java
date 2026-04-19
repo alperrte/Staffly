@@ -13,6 +13,7 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
 
     // 🔥 geçmiş payrolllar
     List<Payroll> findByEmployeeId(Long employeeId);
+    List<Payroll> findByEmployeeIdOrderByYearDescMonthDescCreatedAtDesc(Long employeeId);
 
     long countByEmployeeId(Long employeeId);
 

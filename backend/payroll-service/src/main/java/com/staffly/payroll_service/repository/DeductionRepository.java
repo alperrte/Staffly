@@ -15,4 +15,6 @@ public interface DeductionRepository extends JpaRepository<Deduction, Long> {
             LocalDateTime start,
             LocalDateTime end
     );
+
+    List<Deduction> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId);
 }

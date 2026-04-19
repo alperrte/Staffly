@@ -1,13 +1,25 @@
 import axios from "axios";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAllEmployees } from "../../services/employeeService";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+    getAllEmployees,
+    getDepartments,
+    type Department,
+} from "../../services/employeeService";
 import {
     addBonus,
     addDeduction,
     approveAdvance,
     createSalary,
     generatePayroll,
+    getEmployeeAdvances,
+    getEmployeeBonuses,
+    getEmployeeDeductions,
+    getEmployeePayrolls,
     getEmployeePayrollOverview,
+    type AdvanceRecord,
+    type BonusRecord,
+    type DeductionRecord,
     requestAdvance,
     type EmployeePayrollOverview,
     type PayrollResponse,
@@ -23,12 +35,16 @@ type Employee = {
     positionName?: string | null;
     departmentName?: string | null;
     departmentId?: number | null;
+    subDepartmentId?: number | null;
+    subDepartmentName?: string | null;
+    positionId?: number | null;
     status?: string;
     hireDate?: string | null;
     phone?: string | null;
     birthDate?: string | null;
     gender?: string | null;
 };
+type DropdownOption = { value: string; label: string };
 
 const emptyDash = (v: unknown) => {
     if (v === null || v === undefined) return "-";
@@ -39,6 +55,22 @@ const emptyDash = (v: unknown) => {
 const statusLabelTR: Record<string, string> = {
     ACTIVE: "Aktif",
     INACTIVE: "Pasif",
+};
+
+const payrollStatusLabelTR: Record<string, string> = {
+    PENDING: "Beklemede",
+    PAID: "Ödendi",
+    FAILED: "Başarısız",
+    CANCELLED: "İptal",
+};
+
+const payrollStatusClass = (status: string | null | undefined) => {
+    const s = String(status ?? "").toUpperCase();
+    if (s === "PAID") return "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30";
+    if (s === "PENDING") return "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30";
+    if (s === "FAILED") return "bg-red-500/20 text-red-300 ring-1 ring-red-500/30";
+    if (s === "CANCELLED") return "bg-slate-600/40 text-slate-300 ring-1 ring-slate-500/40";
+    return "bg-slate-600/40 text-slate-300 ring-1 ring-slate-500/40";
 };
 
 const genderLabelTR: Record<string, string> = {
@@ -106,10 +138,118 @@ const formatMoneyTR = (value: unknown, currencyCode = "TRY") => {
     }
 };
 
+const isRecordInPeriod = (dateValue: string | undefined, month: number, year: number) => {
+    if (!dateValue) return false;
+    const d = new Date(dateValue);
+    if (Number.isNaN(d.getTime())) return false;
+    return d.getMonth() + 1 === month && d.getFullYear() === year;
+};
+
+function FilterDropdown(props: {
+    value: string;
+    options: DropdownOption[];
+    placeholder: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+}) {
+    const { value, options, placeholder, onChange, disabled } = props;
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const h = (e: MouseEvent) => {
+            if (!ref.current?.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", h);
+        return () => document.removeEventListener("mousedown", h);
+    }, [open]);
+
+    const selected = options.find((o) => o.value === value) ?? null;
+    const filteredOptions = query.trim()
+        ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+        : options;
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                onClick={() => !disabled && setOpen((v) => !v)}
+                disabled={disabled}
+                className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition flex items-center justify-between gap-2 ${
+                    disabled
+                        ? "border-slate-800 bg-slate-900/30 text-slate-600 cursor-not-allowed"
+                        : "border-slate-700/90 bg-slate-900/60 text-white hover:border-sky-400/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                }`}
+            >
+                <span className={selected ? "text-slate-100 truncate" : "text-slate-500 truncate"}>
+                    {selected ? selected.label : placeholder}
+                </span>
+                <span className="text-slate-500 text-xs shrink-0">{open ? "▴" : "▾"}</span>
+            </button>
+            {open && (
+                <div className="absolute left-0 right-0 top-full z-40 mt-1.5 rounded-xl border border-slate-700 bg-slate-950 shadow-[0_10px_50px_rgba(0,0,0,0.7)]">
+                    {options.length > 8 && (
+                        <div className="p-2 border-b border-slate-800">
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Filtrele..."
+                                className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400/60"
+                            />
+                        </div>
+                    )}
+                    <div className="max-h-56 overflow-y-auto p-1.5">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onChange("");
+                                setOpen(false);
+                                setQuery("");
+                            }}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                                !value ? "bg-sky-500/20 text-sky-100" : "text-slate-300 hover:bg-slate-800/70"
+                            }`}
+                        >
+                            {placeholder}
+                        </button>
+                        {filteredOptions.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setOpen(false);
+                                    setQuery("");
+                                }}
+                                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                                    opt.value === value
+                                        ? "bg-sky-500/20 text-sky-100"
+                                        : "text-slate-200 hover:bg-slate-800/70"
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                        {filteredOptions.length === 0 && (
+                            <p className="px-3 py-2 text-xs text-slate-500">Sonuç bulunamadı</p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 const PayrollPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [filtered, setFiltered] = useState<Employee[]>([]);
     const [search, setSearch] = useState("");
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+    const [selectedSubDepartmentId, setSelectedSubDepartmentId] = useState("");
+    const [selectedPositionId, setSelectedPositionId] = useState("");
     const [loadingList, setLoadingList] = useState(true);
     const [listError, setListError] = useState("");
 
@@ -147,6 +287,14 @@ const PayrollPage = () => {
     const [overview, setOverview] = useState<EmployeePayrollOverview | null>(null);
     const [overviewLoading, setOverviewLoading] = useState(false);
     const [overviewError, setOverviewError] = useState("");
+    const [payrollRecords, setPayrollRecords] = useState<PayrollResponse[]>([]);
+    const [detailType, setDetailType] = useState<"bonus" | "deduction" | "advance" | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState("");
+    const [bonusDetails, setBonusDetails] = useState<BonusRecord[]>([]);
+    const [deductionDetails, setDeductionDetails] = useState<DeductionRecord[]>([]);
+    const [advanceDetails, setAdvanceDetails] = useState<AdvanceRecord[]>([]);
+    const [selectedPayrollDetail, setSelectedPayrollDetail] = useState<PayrollResponse | null>(null);
 
     const refreshOverview = useCallback(async (employeeId: number) => {
         try {
@@ -163,11 +311,14 @@ const PayrollPage = () => {
         let mounted = true;
         (async () => {
             try {
-                const data = await getAllEmployees();
-                const list = Array.isArray(data) ? data : [];
+                const [employeeData, departmentData] = await Promise.all([
+                    getAllEmployees(),
+                    getDepartments(),
+                ]);
+                const list = Array.isArray(employeeData) ? employeeData : [];
                 if (mounted) {
                     setEmployees(list as Employee[]);
-                    setFiltered(list as Employee[]);
+                    setDepartments(Array.isArray(departmentData) ? departmentData : []);
                 }
             } catch (e) {
                 console.error(e);
@@ -181,33 +332,210 @@ const PayrollPage = () => {
         };
     }, []);
 
-    useEffect(() => {
+    const selectedDepartment = useMemo(
+        () => departments.find((d) => String(d.id) === selectedDepartmentId) ?? null,
+        [departments, selectedDepartmentId]
+    );
+
+    const subDepartmentOptions = useMemo(
+        () => selectedDepartment?.subDepartments ?? [],
+        [selectedDepartment]
+    );
+
+    const selectedSubDepartment = useMemo(
+        () =>
+            subDepartmentOptions.find((s) => String(s.id) === selectedSubDepartmentId) ?? null,
+        [subDepartmentOptions, selectedSubDepartmentId]
+    );
+
+    const positionOptions = useMemo(
+        () => selectedSubDepartment?.positions ?? [],
+        [selectedSubDepartment]
+    );
+    const departmentDropdownOptions: DropdownOption[] = useMemo(
+        () => departments.map((d) => ({ value: String(d.id), label: d.name })),
+        [departments]
+    );
+    const subDepartmentDropdownOptions: DropdownOption[] = useMemo(
+        () => subDepartmentOptions.map((s) => ({ value: String(s.id), label: s.name })),
+        [subDepartmentOptions]
+    );
+    const positionDropdownOptions: DropdownOption[] = useMemo(
+        () => positionOptions.map((p) => ({ value: String(p.id), label: p.name })),
+        [positionOptions]
+    );
+
+    const enrichedEmployees = useMemo(() => {
+        return employees.map((emp) => {
+            let departmentName = emp.departmentName ?? null;
+            let subDepartmentName = emp.subDepartmentName ?? null;
+            let positionName = emp.positionName ?? null;
+
+            let departmentId = emp.departmentId != null ? Number(emp.departmentId) : null;
+            let subDepartmentId = emp.subDepartmentId != null ? Number(emp.subDepartmentId) : null;
+            let positionId = emp.positionId != null ? Number(emp.positionId) : null;
+
+            if (departmentId != null) {
+                const dept = departments.find((d) => Number(d.id) === departmentId);
+                if (dept && !departmentName) departmentName = dept.name;
+            }
+
+            if (positionId != null) {
+                for (const dept of departments) {
+                    for (const sub of dept.subDepartments ?? []) {
+                        const pos = (sub.positions ?? []).find((p) => Number(p.id) === positionId);
+                        if (pos) {
+                            if (!positionName) positionName = pos.name;
+                            if (subDepartmentId == null) subDepartmentId = Number(sub.id);
+                            if (!subDepartmentName) subDepartmentName = sub.name;
+                            if (departmentId == null) departmentId = Number(dept.id);
+                            if (!departmentName) departmentName = dept.name;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (departmentId != null && subDepartmentId != null && !subDepartmentName) {
+                const dept = departments.find((d) => Number(d.id) === departmentId);
+                const sub = dept?.subDepartments?.find((s) => Number(s.id) === subDepartmentId);
+                if (sub) subDepartmentName = sub.name;
+            }
+
+            return {
+                ...emp,
+                departmentId,
+                subDepartmentId,
+                positionId,
+                departmentName,
+                subDepartmentName,
+                positionName,
+            };
+        });
+    }, [employees, departments]);
+
+    const filtered = useMemo(() => {
         const q = search.toLowerCase().trim();
-        if (!q) {
-            setFiltered(employees);
-            return;
-        }
-        setFiltered(
-            employees.filter((emp) => {
-                const blob = [emp.firstName, emp.lastName, emp.email, emp.positionName, emp.departmentName]
-                    .map((x) => (x == null ? "" : String(x)))
-                    .join(" ")
-                    .toLowerCase();
-                return blob.includes(q);
-            })
-        );
-    }, [search, employees]);
+        return enrichedEmployees.filter((emp) => {
+            const deptId = emp.departmentId != null ? Number(emp.departmentId) : null;
+            const subDeptId = emp.subDepartmentId != null ? Number(emp.subDepartmentId) : null;
+            const posId = emp.positionId != null ? Number(emp.positionId) : null;
+
+            if (selectedDepartmentId && deptId !== Number(selectedDepartmentId)) return false;
+            if (selectedSubDepartmentId && subDeptId !== Number(selectedSubDepartmentId)) return false;
+            if (selectedPositionId && posId !== Number(selectedPositionId)) return false;
+
+            if (!q) return true;
+            const blob = [
+                emp.firstName,
+                emp.lastName,
+                emp.email,
+                emp.positionName,
+                emp.departmentName,
+                emp.subDepartmentName,
+            ]
+                .map((x) => (x == null ? "" : String(x)))
+                .join(" ")
+                .toLowerCase();
+            return blob.includes(q);
+        });
+    }, [enrichedEmployees, search, selectedDepartmentId, selectedSubDepartmentId, selectedPositionId]);
 
     const selected = useMemo(
-        () => employees.find((e) => e.id === selectedId) ?? null,
-        [employees, selectedId]
+        () => enrichedEmployees.find((e) => e.id === selectedId) ?? null,
+        [enrichedEmployees, selectedId]
     );
+
+    const closeDetails = () => {
+        setDetailType(null);
+        setDetailError("");
+    };
+
+    const openDetails = async (type: "bonus" | "deduction" | "advance") => {
+        if (selectedId == null) {
+            setMessage({ type: "err", text: "Önce bir çalışan seçin." });
+            return;
+        }
+        setDetailType(type);
+        setDetailLoading(true);
+        setDetailError("");
+        try {
+            if (type === "bonus") {
+                const rows = await getEmployeeBonuses(selectedId);
+                setBonusDetails(rows);
+            } else if (type === "deduction") {
+                const rows = await getEmployeeDeductions(selectedId);
+                setDeductionDetails(rows);
+            } else {
+                const rows = await getEmployeeAdvances(selectedId);
+                setAdvanceDetails(rows);
+            }
+        } catch (e) {
+            setDetailError(payrollFetchErrorMessage(e));
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const openPayrollDetail = async (payroll: PayrollResponse) => {
+        if (selectedId == null) return;
+        setSelectedPayrollDetail(payroll);
+        setDetailLoading(true);
+        setDetailError("");
+        try {
+            const [bonuses, deductions, advances] = await Promise.all([
+                getEmployeeBonuses(selectedId),
+                getEmployeeDeductions(selectedId),
+                getEmployeeAdvances(selectedId),
+            ]);
+            setBonusDetails(bonuses);
+            setDeductionDetails(deductions);
+            setAdvanceDetails(advances);
+        } catch (e) {
+            setDetailError(payrollFetchErrorMessage(e));
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!detailType) return;
+        const prevBodyOverflow = document.body.style.overflow;
+        const prevHtmlOverflow = document.documentElement.style.overflow;
+        const prevBodyOverscroll = document.body.style.overscrollBehavior;
+        const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overscrollBehavior = "none";
+        document.documentElement.style.overscrollBehavior = "none";
+        return () => {
+            document.body.style.overflow = prevBodyOverflow;
+            document.documentElement.style.overflow = prevHtmlOverflow;
+            document.body.style.overscrollBehavior = prevBodyOverscroll;
+            document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+        };
+    }, [detailType]);
+
+    useEffect(() => {
+        if (!selectedPayrollDetail) return;
+        const prevBodyOverflow = document.body.style.overflow;
+        const prevHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = prevBodyOverflow;
+            document.documentElement.style.overflow = prevHtmlOverflow;
+        };
+    }, [selectedPayrollDetail]);
 
     useEffect(() => {
         if (selectedId == null) {
             setOverview(null);
             setOverviewError("");
             setOverviewLoading(false);
+            setPayrollRecords([]);
+            setSelectedPayrollDetail(null);
+            closeDetails();
             return;
         }
 
@@ -231,10 +559,43 @@ const PayrollPage = () => {
                 if (!cancelled) setOverviewLoading(false);
             });
 
+        getEmployeePayrolls(selectedId)
+            .then((rows) => {
+                if (!cancelled) setPayrollRecords(rows);
+            })
+            .catch(() => {
+                if (!cancelled) setPayrollRecords([]);
+            });
+
         return () => {
             cancelled = true;
         };
     }, [selectedId]);
+
+    const payrollDetailBonuses = useMemo(() => {
+        if (!selectedPayrollDetail) return [];
+        return bonusDetails.filter((row) =>
+            isRecordInPeriod(row.createdAt, selectedPayrollDetail.month, selectedPayrollDetail.year)
+        );
+    }, [bonusDetails, selectedPayrollDetail]);
+
+    const payrollDetailDeductions = useMemo(() => {
+        if (!selectedPayrollDetail) return [];
+        return deductionDetails.filter((row) =>
+            isRecordInPeriod(row.createdAt, selectedPayrollDetail.month, selectedPayrollDetail.year)
+        );
+    }, [deductionDetails, selectedPayrollDetail]);
+
+    const payrollDetailAdvances = useMemo(() => {
+        if (!selectedPayrollDetail) return [];
+        return advanceDetails.filter((row) =>
+            isRecordInPeriod(
+                row.createdAt ?? row.requestDate,
+                selectedPayrollDetail.month,
+                selectedPayrollDetail.year
+            )
+        );
+    }, [advanceDetails, selectedPayrollDetail]);
 
     const runAction = async (key: string, fn: () => Promise<void>) => {
         if (selectedId == null) {
@@ -437,6 +798,36 @@ const PayrollPage = () => {
                             onChange={(e) => setSearch(e.target.value)}
                             disabled={loadingList}
                         />
+                        <div className="mt-3 grid gap-2">
+                            <FilterDropdown
+                                value={selectedDepartmentId}
+                                options={departmentDropdownOptions}
+                                placeholder="Departman (opsiyonel)"
+                                onChange={(value) => {
+                                    setSelectedDepartmentId(value);
+                                    setSelectedSubDepartmentId("");
+                                    setSelectedPositionId("");
+                                }}
+                                disabled={loadingList}
+                            />
+                            <FilterDropdown
+                                value={selectedSubDepartmentId}
+                                options={subDepartmentDropdownOptions}
+                                placeholder="Alt departman (opsiyonel)"
+                                onChange={(value) => {
+                                    setSelectedSubDepartmentId(value);
+                                    setSelectedPositionId("");
+                                }}
+                                disabled={loadingList || !selectedDepartmentId}
+                            />
+                            <FilterDropdown
+                                value={selectedPositionId}
+                                options={positionDropdownOptions}
+                                placeholder="Pozisyon (opsiyonel)"
+                                onChange={setSelectedPositionId}
+                                disabled={loadingList || !selectedSubDepartmentId}
+                            />
+                        </div>
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto p-2">
                         {loadingList ? (
@@ -455,6 +846,7 @@ const PayrollPage = () => {
                                                     setSelectedId(emp.id);
                                                     setMessage(null);
                                                     setLastPayroll(null);
+                                                    setSelectedPayrollDetail(null);
                                                 }}
                                                 className={`w-full rounded-xl border px-3 py-3 text-left text-sm transition ${
                                                     active
@@ -526,27 +918,48 @@ const PayrollPage = () => {
                                 </div>
 
                                 <div className="grid gap-6 p-5 lg:grid-cols-3">
-                                    <div>
-                                        <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                                            İletişim
-                                        </h3>
-                                        <dl className="mt-3 space-y-2 text-sm">
-                                            <div>
-                                                <dt className="text-xs text-slate-500">E-posta</dt>
-                                                <dd className="truncate text-slate-200">{emptyDash(selected.email)}</dd>
-                                            </div>
-                                            <div>
-                                                <dt className="text-xs text-slate-500">Telefon</dt>
-                                                <dd className="text-slate-200">{emptyDash(selected.phone)}</dd>
-                                            </div>
-                                        </dl>
+                                    <div className="space-y-4">
+                                        <div className="rounded-xl border border-slate-700/70 bg-slate-950/40 p-4">
+                                            <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                                Kişisel bilgiler
+                                            </h3>
+                                            <dl className="mt-3 space-y-3 text-sm">
+                                                <div>
+                                                    <dt className="text-xs text-slate-500">Doğum tarihi</dt>
+                                                    <dd className="text-slate-200">
+                                                        {formatMaybeDateTR(selected.birthDate)}
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-slate-500">Cinsiyet</dt>
+                                                    <dd className="text-slate-200">
+                                                        {formatGenderTR(selected.gender)}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </div>
+                                        <div className="rounded-xl border border-slate-700/70 bg-slate-950/40 p-4">
+                                            <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                                İletişim bilgileri
+                                            </h3>
+                                            <dl className="mt-3 space-y-3 text-sm">
+                                                <div>
+                                                    <dt className="text-xs text-slate-500">E-posta</dt>
+                                                    <dd className="truncate text-slate-200">{emptyDash(selected.email)}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-slate-500">Telefon</dt>
+                                                    <dd className="text-slate-200">{emptyDash(selected.phone)}</dd>
+                                                </div>
+                                            </dl>
+                                        </div>
                                     </div>
 
-                                    <div>
+                                    <div className="rounded-xl border border-slate-700/70 bg-slate-950/40 p-4">
                                         <h3 className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
                                             İş bilgileri
                                         </h3>
-                                        <dl className="mt-3 space-y-2 text-sm">
+                                        <dl className="mt-3 space-y-3 text-sm">
                                             <div>
                                                 <dt className="text-xs text-slate-500">Departman</dt>
                                                 <dd className="text-slate-200">
@@ -559,6 +972,12 @@ const PayrollPage = () => {
                                                 </dd>
                                             </div>
                                             <div>
+                                                <dt className="text-xs text-slate-500">Alt departman</dt>
+                                                <dd className="text-slate-200">
+                                                    {emptyDash(selected.subDepartmentName)}
+                                                </dd>
+                                            </div>
+                                            <div>
                                                 <dt className="text-xs text-slate-500">Pozisyon</dt>
                                                 <dd className="text-slate-200">{emptyDash(selected.positionName)}</dd>
                                             </div>
@@ -567,20 +986,6 @@ const PayrollPage = () => {
                                                 <dd className="text-slate-200">
                                                     {formatMaybeDateTR(selected.hireDate)}
                                                 </dd>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <dt className="text-xs text-slate-500">Doğum</dt>
-                                                    <dd className="text-slate-200">
-                                                        {formatMaybeDateTR(selected.birthDate)}
-                                                    </dd>
-                                                </div>
-                                                <div>
-                                                    <dt className="text-xs text-slate-500">Cinsiyet</dt>
-                                                    <dd className="text-slate-200">
-                                                        {formatGenderTR(selected.gender)}
-                                                    </dd>
-                                                </div>
                                             </div>
                                         </dl>
                                     </div>
@@ -636,19 +1041,42 @@ const PayrollPage = () => {
 
                                         <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-700/60 pt-4 text-xs">
                                             <div>
-                                                <span className="text-slate-500">Bonus kayıtları</span>
-                                                <p className="font-semibold text-slate-200">
-                                                    {overview?.bonusEntryCount ?? "—"}
-                                                </p>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-500">Bonus kayıtları</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openDetails("bonus")}
+                                                        className="rounded-md border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:border-sky-400/70 hover:text-sky-200"
+                                                    >
+                                                        Detay
+                                                    </button>
+                                                </div>
+                                                <p className="font-semibold text-slate-200">{overview?.bonusEntryCount ?? "—"}</p>
                                             </div>
                                             <div>
-                                                <span className="text-slate-500">Kesinti kayıtları</span>
-                                                <p className="font-semibold text-slate-200">
-                                                    {overview?.deductionEntryCount ?? "—"}
-                                                </p>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-500">Kesinti kayıtları</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openDetails("deduction")}
+                                                        className="rounded-md border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:border-sky-400/70 hover:text-sky-200"
+                                                    >
+                                                        Detay
+                                                    </button>
+                                                </div>
+                                                <p className="font-semibold text-slate-200">{overview?.deductionEntryCount ?? "—"}</p>
                                             </div>
                                             <div>
-                                                <span className="text-slate-500">Bekleyen avans</span>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-slate-500">Bekleyen avans</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openDetails("advance")}
+                                                        className="rounded-md border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:border-sky-400/70 hover:text-sky-200"
+                                                    >
+                                                        Detay
+                                                    </button>
+                                                </div>
                                                 <p className="font-semibold text-amber-200/90">
                                                     {overview?.pendingAdvanceCount ?? "—"}
                                                 </p>
@@ -702,8 +1130,16 @@ const PayrollPage = () => {
                                                 </div>
                                                 <div>
                                                     <span className="text-slate-500">Durum</span>
-                                                    <p className="text-slate-200">
-                                                        {emptyDash(overview.lastPayrollStatus)}
+                                                    <p className="mt-1">
+                                                        <span
+                                                            className={`rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${payrollStatusClass(
+                                                                overview.lastPayrollStatus
+                                                            )}`}
+                                                        >
+                                                            {payrollStatusLabelTR[
+                                                                String(overview.lastPayrollStatus ?? "").toUpperCase()
+                                                            ] ?? emptyDash(overview.lastPayrollStatus)}
+                                                        </span>
                                                     </p>
                                                 </div>
                                                 <div>
@@ -798,7 +1234,65 @@ const PayrollPage = () => {
                                             <span>Net</span>
                                             <span>{String(lastPayroll.netSalary)}</span>
                                         </div>
-                                        <div className="text-xs text-slate-500">Durum: {lastPayroll.status}</div>
+                                        <div className="text-xs text-slate-500">
+                                            Durum:{" "}
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${payrollStatusClass(
+                                                    lastPayroll.status
+                                                )}`}
+                                            >
+                                                {payrollStatusLabelTR[
+                                                    String(lastPayroll.status ?? "").toUpperCase()
+                                                ] ?? lastPayroll.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+
+                            <section className="rounded-2xl border border-slate-700/80 bg-slate-950/30 p-5">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold text-slate-200">Bordro detay kayıtları</h3>
+                                    <span className="text-xs text-slate-500">Toplam: {payrollRecords.length}</span>
+                                </div>
+                                {payrollRecords.length === 0 ? (
+                                    <p className="text-sm text-slate-400">Henüz bordro kaydı yok.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {payrollRecords.map((p) => (
+                                            <div
+                                                key={`${p.id ?? `${p.year}-${p.month}`}`}
+                                                className="rounded-xl border border-slate-700/80 bg-slate-900/40 p-3"
+                                            >
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-white">
+                                                            Dönem: {p.month}/{p.year}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-slate-400">
+                                                            Net: {formatMoneyTR(p.netSalary)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span
+                                                            className={`rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${payrollStatusClass(
+                                                                p.status
+                                                            )}`}
+                                                        >
+                                                            {payrollStatusLabelTR[String(p.status ?? "").toUpperCase()] ??
+                                                                emptyDash(p.status)}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openPayrollDetail(p)}
+                                                            className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:border-sky-400/70 hover:text-sky-200"
+                                                        >
+                                                            Detay
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </section>
@@ -858,6 +1352,7 @@ const PayrollPage = () => {
                                                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-sky-400/70 focus:outline-none"
                                                 value={bonusAmount}
                                                 onChange={(e) => setBonusAmount(e.target.value)}
+                                                placeholder="Örn. 2500"
                                             />
                                         </div>
                                         <div>
@@ -867,6 +1362,7 @@ const PayrollPage = () => {
                                                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-sky-400/70 focus:outline-none"
                                                 value={bonusDesc}
                                                 onChange={(e) => setBonusDesc(e.target.value)}
+                                                placeholder="Örn. Prim / Performans bonusu"
                                             />
                                         </div>
                                         <button
@@ -891,6 +1387,7 @@ const PayrollPage = () => {
                                                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-sky-400/70 focus:outline-none"
                                                 value={deductionAmount}
                                                 onChange={(e) => setDeductionAmount(e.target.value)}
+                                                placeholder="Örn. 1200"
                                             />
                                         </div>
                                         <div>
@@ -900,6 +1397,7 @@ const PayrollPage = () => {
                                                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-sky-400/70 focus:outline-none"
                                                 value={deductionDesc}
                                                 onChange={(e) => setDeductionDesc(e.target.value)}
+                                                placeholder="Örn. Gecikme / İzin kesintisi"
                                             />
                                         </div>
                                         <button
@@ -927,6 +1425,7 @@ const PayrollPage = () => {
                                                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-sky-400/70 focus:outline-none"
                                                 value={advanceAmount}
                                                 onChange={(e) => setAdvanceAmount(e.target.value)}
+                                                placeholder="Örn. 5000"
                                             />
                                         </div>
                                         <div>
@@ -981,6 +1480,241 @@ const PayrollPage = () => {
                     )}
                 </div>
             </div>
+
+            {selectedPayrollDetail &&
+                createPortal(
+                    <div className="fixed inset-0 z-50 overscroll-none bg-slate-950/75">
+                        <div className="flex h-full w-full items-center justify-center p-4">
+                            <div className="flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+                                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-white">
+                                            Bordro detayı - {selectedPayrollDetail.month}/{selectedPayrollDetail.year}
+                                        </h3>
+                                        <p className="mt-1 text-xs text-slate-400">
+                                            Durum:{" "}
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${payrollStatusClass(
+                                                    selectedPayrollDetail.status
+                                                )}`}
+                                            >
+                                                {payrollStatusLabelTR[
+                                                    String(selectedPayrollDetail.status ?? "").toUpperCase()
+                                                ] ?? selectedPayrollDetail.status}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedPayrollDetail(null)}
+                                        className="rounded-md border border-slate-600 px-2.5 py-1 text-xs text-slate-300 hover:border-slate-400"
+                                    >
+                                        Kapat
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-5">
+                                    {detailLoading ? (
+                                        <p className="text-sm text-slate-400">Detaylar yükleniyor...</p>
+                                    ) : detailError ? (
+                                        <p className="text-sm text-red-300">{detailError}</p>
+                                    ) : (
+                                        <div className="space-y-5">
+                                            <div className="grid gap-2 rounded-xl border border-slate-700/80 bg-slate-950/30 p-4 text-sm md:grid-cols-4">
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Brüt</p>
+                                                    <p className="font-semibold text-slate-100">
+                                                        {formatMoneyTR(selectedPayrollDetail.baseSalary)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Toplam bonus</p>
+                                                    <p className="font-semibold text-emerald-300">
+                                                        {formatMoneyTR(selectedPayrollDetail.totalBonus)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Toplam kesinti</p>
+                                                    <p className="font-semibold text-amber-300">
+                                                        {formatMoneyTR(selectedPayrollDetail.totalDeduction)}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Net</p>
+                                                    <p className="font-semibold text-sky-200">
+                                                        {formatMoneyTR(selectedPayrollDetail.netSalary)}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                                                    Dönem bonusları ({payrollDetailBonuses.length})
+                                                </h4>
+                                                {payrollDetailBonuses.length === 0 ? (
+                                                    <p className="text-sm text-slate-400">Bu ay bonus kaydı yok.</p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {payrollDetailBonuses.map((row, i) => (
+                                                            <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                                <div className="flex justify-between text-slate-100">
+                                                                    <span>{row.description?.trim() || `Bonus ${i + 1}`}</span>
+                                                                    <span>{formatMoneyTR(row.amount)}</span>
+                                                                </div>
+                                                                <p className="mt-1 text-xs text-slate-500">
+                                                                    Tarih: {formatMaybeDateTR(row.createdAt)}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">
+                                                    Dönem kesintileri ({payrollDetailDeductions.length})
+                                                </h4>
+                                                {payrollDetailDeductions.length === 0 ? (
+                                                    <p className="text-sm text-slate-400">Bu ay kesinti kaydı yok.</p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {payrollDetailDeductions.map((row, i) => (
+                                                            <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                                <div className="flex justify-between text-slate-100">
+                                                                    <span>{row.description?.trim() || `Kesinti ${i + 1}`}</span>
+                                                                    <span>{formatMoneyTR(row.amount)}</span>
+                                                                </div>
+                                                                <p className="mt-1 text-xs text-slate-500">
+                                                                    Tarih: {formatMaybeDateTR(row.createdAt)}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-300">
+                                                    Dönem avansları ({payrollDetailAdvances.length})
+                                                </h4>
+                                                {payrollDetailAdvances.length === 0 ? (
+                                                    <p className="text-sm text-slate-400">Bu ay avans kaydı yok.</p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {payrollDetailAdvances.map((row, i) => (
+                                                            <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                                <div className="flex justify-between text-slate-100">
+                                                                    <span>Avans {i + 1}</span>
+                                                                    <span>{formatMoneyTR(row.amount)}</span>
+                                                                </div>
+                                                                <p className="mt-1 text-xs text-slate-500">
+                                                                    Talep: {formatMaybeDateTR(row.requestDate)} · Durum:{" "}
+                                                                    {row.approved ? "Onaylı" : "Bekliyor"}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+
+            {detailType &&
+                createPortal(
+                <div className="fixed inset-0 z-50 overscroll-none bg-slate-950/75">
+                    <div className="flex h-full w-full items-center justify-center p-4">
+                    <div className="flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
+                            <h3 className="text-sm font-semibold text-white">
+                                {detailType === "bonus"
+                                    ? "Bonus detayları"
+                                    : detailType === "deduction"
+                                    ? "Kesinti detayları"
+                                    : "Avans detayları"}
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={closeDetails}
+                                className="rounded-md border border-slate-600 px-2.5 py-1 text-xs text-slate-300 hover:border-slate-400"
+                            >
+                                Kapat
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-5">
+                            {detailLoading ? (
+                                <p className="text-sm text-slate-400">Detaylar yükleniyor...</p>
+                            ) : detailError ? (
+                                <p className="text-sm text-red-300">{detailError}</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {detailType === "bonus" &&
+                                        (bonusDetails.length ? (
+                                            bonusDetails.map((row, index) => (
+                                                <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                    <div className="flex justify-between text-white">
+                                                        <span>{row.description?.trim() || `Bonus ${index + 1}`}</span>
+                                                        <span>{formatMoneyTR(row.amount)}</span>
+                                                    </div>
+                                                    <p className="mt-1 text-xs text-slate-500">Kayıt no: #{row.id}</p>
+                                                    <p className="mt-1 text-[11px] text-slate-500">
+                                                        Tarih: {formatMaybeDateTR(row.createdAt)}
+                                                    </p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-400">Bonus kaydı yok.</p>
+                                        ))}
+                                    {detailType === "deduction" &&
+                                        (deductionDetails.length ? (
+                                            deductionDetails.map((row, index) => (
+                                                <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                    <div className="flex justify-between text-white">
+                                                        <span>{row.description?.trim() || `Kesinti ${index + 1}`}</span>
+                                                        <span>{formatMoneyTR(row.amount)}</span>
+                                                    </div>
+                                                    <p className="mt-1 text-xs text-slate-500">Kayıt no: #{row.id}</p>
+                                                    <p className="mt-1 text-[11px] text-slate-500">
+                                                        Tarih: {formatMaybeDateTR(row.createdAt)}
+                                                    </p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-400">Kesinti kaydı yok.</p>
+                                        ))}
+                                    {detailType === "advance" &&
+                                        (advanceDetails.length ? (
+                                            advanceDetails.map((row, index) => (
+                                                <div key={row.id} className="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm">
+                                                    <div className="flex justify-between text-white">
+                                                        <span>{`Avans ${index + 1}`}</span>
+                                                        <span>{formatMoneyTR(row.amount)}</span>
+                                                    </div>
+                                                    <p className="mt-1 text-xs text-slate-500">Kayıt no: #{row.id}</p>
+                                                    <p className="mt-1 text-xs text-slate-400">
+                                                        Talep: {formatMaybeDateTR(row.requestDate)} · Oluşturma:{" "}
+                                                        {formatMaybeDateTR(row.createdAt)}
+                                                    </p>
+                                                    <p className="mt-1 text-[11px] text-slate-500">
+                                                        Durum: {row.approved ? "Onaylı" : "Bekliyor"}
+                                                    </p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-400">Avans kaydı yok.</p>
+                                        ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

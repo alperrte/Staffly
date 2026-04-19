@@ -48,6 +48,22 @@ public class PayrollService {
         );
     }
 
+    public java.util.List<Bonus> getBonuses(Long employeeId) {
+        return bonusRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
+    }
+
+    public java.util.List<Deduction> getDeductions(Long employeeId) {
+        return deductionRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
+    }
+
+    public java.util.List<SalaryAdvance> getAdvances(Long employeeId) {
+        return salaryAdvanceRepository.findByEmployeeIdOrderByCreatedAtDesc(employeeId);
+    }
+
+    public java.util.List<Payroll> getPayrolls(Long employeeId) {
+        return payrollRepository.findByEmployeeIdOrderByYearDescMonthDescCreatedAtDesc(employeeId);
+    }
+
     public PayrollResponse createPayroll(PayrollRequest request) {
 
         Long employeeId = request.getEmployeeId();

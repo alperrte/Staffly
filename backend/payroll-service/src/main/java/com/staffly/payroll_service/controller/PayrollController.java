@@ -28,6 +28,34 @@ public class PayrollController {
         return ResponseEntity.ok(payrollService.getEmployeeOverview(employeeId));
     }
 
+    @GetMapping("/employees/{employeeId}/bonuses")
+    public ResponseEntity<java.util.List<Bonus>> getBonuses(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(payrollService.getBonuses(employeeId));
+    }
+
+    @GetMapping("/employees/{employeeId}/deductions")
+    public ResponseEntity<java.util.List<Deduction>> getDeductions(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(payrollService.getDeductions(employeeId));
+    }
+
+    @GetMapping("/employees/{employeeId}/advances")
+    public ResponseEntity<java.util.List<SalaryAdvance>> getAdvances(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(payrollService.getAdvances(employeeId));
+    }
+
+    @GetMapping("/employees/{employeeId}/payrolls")
+    public ResponseEntity<java.util.List<Payroll>> getPayrolls(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(payrollService.getPayrolls(employeeId));
+    }
+
     // 🔥 1. Bordro oluşturma
     @PostMapping("/generate")
     public ResponseEntity<PayrollResponse> generatePayroll(
