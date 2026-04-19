@@ -59,6 +59,8 @@ function DepartmentsPage() {
 
     const [createForm, setCreateForm] = useState<Department>(emptyDepartmentForm);
     const [updateForm, setUpdateForm] = useState<Department>(emptyDepartmentForm);
+    const [updateSelectedSubIndex, setUpdateSelectedSubIndex] = useState(0);
+    const [updateSelectedPositionIndex, setUpdateSelectedPositionIndex] = useState(0);
 
     const loadDepartments = async () => {
         try {
@@ -84,6 +86,31 @@ function DepartmentsPage() {
 
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (!isUpdateOpen) return;
+        if (updateForm.subDepartments.length === 0) {
+            setUpdateSelectedSubIndex(0);
+            return;
+        }
+        setUpdateSelectedSubIndex((i) =>
+            Math.min(i, updateForm.subDepartments.length - 1)
+        );
+    }, [isUpdateOpen, updateForm.subDepartments.length]);
+
+    const updateSelectedPositionsLength =
+        updateForm.subDepartments[updateSelectedSubIndex]?.positions.length ?? 0;
+
+    useEffect(() => {
+        if (!isUpdateOpen) return;
+        if (updateSelectedPositionsLength === 0) {
+            setUpdateSelectedPositionIndex(0);
+            return;
+        }
+        setUpdateSelectedPositionIndex((i) =>
+            Math.min(i, updateSelectedPositionsLength - 1)
+        );
+    }, [isUpdateOpen, updateSelectedSubIndex, updateSelectedPositionsLength]);
 
     const toggleDepartmentExpand = (id: number) => {
         setExpandedDepartmentIds((prev) =>
@@ -237,20 +264,6 @@ function DepartmentsPage() {
         }));
     };
 
-    const addUpdateSubDepartment = () => {
-        setUpdateForm((prev) => ({
-            ...prev,
-            subDepartments: [
-                ...prev.subDepartments,
-                {
-                    name: "",
-                    description: "",
-                    managerId: null,
-                    positions: [{ name: "", description: "" }],
-                },
-            ],
-        }));
-    };
 
     const addCreatePosition = (subIndex: number) => {
         setCreateForm((prev) => {
@@ -263,16 +276,7 @@ function DepartmentsPage() {
         });
     };
 
-    const addUpdatePosition = (subIndex: number) => {
-        setUpdateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: [...updatedSubs[subIndex].positions, { name: "", description: "" }],
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
+
 
     const removeCreateSubDepartment = (subIndex: number) => {
         setCreateForm((prev) => ({
@@ -348,7 +352,58 @@ function DepartmentsPage() {
     const handleOpenUpdate = (dep: Department) => {
         setSelectedDepartmentId(dep.id!);
         setUpdateForm(mapDepartmentToForm(dep));
+        setUpdateSelectedSubIndex(0);
+        setUpdateSelectedPositionIndex(0);
         setIsUpdateOpen(true);
+    };
+
+    const handleAddUpdateSubDepartmentClick = () => {
+        setUpdateForm((prev) => {
+            const subDepartments = [
+                ...prev.subDepartments,
+                {
+                    name: "",
+                    description: "",
+                    managerId: null,
+                    positions: [{ name: "", description: "" }],
+                },
+            ];
+            setUpdateSelectedSubIndex(subDepartments.length - 1);
+            return { ...prev, subDepartments };
+        });
+    };
+
+    const handleRemoveUpdateSubDepartmentClick = (subIndex: number) => {
+        removeUpdateSubDepartment(subIndex);
+        setUpdateSelectedSubIndex((prevSel) => {
+            if (subIndex < prevSel) return prevSel - 1;
+            if (subIndex === prevSel) return Math.max(0, prevSel - 1);
+            return prevSel;
+        });
+        setUpdateSelectedPositionIndex(0);
+    };
+
+    const handleAddUpdatePositionClick = () => {
+        const subIdx = updateSelectedSubIndex;
+        setUpdateForm((prev) => {
+            const subs = [...prev.subDepartments];
+            const positions = [
+                ...subs[subIdx].positions,
+                { name: "", description: "" },
+            ];
+            subs[subIdx] = { ...subs[subIdx], positions };
+            setUpdateSelectedPositionIndex(positions.length - 1);
+            return { ...prev, subDepartments: subs };
+        });
+    };
+
+    const handleRemoveUpdatePositionClick = (subIndex: number, posIndex: number) => {
+        removeUpdatePosition(subIndex, posIndex);
+        setUpdateSelectedPositionIndex((prevSel) => {
+            if (posIndex < prevSel) return prevSel - 1;
+            if (posIndex === prevSel) return Math.max(0, prevSel - 1);
+            return prevSel;
+        });
     };
 
     const handleToggleDepartment = async (dep: Department) => {
@@ -808,7 +863,14 @@ function DepartmentsPage() {
             )}
 
             {isUpdateOpen && (
-                <ModalWrapper title="Departman Düzenle" onClose={() => setIsUpdateOpen(false)}>
+                <ModalWrapper
+                    title="Departman Düzenle"
+                    onClose={() => {
+                        setIsUpdateOpen(false);
+                        setUpdateSelectedSubIndex(0);
+                        setUpdateSelectedPositionIndex(0);
+                    }}
+                >
                     <input
                         placeholder="Departman Adı"
                         value={updateForm.name}
@@ -821,33 +883,49 @@ function DepartmentsPage() {
                         onChange={(e) => handleUpdateChange("description", e.target.value)}
                         className={modalInputClass}
                     />
-                    {updateForm.subDepartments.map((sub, subIndex) => (
-                        <div key={subIndex} className={modalSubCardClass}>
-                            <input
-                                placeholder="Alt Departman Adı"
-                                value={sub.name}
-                                onChange={(e) =>
-                                    handleUpdateSubDepartmentChange(subIndex, "name", e.target.value)
-                                }
-                                className={modalInputClass}
-                            />
-                            <input
-                                placeholder="Alt Departman Açıklama"
-                                value={sub.description}
-                                onChange={(e) =>
-                                    handleUpdateSubDepartmentChange(subIndex, "description", e.target.value)
-                                }
-                                className={modalInputClass}
-                            />
-                            {sub.positions.map((pos, posIndex) => (
-                                <div key={posIndex} className="ml-3 space-y-2 border-l border-slate-700 pl-3">
+                    <details className="mb-4 rounded-xl border border-slate-700 bg-slate-900/40 p-2">
+                        <summary className="cursor-pointer select-none px-2 py-2 text-sm font-semibold text-white">
+                            Alt Departmanlar
+                        </summary>
+                        <div className="mt-2 space-y-3 border-t border-slate-700 px-2 pt-3">
+                            {updateForm.subDepartments.length > 0 ? (
+                                <label className="block text-xs font-medium text-slate-400">
+                                    Düzenlemek için alt departman seçin
+                                    <select
+                                        className={`${modalInputClass} mt-1`}
+                                        value={updateSelectedSubIndex}
+                                        onChange={(e) => {
+                                            setUpdateSelectedSubIndex(Number(e.target.value));
+                                            setUpdateSelectedPositionIndex(0);
+                                        }}
+                                    >
+                                        {updateForm.subDepartments.map((sub, i) => (
+                                            <option key={i} value={i}>
+                                                {sub.name.trim() !== ""
+                                                    ? sub.name
+                                                    : `Alt Departman ${i + 1}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                            ) : (
+                                <p className="text-xs text-slate-500">
+                                    Henüz alt departman yok. Aşağıdan yeni alt departman ekleyebilirsiniz.
+                                </p>
+                            )}
+                            {updateForm.subDepartments[updateSelectedSubIndex] != null && (
+                                <div
+                                    key={updateSelectedSubIndex}
+                                    className={modalSubCardClass}
+                                >
                                     <input
-                                        placeholder="Pozisyon Adı"
-                                        value={pos.name}
+                                        placeholder="Alt Departman Adı"
+                                        value={
+                                            updateForm.subDepartments[updateSelectedSubIndex].name
+                                        }
                                         onChange={(e) =>
-                                            handleUpdatePositionChange(
-                                                subIndex,
-                                                posIndex,
+                                            handleUpdateSubDepartmentChange(
+                                                updateSelectedSubIndex,
                                                 "name",
                                                 e.target.value
                                             )
@@ -855,46 +933,142 @@ function DepartmentsPage() {
                                         className={modalInputClass}
                                     />
                                     <input
-                                        placeholder="Pozisyon Açıklama"
-                                        value={pos.description}
+                                        placeholder="Alt Departman Açıklama"
+                                        value={
+                                            updateForm.subDepartments[updateSelectedSubIndex]
+                                                .description
+                                        }
                                         onChange={(e) =>
-                                            handleUpdatePositionChange(
-                                                subIndex,
-                                                posIndex,
+                                            handleUpdateSubDepartmentChange(
+                                                updateSelectedSubIndex,
                                                 "description",
                                                 e.target.value
                                             )
                                         }
                                         className={modalInputClass}
                                     />
+                                    <details className="ml-3 rounded-lg border border-slate-700 bg-slate-950/50 p-2">
+                                        <summary className="cursor-pointer select-none px-1 py-1 text-xs font-semibold text-white">
+                                            Pozisyonlar
+                                        </summary>
+                                        <div className="mt-2 space-y-3 border-t border-slate-700 pt-3 pl-2">
+                                            {updateForm.subDepartments[updateSelectedSubIndex].positions
+                                                .length > 0 ? (
+                                                <>
+                                                    <label className="block text-xs font-medium text-slate-400">
+                                                        Düzenlemek için pozisyon seçin
+                                                        <select
+                                                            className={`${modalInputClass} mt-1`}
+                                                            value={updateSelectedPositionIndex}
+                                                            onChange={(e) =>
+                                                                setUpdateSelectedPositionIndex(
+                                                                    Number(e.target.value)
+                                                                )
+                                                            }
+                                                        >
+                                                            {updateForm.subDepartments[
+                                                                updateSelectedSubIndex
+                                                            ].positions.map((pos, i) => (
+                                                                <option key={i} value={i}>
+                                                                    {pos.name.trim() !== ""
+                                                                        ? pos.name
+                                                                        : `Pozisyon ${i + 1}`}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    {updateForm.subDepartments[
+                                                        updateSelectedSubIndex
+                                                    ].positions[updateSelectedPositionIndex] != null && (
+                                                        <div
+                                                            key={updateSelectedPositionIndex}
+                                                            className="space-y-2 border-l border-slate-700 pl-3"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    placeholder="Pozisyon Adı"
+                                                                    value={
+                                                                        updateForm.subDepartments[
+                                                                            updateSelectedSubIndex
+                                                                        ].positions[updateSelectedPositionIndex]
+                                                                            .name
+                                                                    }
+                                                                    onChange={(e) =>
+                                                                        handleUpdatePositionChange(
+                                                                            updateSelectedSubIndex,
+                                                                            updateSelectedPositionIndex,
+                                                                            "name",
+                                                                            e.target.value
+                                                                        )
+                                                                    }
+                                                                    className={`${modalInputClass.replace("mb-3", "mb-0")} min-w-0 flex-1`}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleRemoveUpdatePositionClick(
+                                                                            updateSelectedSubIndex,
+                                                                            updateSelectedPositionIndex
+                                                                        )
+                                                                    }
+                                                                    className="shrink-0 rounded-lg bg-rose-600 px-3 py-2 text-xs text-white hover:bg-rose-500"
+                                                                >
+                                                                    Pozisyon Sil
+                                                                </button>
+                                                            </div>
+                                                            <input
+                                                                placeholder="Pozisyon Açıklama"
+                                                                value={
+                                                                    updateForm.subDepartments[
+                                                                        updateSelectedSubIndex
+                                                                    ].positions[updateSelectedPositionIndex]
+                                                                        .description
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdatePositionChange(
+                                                                        updateSelectedSubIndex,
+                                                                        updateSelectedPositionIndex,
+                                                                        "description",
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                className={modalInputClass}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-slate-500">
+                                                    Henüz pozisyon yok. Aşağıdan pozisyon ekleyebilirsiniz.
+                                                </p>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={handleAddUpdatePositionClick}
+                                                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"
+                                            >
+                                                + Pozisyon Ekle
+                                            </button>
+                                        </div>
+                                    </details>
                                     <button
                                         type="button"
-                                        onClick={() => removeUpdatePosition(subIndex, posIndex)}
-                                        className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
+                                        onClick={() =>
+                                            handleRemoveUpdateSubDepartmentClick(
+                                                updateSelectedSubIndex
+                                            )
+                                        }
+                                        className="ml-2 mt-2 rounded-lg bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600"
                                     >
-                                        Pozisyon Sil
+                                        Alt Departman Sil
                                     </button>
                                 </div>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={() => addUpdatePosition(subIndex)}
-                                className="mt-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"
-                            >
-                                + Pozisyon Ekle
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => removeUpdateSubDepartment(subIndex)}
-                                className="ml-2 mt-2 rounded-lg bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600"
-                            >
-                                Alt Departman Sil
-                            </button>
+                            )}
                         </div>
-                    ))}
+                    </details>
                     <button
                         type="button"
-                        onClick={addUpdateSubDepartment}
+                        onClick={handleAddUpdateSubDepartmentClick}
                         className="mt-2 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500"
                     >
                         + Alt Departman Ekle
