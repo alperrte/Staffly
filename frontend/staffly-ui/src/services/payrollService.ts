@@ -74,6 +74,7 @@ export type PayrollGeneratePayload = {
 };
 
 export type PayrollResponse = {
+    id?: number;
     employeeId: number;
     month: number;
     year: number;
@@ -82,6 +83,7 @@ export type PayrollResponse = {
     totalDeduction: string | number;
     netSalary: string | number;
     status: string;
+    createdAt?: string;
 };
 
 export type SalaryRecord = {
@@ -109,11 +111,58 @@ export type EmployeePayrollOverview = {
     approvedAdvanceCount: number;
 };
 
+export type BonusRecord = {
+    id: number;
+    employeeId: number;
+    amount: number | string;
+    description?: string | null;
+    createdAt?: string;
+};
+
+export type DeductionRecord = {
+    id: number;
+    employeeId: number;
+    amount: number | string;
+    description?: string | null;
+    createdAt?: string;
+};
+
+export type AdvanceRecord = {
+    id: number;
+    employeeId: number;
+    amount: number | string;
+    requestDate?: string;
+    approved?: boolean;
+    createdAt?: string;
+};
+
 export const getEmployeePayrollOverview = async (employeeId: number) => {
     const res = await payrollApi.get<EmployeePayrollOverview>(
         `/payrolls/employees/${employeeId}/overview`
     );
     return res.data;
+};
+
+export const getEmployeeBonuses = async (employeeId: number) => {
+    const res = await payrollApi.get<BonusRecord[]>(`/payrolls/employees/${employeeId}/bonuses`);
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getEmployeeDeductions = async (employeeId: number) => {
+    const res = await payrollApi.get<DeductionRecord[]>(
+        `/payrolls/employees/${employeeId}/deductions`
+    );
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getEmployeeAdvances = async (employeeId: number) => {
+    const res = await payrollApi.get<AdvanceRecord[]>(`/payrolls/employees/${employeeId}/advances`);
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getEmployeePayrolls = async (employeeId: number) => {
+    const res = await payrollApi.get<PayrollResponse[]>(`/payrolls/employees/${employeeId}/payrolls`);
+    return Array.isArray(res.data) ? res.data : [];
 };
 
 export const createSalary = async (payload: SalaryPayload) => {

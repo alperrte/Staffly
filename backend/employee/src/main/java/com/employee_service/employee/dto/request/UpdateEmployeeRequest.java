@@ -17,5 +17,5 @@ public class UpdateEmployeeRequest {
     private String gender;
 
     private Long departmentId;
-    private String positionName;
+    private Long positionId;
 }

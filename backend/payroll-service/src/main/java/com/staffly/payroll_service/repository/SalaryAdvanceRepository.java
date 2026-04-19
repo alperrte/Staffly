@@ -17,4 +17,6 @@ public interface SalaryAdvanceRepository extends JpaRepository<SalaryAdvance, Lo
             LocalDateTime start,
             LocalDateTime end
     );
+
+    List<SalaryAdvance> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId);
 }

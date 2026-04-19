@@ -2,6 +2,7 @@ package com.taskservice.task.dto.response;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class TaskResponse {
@@ -14,4 +15,5 @@ public class TaskResponse {
     private String priority;
     private LocalDateTime startDate;
     private LocalDateTime dueDate;
+    private List<Long> assigneeEmployeeIds;
 }

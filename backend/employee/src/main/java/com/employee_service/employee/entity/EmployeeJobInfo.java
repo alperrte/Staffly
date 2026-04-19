@@ -22,6 +22,6 @@ public class EmployeeJobInfo {
     @Column(name = "department_id")
     private Long departmentId;
 
-    @Column(name = "position_name")
-    private String positionName;
+    @Column(name = "position_id")
+    private Long positionId;
 }

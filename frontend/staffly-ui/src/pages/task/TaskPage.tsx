@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getMyTasks, createTask, assignTask } from "../../services/taskService";
 import { getDepartments } from "../../services/departmentService";
+import { getAllEmployees } from "../../services/employeeService";
 import axios from "axios";
 
 type DepartmentPositionResponse = { id: number; name: string; description?: string };
@@ -13,6 +14,26 @@ type DepartmentResponse = {
   subDepartments?: SubDepartmentResponse[];
 };
 type DropdownOption = { value: string; label: string };
+type EmployeeResponse = {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  departmentId?: number | null;
+  subDepartmentId?: number | null;
+  positionId?: number | null;
+  department?: { id?: number | null };
+  subDepartment?: { id?: number | null };
+  position?: { id?: number | null };
+};
+type TaskResponse = {
+  id: number;
+  title: string;
+  description: string;
+  priority: string;
+  startDate?: string | null;
+  dueDate?: string | null;
+  assigneeEmployeeIds?: number[];
+};
 
 /* ══ MiniDropdown ══════════════════════════════════════════════════════ */
 function MiniDropdown(props: {
@@ -70,6 +91,80 @@ function MiniDropdown(props: {
   );
 }
 
+/* ══ MultiDropdown ══════════════════════════════════════════════════════ */
+function MultiDropdown(props: {
+  values: string[];
+  options: DropdownOption[];
+  placeholder: string;
+  onChange: (values: string[]) => void;
+  disabled?: boolean;
+}) {
+  const { values, options, placeholder, onChange, disabled } = props;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const selectedLabels = useMemo(
+    () => options.filter(o => values.includes(o.value)).map(o => o.label),
+    [options, values]
+  );
+
+  const toggleValue = (value: string) => {
+    if (values.includes(value)) onChange(values.filter(v => v !== value));
+    else onChange([...values, value]);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(v => !v)}
+        className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition outline-none
+          ${disabled
+            ? "border-white/5 bg-slate-900/20 text-slate-600 cursor-not-allowed"
+            : "border-white/10 bg-slate-900/45 text-white hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"}`}
+      >
+        <span className={selectedLabels.length ? "text-white truncate" : "text-slate-400 truncate"}>
+          {selectedLabels.length ? selectedLabels.join(", ") : placeholder}
+        </span>
+        <span className="text-slate-500 shrink-0 text-xs">{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1.5 z-50 rounded-xl border border-white/10 bg-slate-950 shadow-[0_8px_48px_rgba(0,0,0,0.8)]">
+          <div className="p-1.5 max-h-56 overflow-y-auto">
+            {options.length === 0 && <p className="px-3 py-2.5 text-sm text-slate-500">Seçenek yok</p>}
+            {options.map(opt => {
+              const checked = values.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleValue(opt.value)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-2
+                    ${checked ? "bg-sky-500/20 text-sky-100 font-medium" : "text-slate-200 hover:bg-sky-500/10"}`}
+                >
+                  <span className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px]
+                    ${checked ? "border-sky-300 bg-sky-400 text-slate-950" : "border-slate-500 text-transparent"}`}>
+                    ✓
+                  </span>
+                  <span className="truncate">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ══ StepBadge ═════════════════════════════════════════════════════════ */
 function StepBadge({ step, label, done }: { step: number; label: string; done: boolean }) {
   return (
@@ -85,8 +180,9 @@ function StepBadge({ step, label, done }: { step: number; label: string; done: b
 
 /* ══ TaskPage ══════════════════════════════════════════════════════════ */
 const TaskPage = () => {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
+  const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -94,7 +190,8 @@ const TaskPage = () => {
   // Org seçimleri
   const [selectedDeptId, setSelectedDeptId] = useState("");
   const [selectedSubDeptId, setSelectedSubDeptId] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
+  const [selectedPositionIds, setSelectedPositionIds] = useState<string[]>([]);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     title: "",
@@ -113,10 +210,12 @@ const TaskPage = () => {
 
   useEffect(() => {
     loadTasks();
-    getDepartments()
-      .then((data: unknown) => {
-        const list: DepartmentResponse[] = Array.isArray(data) ? data : (data as any)?.content ?? [];
+    Promise.all([getDepartments(), getAllEmployees()])
+      .then(([departmentData, employeeData]: [unknown, unknown]) => {
+        const list: DepartmentResponse[] = Array.isArray(departmentData) ? departmentData : (departmentData as any)?.content ?? [];
         setDepartments(list);
+        const empList: EmployeeResponse[] = Array.isArray(employeeData) ? employeeData : (employeeData as any)?.content ?? [];
+        setEmployees(empList);
       })
       .catch(console.error);
   }, []);
@@ -142,26 +241,74 @@ const TaskPage = () => {
     [selectedDept, selectedSubDeptId]
   );
 
-  // Alt departmana ait çalışanlar — backend'in subDepartment üzerinden döndürdüğü employee listesi
-  // Eğer backend'de subDept içinde employees alanı yoksa, getEmployees ile filtrele
+  const positionOptions: DropdownOption[] = useMemo(
+    () => (selectedSubDept?.positions ?? []).map(p => ({ value: String(p.id), label: p.name })),
+    [selectedSubDept]
+  );
+
   const employeeOptions: DropdownOption[] = useMemo(() => {
-    const emps = (selectedSubDept as any)?.employees ?? [];
-    return emps.map((e: any) => ({
-      value: String(e.id),
-      label: `${e.firstName} ${e.lastName}`,
-    }));
-  }, [selectedSubDept]);
+    const deptId = selectedDeptId ? Number(selectedDeptId) : null;
+    const subDeptId = selectedSubDeptId ? Number(selectedSubDeptId) : null;
+    const positionIds = selectedPositionIds.map(Number);
+
+    return employees
+      .filter((emp) => {
+        const rawDeptId = emp.departmentId ?? emp.department?.id ?? null;
+        const rawSubDeptId = emp.subDepartmentId ?? emp.subDepartment?.id ?? null;
+        const rawPositionId = emp.positionId ?? emp.position?.id ?? null;
+
+        const employeePositionId = rawPositionId != null ? Number(rawPositionId) : null;
+        let employeeDeptId = rawDeptId != null ? Number(rawDeptId) : null;
+        let employeeSubDeptId = rawSubDeptId != null ? Number(rawSubDeptId) : null;
+
+        // Bazı employee payload'larında subDepartmentId gelmiyor.
+        // Bu durumda positionId üzerinden departman/alt departman bilgisini türetiyoruz.
+        if (employeePositionId != null && (employeeDeptId == null || employeeSubDeptId == null)) {
+          for (const dept of departments) {
+            for (const sub of dept.subDepartments ?? []) {
+              const hasPosition = (sub.positions ?? []).some((p) => Number(p.id) === employeePositionId);
+              if (hasPosition) {
+                if (employeeDeptId == null) employeeDeptId = Number(dept.id);
+                if (employeeSubDeptId == null) employeeSubDeptId = Number(sub.id);
+                break;
+              }
+            }
+            if (employeeDeptId != null && employeeSubDeptId != null) break;
+          }
+        }
+
+        if (deptId != null && Number(employeeDeptId) !== deptId) return false;
+        if (subDeptId != null && Number(employeeSubDeptId) !== subDeptId) return false;
+        if (positionIds.length > 0 && !positionIds.includes(Number(employeePositionId))) return false;
+        return true;
+      })
+      .map((e) => ({
+        value: String(e.id),
+        label: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || `Çalışan #${e.id}`,
+      }));
+  }, [employees, selectedDeptId, selectedSubDeptId, selectedPositionIds]);
+
+  const employeeNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const e of employees) {
+      const name = `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || `Çalışan #${e.id}`;
+      map.set(Number(e.id), name);
+    }
+    return map;
+  }, [employees]);
 
   /* ── Handlers ── */
   const handleDeptChange = (v: string) => {
     setSelectedDeptId(v);
     setSelectedSubDeptId("");
-    setSelectedEmployee(null);
+    setSelectedPositionIds([]);
+    setSelectedEmployeeIds([]);
   };
 
   const handleSubDeptChange = (v: string) => {
     setSelectedSubDeptId(v);
-    setSelectedEmployee(null);
+    setSelectedPositionIds([]);
+    setSelectedEmployeeIds([]);
   };
 
   /* ── Create task ── */
@@ -186,12 +333,16 @@ const TaskPage = () => {
       };
       const res = await createTask(payload);
       const taskId = res.data.id;
-      if (selectedEmployee) await assignTask(taskId, selectedEmployee);
+      if (selectedEmployeeIds.length > 0) {
+        const uniqueEmployeeIds = [...new Set(selectedEmployeeIds.map(Number))];
+        await Promise.all(uniqueEmployeeIds.map((employeeId) => assignTask(taskId, employeeId)));
+      }
 
       setForm({ title: "", description: "", priority: "LOW", startDate: "", dueDate: "" });
       setSelectedDeptId("");
       setSelectedSubDeptId("");
-      setSelectedEmployee(null);
+      setSelectedPositionIds([]);
+      setSelectedEmployeeIds([]);
       setSubmitted(false);
       setSuccess("Görev başarıyla oluşturuldu.");
       loadTasks();
@@ -290,7 +441,9 @@ const TaskPage = () => {
                 <span className="text-slate-700">›</span>
                 <StepBadge step={2} label="Alt Departman" done={!!selectedSubDeptId} />
                 <span className="text-slate-700">›</span>
-                <StepBadge step={3} label="Çalışan" done={!!selectedEmployee} />
+                <StepBadge step={3} label="Pozisyon" done={selectedPositionIds.length > 0} />
+                <span className="text-slate-700">›</span>
+                <StepBadge step={4} label="Çalışan" done={selectedEmployeeIds.length > 0} />
               </div>
             </div>
             <div className="h-px bg-slate-700/60" />
@@ -322,22 +475,44 @@ const TaskPage = () => {
             />
           </div>
 
+          {/* Pozisyon */}
+          <div className="md:col-span-2">
+            <label className={labelClass}>
+              Pozisyon
+              {!selectedSubDeptId && <span className="ml-1 text-slate-600 font-normal">— önce alt departman seçin</span>}
+            </label>
+            <MultiDropdown
+              values={selectedPositionIds}
+              options={positionOptions}
+              placeholder={
+                !selectedSubDeptId ? "Önce alt departman seçin"
+                : positionOptions.length === 0 ? "Bu alt departmanda pozisyon bulunamadı"
+                : "Pozisyon seçin (çoklu)"
+              }
+              disabled={!selectedSubDeptId || positionOptions.length === 0}
+              onChange={(values) => {
+                setSelectedPositionIds(values);
+                setSelectedEmployeeIds([]);
+              }}
+            />
+          </div>
+
           {/* Çalışan */}
           <div className="md:col-span-2">
             <label className={labelClass}>
               Çalışan
               {!selectedSubDeptId && <span className="ml-1 text-slate-600 font-normal">— önce alt departman seçin</span>}
             </label>
-            <MiniDropdown
-              value={selectedEmployee ? String(selectedEmployee) : ""}
+            <MultiDropdown
+              values={selectedEmployeeIds}
               options={employeeOptions}
               placeholder={
                 !selectedSubDeptId ? "Önce alt departman seçin"
                 : employeeOptions.length === 0 ? "Bu departmanda çalışan bulunamadı"
-                : "Çalışan seçin (opsiyonel)"
+                : "Çalışan seçin (çoklu, opsiyonel)"
               }
               disabled={!selectedSubDeptId || employeeOptions.length === 0}
-              onChange={v => setSelectedEmployee(v ? Number(v) : null)}
+              onChange={setSelectedEmployeeIds}
             />
           </div>
 
@@ -394,6 +569,18 @@ const TaskPage = () => {
               <p className="text-sm text-slate-400">
                 Bitiş: {task.dueDate ? new Date(task.dueDate).toLocaleString("tr-TR") : "-"}
               </p>
+              <div className="mt-2 text-sm text-slate-400">
+                Atananlar:{" "}
+                {task.assigneeEmployeeIds?.length ? (
+                  <span className="text-slate-200">
+                    {task.assigneeEmployeeIds
+                      .map((id) => employeeNameById.get(Number(id)) ?? `Çalışan #${id}`)
+                      .join(", ")}
+                  </span>
+                ) : (
+                  <span className="text-slate-500">Atama yok</span>
+                )}
+              </div>
             </div>
           ))}
         </div>

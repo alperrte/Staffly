@@ -21,5 +21,7 @@ public class EmployeeResponse {
     private String gender;
 
     private Long departmentId;
+    private String departmentName;
+    private Long positionId;
     private String positionName;
 }

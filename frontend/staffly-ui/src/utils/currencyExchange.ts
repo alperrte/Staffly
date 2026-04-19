@@ -1,9 +1,9 @@
 /** USD/EUR/GBP → TRY (Frankfurter API; başarısız olursa sabit kurlar) */
 
 const FALLBACK_RATES_TO_TRY: Record<string, number> = {
-    USD: 34.5,
-    EUR: 37.2,
-    GBP: 44.0,
+    USD: 44.84,
+    EUR: 52.91,
+    GBP: 60.67,
 };
 
 type FrankfurterLatest = {

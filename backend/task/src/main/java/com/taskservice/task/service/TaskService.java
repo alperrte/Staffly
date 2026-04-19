@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class TaskService {
@@ -114,6 +116,11 @@ public class TaskService {
         res.setPriority(task.getPriority());
         res.setStartDate(task.getStartDate());
         res.setDueDate(task.getDueDate());
+        res.setAssigneeEmployeeIds(
+                assignmentRepository.findByTaskId(task.getId()).stream()
+                        .map(TaskAssignment::getEmployeeId)
+                        .collect(Collectors.toList())
+        );
 
         return res;
     }
