@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# uploads klasörü ignore
+uploads/**
+
+# ama cvs klasörü dursun
+!uploads/cvs/
+!uploads/cvs/.gitkeep
