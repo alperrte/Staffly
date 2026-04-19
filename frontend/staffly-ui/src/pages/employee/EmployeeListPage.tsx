@@ -1,250 +1,295 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { getAllEmployees, updateEmployee } from "../../services/employeeService";
+import { getDepartments } from "../../services/departmentService";
 import { useLocation, useNavigate } from "react-router-dom";
-import { POSITION_OPTIONS_TR } from "../../constants/positions";
 
+/* ══ Types ══════════════════════════════════════════════════════════════ */
 type Employee = {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
     status: string;
-
     positionName?: string | null;
     departmentName?: string | null;
-
     hireDate?: string | null;
     gender?: string | null;
-
     [key: string]: unknown;
 };
 
+type DepartmentPositionResponse = { id: number; name: string; description?: string };
+type SubDepartmentResponse = {
+    id: number; name: string; description?: string;
+    positions?: DepartmentPositionResponse[];
+};
+type DepartmentResponse = {
+    id: number; name: string; description?: string;
+    subDepartments?: SubDepartmentResponse[];
+};
+
+type SortDir = "asc" | "desc";
+type SortKey = keyof Employee | null;
+type DropdownOption = { value: string; label: string };
+
+/* ══ Helpers ════════════════════════════════════════════════════════════ */
 const statusStyles: Record<string, string> = {
     ACTIVE: "bg-green-500/20 text-green-400 border border-green-500/30",
     INACTIVE: "bg-red-500/20 text-red-400 border border-red-500/30",
 };
+const statusLabelTR: Record<string, string> = { ACTIVE: "Aktif", INACTIVE: "Pasif" };
 
-const statusLabelTR: Record<string, string> = {
-    ACTIVE: "Aktif",
-    INACTIVE: "Pasif",
-};
-//Push
-
-const genderLabelTR: Record<string, string> = {
-    MALE: "Erkek",
-    FEMALE: "Kadın",
-    male: "Erkek",
-    female: "Kadın",
-    // API bazen TR/baş harfli döndürebilir
-    Erkek: "Erkek",
-    Kadın: "Kadın",
-};
-
-const formatGenderTR = (value: unknown) => {
-    if (value === null || value === undefined) return "-";
-    const raw = String(value).trim();
-    if (!raw) return "-";
-
-    const upper = raw.toUpperCase();
-    if (genderLabelTR[upper]) return genderLabelTR[upper];
-    if (genderLabelTR[raw]) return genderLabelTR[raw];
-    if (genderLabelTR[raw.toLowerCase()]) return genderLabelTR[raw.toLowerCase()];
-
-    return raw;
+const formatGenderTR = (v: unknown) => {
+    if (v == null) return "-";
+    const s = String(v).trim().toUpperCase();
+    if (s === "MALE") return "Erkek";
+    if (s === "FEMALE") return "Kadın";
+    return String(v).trim() || "-";
 };
 
 const emptyDash = (v: unknown) => {
-    if (v === null || v === undefined) return "-";
+    if (v == null) return "-";
     const s = String(v).trim();
-    return s.length ? s : "-";
+    return s || "-";
 };
 
-const formatMaybeDateTR = (value: unknown) => {
-    if (value === null || value === undefined) return "-";
-    const s = String(value).trim();
+const formatMaybeDateTR = (v: unknown) => {
+    if (v == null) return "-";
+    const s = String(v).trim();
     if (!s) return "-";
-
-    // ISO/date-like string denemesi; formatlanamazsa olduğu gibi bırakıyoruz
     const d = new Date(s);
-    if (Number.isNaN(d.getTime())) return s;
-
-    return d.toLocaleDateString("tr-TR");
+    return isNaN(d.getTime()) ? s : d.toLocaleDateString("tr-TR");
 };
 
 const toHumanLabel = (key: string) => {
-    // camelCase / snake_case -> okunur
-    const withSpaces =
-        key
-            .replace(/_/g, " ")
-            .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-            .toLowerCase()
-            .trim();
-
-    return withSpaces
-        .split(" ")
-        .filter(Boolean)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
+    const spaced = key.replace(/_/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+    return spaced.split(" ").filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 };
 
+/* ══ MiniDropdown (for edit form inside table) ══════════════════════════ */
+function MiniDropdown(props: {
+    value: string;
+    options: DropdownOption[];
+    placeholder: string;
+    onChange: (v: string) => void;
+    disabled?: boolean;
+}) {
+    const { value, options, placeholder, onChange, disabled } = props;
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+        document.addEventListener("mousedown", h);
+        return () => document.removeEventListener("mousedown", h);
+    }, [open]);
+
+    const selected = options.find(o => o.value === value);
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={() => !disabled && setOpen(v => !v)}
+                className={`w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition outline-none
+                    ${disabled
+                        ? "border-slate-700/50 bg-slate-900/20 text-slate-600 cursor-not-allowed"
+                        : "border-slate-600 bg-slate-800/60 text-white hover:border-sky-400/60 focus:border-sky-400/70"}`}
+            >
+                <span className={selected ? "text-white truncate" : "text-slate-400 truncate"}>
+                    {selected ? selected.label : placeholder}
+                </span>
+                <span className="text-slate-500 shrink-0 text-xs">{open ? "▴" : "▾"}</span>
+            </button>
+            {open && (
+                <div className="absolute left-0 right-0 mt-1.5 z-50 rounded-xl border border-slate-600 bg-[#0d1117] shadow-[0_16px_60px_rgba(0,0,0,0.8)]">
+                    <div className="p-1.5 max-h-64 overflow-y-auto">
+                        {options.length === 0 && <p className="px-3 py-2.5 text-sm text-slate-500">Seçenek yok</p>}
+                        {options.map(opt => (
+                            <button key={opt.value} type="button"
+                                onClick={() => { onChange(opt.value); setOpen(false); }}
+                                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition ${opt.value === value ? "bg-sky-500/25 text-sky-200 font-medium" : "text-slate-200 hover:bg-slate-700/60"}`}>
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+import { useRef } from "react";
+
+/* ══ SortIcon ═══════════════════════════════════════════════════════════ */
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+    return (
+        <span className={`inline-flex flex-col ml-1.5 shrink-0 ${active ? "opacity-100" : "opacity-30"}`}>
+            <svg className={`w-2 h-2 -mb-0.5 ${active && dir === "asc" ? "text-sky-400" : "text-slate-400"}`} viewBox="0 0 6 4" fill="currentColor"><path d="M3 0L6 4H0z" /></svg>
+            <svg className={`w-2 h-2 ${active && dir === "desc" ? "text-sky-400" : "text-slate-400"}`} viewBox="0 0 6 4" fill="currentColor"><path d="M3 4L0 0h6z" /></svg>
+        </span>
+    );
+}
+
+/* ══ EmployeeListPage ═══════════════════════════════════════════════════ */
 const EmployeeListPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [filtered, setFiltered] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
 
+    /* Sort */
+    const [sortKey, setSortKey] = useState<SortKey>(null);
+    const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+    /* Expand / Edit */
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [savingId, setSavingId] = useState<number | null>(null);
     const [editForm, setEditForm] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        positionName: "",
-        status: "ACTIVE",
-        gender: "",
+        firstName: "", lastName: "", email: "",
+        positionName: "", departmentId: "", subDepartmentId: "",
+        status: "ACTIVE", gender: "",
     });
 
+    /* ── Fetches ── */
     useEffect(() => {
-        let isMounted = true;
-
-        const fetchEmployees = async () => {
-            try {
-                const data = await getAllEmployees();
-
-                // ⚠️ Backend response yapısına göre gerekirse değiştir
-                const list: Employee[] = data;
-
-                if (isMounted) {
-                    setEmployees(list);
-                    setFiltered(list);
-                }
-            } catch (err) {
-                console.error(err);
-                if (isMounted) setError("Çalışanlar alınamadı");
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        };
-
-        fetchEmployees();
-
-        return () => {
-            isMounted = false;
-        };
+        let alive = true;
+        getAllEmployees()
+            .then((data: unknown) => { if (alive) setEmployees(Array.isArray(data) ? data : []); })
+            .catch(err => { console.error(err); if (alive) setError("Çalışanlar alınamadı"); })
+            .finally(() => { if (alive) setLoading(false); });
+        return () => { alive = false; };
     }, []);
 
     useEffect(() => {
-        const state = location.state as
-            | { employeeCreated?: boolean; createdEmployeeName?: string }
-            | null;
+        getDepartments()
+            .then((data: unknown) => {
+                const list: DepartmentResponse[] = Array.isArray(data) ? data : (data as any)?.content ?? [];
+                setDepartments(list);
+            })
+            .catch(console.error);
+    }, []);
 
+    // Backend'den departmentName gelmiyorsa, departmentId üzerinden eşleştir
+    const enrichedEmployees = useMemo(() => {
+        if (departments.length === 0) return employees;
+        return employees.map(emp => {
+            // departmentName zaten doluysa dokunma
+            if (emp.departmentName) return emp;
+            // departmentId varsa departments listesinden isim bul
+            const deptId = emp.departmentId ?? (emp as any).department?.id;
+            if (!deptId) return emp;
+            const dept = departments.find(d => String(d.id) === String(deptId));
+            return dept ? { ...emp, departmentName: dept.name } : emp;
+        });
+    }, [employees, departments]);
+
+    useEffect(() => {
+        const state = location.state as { employeeCreated?: boolean; createdEmployeeName?: string } | null;
         if (state?.employeeCreated) {
             const name = state.createdEmployeeName?.trim();
-            setSuccessMessage(
-                name
-                    ? `${name} başarıyla oluşturuldu.`
-                    : "Çalışan başarıyla oluşturuldu."
-            );
-
+            setSuccessMessage(name ? `${name} başarıyla oluşturuldu.` : "Çalışan başarıyla oluşturuldu.");
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
 
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const q = search.toLowerCase().trim();
+    /* ── Filter + Sort ── */
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase().trim();
+        let list = q
+            ? enrichedEmployees.filter(emp =>
+                Object.values(emp).map(v => v == null ? "" : String(v)).join(" ").toLowerCase().includes(q))
+            : [...enrichedEmployees];
 
-            if (!q) {
-                setFiltered(employees);
-                return;
-            }
-
-            const result = employees.filter((emp) => {
-                const haystack = Object.values(emp)
-                    .map((v) => (v === null || v === undefined ? "" : String(v)))
-                    .join(" ")
-                    .toLowerCase();
-
-                return haystack.includes(q);
+        if (sortKey) {
+            list.sort((a, b) => {
+                const as = String(a[sortKey] ?? "").toLowerCase();
+                const bs = String(b[sortKey] ?? "").toLowerCase();
+                return sortDir === "asc" ? as.localeCompare(bs, "tr") : bs.localeCompare(as, "tr");
             });
+        }
+        return list;
+       }, [search, enrichedEmployees, sortKey, sortDir]);
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+        else { setSortKey(key); setSortDir("asc"); }
+    };
 
-            setFiltered(result);
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [search, employees]);
-
-    const labelTR: Record<string, string> = useMemo(
-        () => ({
-            hireDate: "İşe Giriş Tarihi",
-            gender: "Cinsiyet",
-            phoneNumber: "Telefon",
-            address: "Adres",
-            city: "Şehir",
-            country: "Ülke",
-            zipCode: "Posta Kodu",
-            positionName: "Pozisyon",
-            departmentName: "Departman",
-            status: "Durum",
-            createdAt: "Oluşturma Tarihi",
-            updatedAt: "Güncelleme Tarihi",
-        }),
-        []
+    /* ── Edit cascade options ── */
+    const deptOptions: DropdownOption[] = useMemo(
+        () => departments.map(d => ({ value: String(d.id), label: d.name })),
+        [departments]
+    );
+    const editSelectedDept = useMemo(
+        () => departments.find(d => String(d.id) === editForm.departmentId) ?? null,
+        [departments, editForm.departmentId]
+    );
+    const subDeptOptions: DropdownOption[] = useMemo(
+        () => (editSelectedDept?.subDepartments ?? []).map(s => ({ value: String(s.id), label: s.name })),
+        [editSelectedDept]
+    );
+    const editSelectedSubDept = useMemo(
+        () => (editSelectedDept?.subDepartments ?? []).find(s => String(s.id) === editForm.subDepartmentId) ?? null,
+        [editSelectedDept, editForm.subDepartmentId]
+    );
+    const positionOptions: DropdownOption[] = useMemo(
+        () => (editSelectedSubDept?.positions ?? []).map(p => ({ value: p.name, label: p.name })),
+        [editSelectedSubDept]
     );
 
-    // Üstte/tabloda zaten gösterdiğimiz alanlar extra listede tekrar çıkmasın
-    const excludedFromExtra = useMemo(
-        () =>
-            new Set<string>([
-                "id",
-                "firstName",
-                "lastName",
-                "email",
-                "status",
-                "positionName",
-                "departmentName",
+    const statusOpts: DropdownOption[] = [
+        { value: "ACTIVE", label: "Aktif" },
+        { value: "INACTIVE", label: "Pasif" },
+    ];
+    const genderOpts: DropdownOption[] = [
+        { value: "", label: "Belirtilmedi" },
+        { value: "MALE", label: "Erkek" },
+        { value: "FEMALE", label: "Kadın" },
+    ];
 
-                // tekrar olmasın diye ekledik
-                "hireDate",
-                "gender",
-            ]),
-        []
-    );
-
-    const statusOptions = useMemo(() => ["ACTIVE", "INACTIVE"], []);
-
-    const positionOptions = useMemo(() => [...POSITION_OPTIONS_TR], []);
-
-    const genderOptions = useMemo(() => ["", "MALE", "FEMALE"], []);
-
+    /* ── Edit actions ── */
     const startEdit = (emp: Employee) => {
+        // enrichedEmployees içinden bu çalışanı bul (departmentName normalize edilmiş olabilir)
+        const enriched = enrichedEmployees.find(e => e.id === emp.id) ?? emp;
+        const matchedDept = departments.find(
+            d => d.name?.toLowerCase() === String(enriched.departmentName ?? "").toLowerCase()
+        );
+        let matchedSubDept: SubDepartmentResponse | null = null;
+        if (matchedDept) {
+            for (const sub of matchedDept.subDepartments ?? []) {
+                if (sub.positions?.some(p => p.name === enriched.positionName)) {
+                    matchedSubDept = sub;
+                    break;
+                }
+            }
+        }
         setEditingId(emp.id);
+        setExpandedId(null);
         setEditForm({
-            firstName: String(emp.firstName ?? ""),
-            lastName: String(emp.lastName ?? ""),
-            email: String(emp.email ?? ""),
-            positionName: String(emp.positionName ?? ""),
-            status: String(emp.status ?? "ACTIVE"),
-            gender: String(emp.gender ?? ""),
+            firstName: String(enriched.firstName ?? ""),
+            lastName: String(enriched.lastName ?? ""),
+            email: String(enriched.email ?? ""),
+            positionName: String(enriched.positionName ?? ""),
+            departmentId: matchedDept ? String(matchedDept.id) : "",
+            subDepartmentId: matchedSubDept ? String(matchedSubDept.id) : "",
+            status: String(enriched.status ?? "ACTIVE"),
+            gender: String(enriched.gender ?? ""),
         });
     };
 
-    const cancelEdit = () => {
-        setEditingId(null);
-        setSavingId(null);
-    };
+    const cancelEdit = () => { setEditingId(null); setSavingId(null); };
 
     const saveEdit = async (empId: number) => {
         try {
             setSavingId(empId);
             setError("");
-
             const payload = {
                 firstName: editForm.firstName.trim(),
                 lastName: editForm.lastName.trim(),
@@ -253,21 +298,12 @@ const EmployeeListPage = () => {
                 status: editForm.status,
                 gender: editForm.gender || null,
             };
-
             const updated = await updateEmployee(empId, payload);
-
-            setEmployees((prev) =>
-                prev.map((emp) =>
-                    emp.id === empId
-                        ? {
-                              ...emp,
-                              ...payload,
-                              ...(updated && typeof updated === "object" ? updated : {}),
-                          }
-                        : emp
-                )
-            );
-
+            setEmployees(prev => prev.map(emp =>
+                emp.id === empId
+                    ? { ...emp, ...payload, ...(updated && typeof updated === "object" ? updated : {}) }
+                    : emp
+            ));
             setSuccessMessage("Çalışan bilgileri güncellendi.");
             setEditingId(null);
         } catch (err) {
@@ -278,335 +314,335 @@ const EmployeeListPage = () => {
         }
     };
 
-    if (loading) {
-        return <div className="text-slate-400">Çalışanlar yükleniyor...</div>;
-    }
+    /* ── Labels / exclusions ── */
+    const labelTR: Record<string, string> = useMemo(() => ({
+        hireDate: "İşe Giriş Tarihi", gender: "Cinsiyet", phoneNumber: "Telefon",
+        address: "Adres", city: "Şehir", country: "Ülke", zipCode: "Posta Kodu",
+        positionName: "Pozisyon", departmentName: "Departman", status: "Durum",
+        createdAt: "Oluşturma Tarihi", updatedAt: "Güncelleme Tarihi",
+    }), []);
+
+    const excludedFromExtra = useMemo(() => new Set<string>([
+        "id", "firstName", "lastName", "email", "status",
+        "positionName", "departmentName", "hireDate", "gender",
+    ]), []);
+
+    if (loading) return <div className="text-slate-400 p-6">Çalışanlar yükleniyor...</div>;
+
+    /* ── Th helper ── */
+    const Th = ({ children, sk, right }: { children: React.ReactNode; sk?: SortKey; right?: boolean }) => (
+        <th
+            onClick={() => sk && handleSort(sk)}
+            className={`p-3 text-left whitespace-nowrap select-none
+                ${sk ? "cursor-pointer hover:text-sky-300 transition-colors" : ""}
+                ${right ? "text-right" : ""}`}
+        >
+            <span className="inline-flex items-center">
+                {children}
+                {sk && <SortIcon active={sortKey === sk} dir={sortDir} />}
+            </span>
+        </th>
+    );
 
     return (
         <div className="w-full flex flex-col gap-6 px-3 sm:px-6">
+            {/* ── Header ── */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h1 className="text-2xl font-semibold">Çalışanlar</h1>
-
                 <div className="flex gap-3 items-center">
                     <button
                         onClick={() => navigate("/app/employees/create")}
-                        className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition"
+                        className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
                     >
                         + Çalışan Ekle
                     </button>
-
                     <input
-                        type="text"
-                        placeholder="Ara..."
-                        className="w-[260px] max-w-full rounded-lg bg-slate-900/50 border border-slate-700 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        type="text" placeholder="Ara..."
+                        className="w-[260px] max-w-full rounded-lg bg-slate-900/50 border border-slate-700 px-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"
+                        value={search} onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
 
-            {error && <div className="text-red-400 text-sm">{error}</div>}
+            {error && (
+                <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                </div>
+            )}
             {successMessage && (
                 <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                    {successMessage}
+                    ✓ {successMessage}
                 </div>
             )}
 
+            {/* ── Table ── */}
             <div className="rounded-xl border border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm min-w-[1240px]">
-                        <thead className="bg-slate-800/60 text-slate-300">
+                        <thead className="bg-slate-800/60 text-slate-400 text-xs uppercase tracking-wide">
                         <tr>
-                            <th className="p-3 text-left">Ad Soyad</th>
-                            <th className="p-3 text-left">E-posta</th>
-                            <th className="p-3 text-left">Pozisyon</th>
-                            <th className="p-3 text-left">Departman</th>
-                            <th className="p-3 text-left">İşe Giriş Tarihi</th>
-                            <th className="p-3 text-left">Cinsiyet</th>
-                            <th className="p-3 text-left">Durum</th>
-                            <th className="p-3 text-right">İşlemler</th>
+                            <Th sk="firstName">Ad Soyad</Th>
+                            <Th sk="email">E-posta</Th>
+                            <Th sk="positionName">Pozisyon</Th>
+                            <Th sk="departmentName">Departman</Th>
+                            <Th sk="hireDate">İşe Giriş</Th>
+                            <Th sk="gender">Cinsiyet</Th>
+                            <Th sk="status">Durum</Th>
+                            <Th right>İşlemler</Th>
                         </tr>
                         </thead>
 
                         <tbody>
                         {filtered.map((emp) => {
                             const isOpen = expandedId === emp.id;
-
-                            const extraEntries = Object.entries(emp).filter(([k, v]) => {
-                                if (excludedFromExtra.has(k)) return false;
-                                if (v === undefined) return false;
-                                return true;
-                            });
-
-                            const hireDateVal = emp.hireDate ?? null;
-                            const genderVal = emp.gender ?? null;
+                            const isEditing = editingId === emp.id;
+                            const extraEntries = Object.entries(emp).filter(([k, v]) => !excludedFromExtra.has(k) && v !== undefined);
 
                             return (
                                 <Fragment key={emp.id}>
+                                    {/* ── Main row ── */}
                                     <tr
-                                        onClick={() => setExpandedId((prev) => (prev === emp.id ? null : emp.id))}
-                                        className="cursor-pointer border-t border-slate-700 hover:bg-slate-800/35 transition"
+                                        onClick={() => { if (!isEditing) setExpandedId(p => p === emp.id ? null : emp.id); }}
+                                        className={`border-t border-slate-700/70 transition
+                                            ${isEditing ? "bg-slate-800/40" : "cursor-pointer hover:bg-slate-800/30"}`}
                                     >
                                         <td className="p-3 font-medium text-slate-200">
-                                            {emp.firstName} {emp.lastName}
-                                            <span className="ml-2 inline-flex align-middle text-slate-400">
-                          {isOpen ? "▾" : "▸"}
-                        </span>
+                                            <span className="flex items-center gap-1.5">
+                                                {emp.firstName} {emp.lastName}
+                                                {!isEditing && (
+                                                    <span className="text-slate-600 text-xs">{isOpen ? "▾" : "▸"}</span>
+                                                )}
+                                            </span>
                                         </td>
-
-                                        <td className="p-3 text-slate-200/90">{emp.email}</td>
-
-                                        <td className="p-3 text-slate-200/90">{emptyDash(emp.positionName)}</td>
-
-                                        <td className="p-3 text-slate-200/90">{emptyDash(emp.departmentName)}</td>
-
-                                        <td className="p-3 text-slate-200/90">
-                                            {hireDateVal ? formatMaybeDateTR(hireDateVal) : "-"}
-                                        </td>
-
-                                        <td className="p-3 text-slate-200/90">{formatGenderTR(genderVal)}</td>
-
+                                        <td className="p-3 text-slate-300">{emp.email}</td>
+                                        <td className="p-3 text-slate-300">{emptyDash(emp.positionName)}</td>
+                                        <td className="p-3 text-slate-300">{emptyDash(emp.departmentName)}</td>
+                                        <td className="p-3 text-slate-300">{formatMaybeDateTR(emp.hireDate)}</td>
+                                        <td className="p-3 text-slate-300">{formatGenderTR(emp.gender)}</td>
                                         <td className="p-3">
-                        <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${
-                                statusStyles[emp.status] || ""
-                            }`}
-                        >
-                          {statusLabelTR[emp.status] ?? emp.status}
-                        </span>
+                                            <span className={`px-2 py-1 rounded-md text-xs font-semibold ${statusStyles[emp.status] ?? ""}`}>
+                                                {statusLabelTR[emp.status] ?? emp.status}
+                                            </span>
                                         </td>
-
                                         <td className="p-3 text-right">
                                             <button
                                                 type="button"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (editingId === emp.id) {
-                                                        cancelEdit();
-                                                        return;
-                                                    }
-                                                    startEdit(emp);
+                                                    isEditing ? cancelEdit() : startEdit(emp);
                                                 }}
-                                                className="inline-flex items-center justify-center rounded-md border border-slate-600 bg-slate-900/60 p-2 text-slate-200 hover:border-sky-400 hover:text-sky-300 transition"
-                                                aria-label="Çalışanı güncelle"
-                                                title="Çalışanı güncelle"
+                                                title={isEditing ? "İptal" : "Güncelle"}
+                                                className={`inline-flex items-center justify-center rounded-lg border p-2 transition
+                                                    ${isEditing
+                                                        ? "border-red-500/40 bg-red-500/10 text-red-400 hover:border-red-400 hover:text-red-300"
+                                                        : "border-slate-700 bg-slate-900/40 text-slate-400 hover:border-sky-400/60 hover:text-sky-300"}`}
                                             >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.8"
-                                                    className="h-4 w-4"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M14.7 6.3a4 4 0 0 0 2.44 2.44l.37.12a1 1 0 0 1 .57 1.44l-1.04 1.8a6 6 0 0 1-5.2 3h-2.1a2 2 0 0 0-1.74 1l-.7 1.2a1 1 0 0 1-1.45.34l-1.36-.92a1 1 0 0 1-.22-1.47l1.03-1.31a2 2 0 0 0-.18-2.68l-.81-.8a1 1 0 0 1-.02-1.42l1.44-1.47a1 1 0 0 1 1.4-.02l.88.87a2 2 0 0 0 2.77.11l1.18-.96a1 1 0 0 1 1.45.3l.14.23Z"
-                                                    />
-                                                </svg>
+                                                {isEditing ? (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                )}
                                             </button>
                                         </td>
                                     </tr>
 
-                                    {editingId === emp.id && (
+                                    {/* ══ EDIT PANEL ══════════════════════════════════════════ */}
+                                    {isEditing && (
                                         <tr>
-                                            <td colSpan={8} className="p-4 bg-slate-900/50 border-t border-slate-700">
-                                                <div className="rounded-xl border border-slate-700 bg-slate-950/30 p-4">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <h3 className="text-sm font-semibold text-slate-100">
-                                                            Çalışan Güncelle
-                                                        </h3>
-                                                        <span className="text-xs text-slate-400">
-                                                            Açılır düzenleme formu
-                                                        </span>
-                                                    </div>
+                                            <td colSpan={8} className="border-t border-slate-700/50 bg-slate-900/70">
+                                                <div className="px-6 py-6">
+                                                    <div className="rounded-2xl border border-slate-600/80 bg-[#0d1117] shadow-[0_8px_48px_rgba(0,0,0,0.6)]">
+                                                        {/* Panel header */}
+                                                        <div className="flex items-center justify-between px-7 py-5 border-b border-slate-700/60 bg-slate-800/30 rounded-t-2xl">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-1.5 h-6 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+                                                                <div>
+                                                                    <p className="text-base font-semibold text-white">
+                                                                        {emp.firstName} {emp.lastName}
+                                                                    </p>
+                                                                    <p className="text-xs text-slate-500 mt-0.5">Çalışan bilgilerini düzenle</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2.5">
+                                                                <button type="button" onClick={cancelEdit}
+                                                                    className="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white transition">
+                                                                    Vazgeç
+                                                                </button>
+                                                                <button type="button" disabled={savingId === emp.id}
+                                                                    onClick={() => saveEdit(emp.id)}
+                                                                    className="px-5 py-2 text-sm rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold transition flex items-center gap-2 shadow-[0_0_16px_rgba(56,189,248,0.25)]">
+                                                                    {savingId === emp.id ? (
+                                                                        <>
+                                                                            <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                                            </svg>
+                                                                            Kaydediliyor...
+                                                                        </>
+                                                                    ) : "Kaydet"}
+                                                                </button>
+                                                            </div>
+                                                        </div>
 
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.firstName}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    firstName: e.target.value,
-                                                                }))
-                                                            }
-                                                            placeholder="Ad"
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
-                                                        />
+                                                        <div className="p-7 flex flex-col gap-8">
+                                                            {/* ── Kişisel Bilgiler ── */}
+                                                            <div>
+                                                                <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                    Kişisel Bilgiler
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                </p>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Ad</label>
+                                                                        <input value={editForm.firstName}
+                                                                            onChange={e => setEditForm(p => ({ ...p, firstName: e.target.value }))}
+                                                                            className="rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/20 transition"
+                                                                            placeholder="Ad" />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Soyad</label>
+                                                                        <input value={editForm.lastName}
+                                                                            onChange={e => setEditForm(p => ({ ...p, lastName: e.target.value }))}
+                                                                            className="rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/20 transition"
+                                                                            placeholder="Soyad" />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">E-posta</label>
+                                                                        <input type="email" value={editForm.email}
+                                                                            onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))}
+                                                                            className="rounded-xl border border-slate-600 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/20 transition"
+                                                                            placeholder="E-posta" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
-                                                        <input
-                                                            type="text"
-                                                            value={editForm.lastName}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    lastName: e.target.value,
-                                                                }))
-                                                            }
-                                                            placeholder="Soyad"
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
-                                                        />
+                                                            {/* ── Organizasyon ── */}
+                                                            <div>
+                                                                <div className="flex items-center gap-3 mb-4">
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                    <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Organizasyon</p>
+                                                                    {/* Step badges */}
+                                                                    <div className="flex items-center gap-2 text-xs">
+                                                                        {[
+                                                                            { step: 1, label: "Departman", done: !!editForm.departmentId },
+                                                                            { step: 2, label: "Alt Departman", done: !!editForm.subDepartmentId },
+                                                                            { step: 3, label: "Pozisyon", done: !!editForm.positionName },
+                                                                        ].map((s, i, arr) => (
+                                                                            <span key={s.step} className="flex items-center gap-1.5">
+                                                                                <span className={`flex items-center gap-1 ${s.done ? "text-sky-400" : "text-slate-600"}`}>
+                                                                                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${s.done ? "bg-sky-500 text-white" : "bg-slate-700 text-slate-500"}`}>
+                                                                                        {s.done ? "✓" : s.step}
+                                                                                    </span>
+                                                                                    {s.label}
+                                                                                </span>
+                                                                                {i < arr.length - 1 && <span className="text-slate-700">›</span>}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                </div>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Departman</label>
+                                                                        <MiniDropdown
+                                                                            value={editForm.departmentId}
+                                                                            options={deptOptions}
+                                                                            placeholder="Departman seçin"
+                                                                            onChange={v => setEditForm(p => ({ ...p, departmentId: v, subDepartmentId: "", positionName: "" }))}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Alt Departman</label>
+                                                                        <MiniDropdown
+                                                                            value={editForm.subDepartmentId}
+                                                                            options={subDeptOptions}
+                                                                            placeholder={!editForm.departmentId ? "Önce departman seçin" : "Alt departman seçin"}
+                                                                            disabled={!editForm.departmentId || subDeptOptions.length === 0}
+                                                                            onChange={v => setEditForm(p => ({ ...p, subDepartmentId: v, positionName: "" }))}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Pozisyon</label>
+                                                                        <MiniDropdown
+                                                                            value={editForm.positionName}
+                                                                            options={positionOptions}
+                                                                            placeholder={!editForm.subDepartmentId ? "Önce alt departman seçin" : "Pozisyon seçin"}
+                                                                            disabled={!editForm.subDepartmentId || positionOptions.length === 0}
+                                                                            onChange={v => setEditForm(p => ({ ...p, positionName: v }))}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
-                                                        <input
-                                                            type="email"
-                                                            value={editForm.email}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    email: e.target.value,
-                                                                }))
-                                                            }
-                                                            placeholder="E-posta"
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-sky-400/70"
-                                                        />
-
-                                                        <select
-                                                            value={editForm.positionName}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    positionName: e.target.value,
-                                                                }))
-                                                            }
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
-                                                        >
-                                                            <option value="">Pozisyon seç</option>
-                                                            {positionOptions.map((position) => (
-                                                                <option key={position} value={position}>
-                                                                    {position}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-
-                                                        <select
-                                                            value={editForm.status}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    status: e.target.value,
-                                                                }))
-                                                            }
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
-                                                        >
-                                                            {statusOptions.map((status) => (
-                                                                <option key={status} value={status}>
-                                                                    {statusLabelTR[status] ?? status}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-
-                                                        <select
-                                                            value={editForm.gender}
-                                                            onChange={(e) =>
-                                                                setEditForm((prev) => ({
-                                                                    ...prev,
-                                                                    gender: e.target.value,
-                                                                }))
-                                                            }
-                                                            className="rounded-lg bg-slate-900/50 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-400/70"
-                                                        >
-                                                            <option value="">Cinsiyet seç</option>
-                                                            {genderOptions
-                                                                .filter((g) => g)
-                                                                .map((gender) => (
-                                                                    <option key={gender} value={gender}>
-                                                                        {formatGenderTR(gender)}
-                                                                    </option>
-                                                                ))}
-                                                        </select>
-                                                    </div>
-
-                                                    <div className="mt-4 flex items-center justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={cancelEdit}
-                                                            className="px-4 py-2 text-sm rounded-lg border border-slate-600 text-slate-200 hover:border-slate-500 hover:text-white transition"
-                                                        >
-                                                            Vazgeç
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={savingId === emp.id}
-                                                            onClick={() => saveEdit(emp.id)}
-                                                            className="px-4 py-2 text-sm rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white font-medium transition"
-                                                        >
-                                                            {savingId === emp.id ? "Kaydediliyor..." : "Kaydet"}
-                                                        </button>
+                                                            {/* ── Durum & Cinsiyet ── */}
+                                                            <div>
+                                                                <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                    Durum & Cinsiyet
+                                                                    <span className="h-px flex-1 bg-slate-700/60" />
+                                                                </p>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Durum</label>
+                                                                        <MiniDropdown
+                                                                            value={editForm.status}
+                                                                            options={statusOpts}
+                                                                            placeholder="Durum seçin"
+                                                                            onChange={v => setEditForm(p => ({ ...p, status: v }))}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <label className="text-xs font-medium text-slate-400">Cinsiyet</label>
+                                                                        <MiniDropdown
+                                                                            value={editForm.gender}
+                                                                            options={genderOpts}
+                                                                            placeholder="Cinsiyet seçin"
+                                                                            onChange={v => setEditForm(p => ({ ...p, gender: v }))}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
                                         </tr>
                                     )}
 
-                                    {isOpen && (
+                                    {/* ══ EXPAND PANEL ════════════════════════════════════════ */}
+                                    {isOpen && !isEditing && (
                                         <tr>
-                                            <td colSpan={8} className="p-4 bg-slate-900/35">
-                                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                                                    {/* Sabit kartlar */}
-                                                    <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3">
-                                                        <div className="text-xs text-slate-400">Pozisyon</div>
-                                                        <div className="text-sm text-slate-200 font-medium mt-1">
-                                                            {emptyDash(emp.positionName)}
+                                            <td colSpan={8} className="border-t border-slate-700/50 bg-slate-900/25 p-4">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                                                    {[
+                                                        { label: "Pozisyon", value: emptyDash(emp.positionName) },
+                                                        { label: "Departman", value: emptyDash(emp.departmentName) },
+                                                        { label: "İşe Giriş", value: formatMaybeDateTR(emp.hireDate) },
+                                                        { label: "Cinsiyet", value: formatGenderTR(emp.gender) },
+                                                        { label: "Durum", value: statusLabelTR[emp.status] ?? emp.status },
+                                                    ].map(({ label, value }) => (
+                                                        <div key={label} className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                                            <div className="text-[10px] text-slate-500 mb-1">{label}</div>
+                                                            <div className="text-sm text-slate-200 font-medium">{value}</div>
                                                         </div>
-                                                    </div>
-
-                                                    <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3">
-                                                        <div className="text-xs text-slate-400">Departman</div>
-                                                        <div className="text-sm text-slate-200 font-medium mt-1">
-                                                            {emptyDash(emp.departmentName)}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3">
-                                                        <div className="text-xs text-slate-400">İşe Giriş Tarihi</div>
-                                                        <div className="text-sm text-slate-200 font-medium mt-1">
-                                                            {hireDateVal ? formatMaybeDateTR(hireDateVal) : "-"}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3">
-                                                        <div className="text-xs text-slate-400">Cinsiyet</div>
-                                                        <div className="text-sm text-slate-200 font-medium mt-1">
-                                                            {formatGenderTR(genderVal)}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3 lg:col-span-1">
-                                                        <div className="text-xs text-slate-400">Durum</div>
-                                                        <div className="text-sm text-slate-200 font-medium mt-1">
-                                                            {statusLabelTR[emp.status] ?? emp.status}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Extra alanlar (gender/hireDate tekrar gelmesin diye excluded) */}
+                                                    ))}
                                                     {extraEntries.map(([key, value]) => {
                                                         const label = labelTR[key] ?? toHumanLabel(key);
-
-                                                        const keyLower = key.toLowerCase();
-                                                        const isDateKey =
-                                                            keyLower.includes("date") || keyLower.includes("hire");
-
-                                                        const displayValue = isDateKey
+                                                        const kl = key.toLowerCase();
+                                                        const display = kl.includes("date") || kl.includes("hire")
                                                             ? formatMaybeDateTR(value)
-                                                            : Array.isArray(value)
-                                                                ? value.join(", ")
-                                                                : typeof value === "boolean"
-                                                                    ? value
-                                                                        ? "Evet"
-                                                                        : "Hayır"
-                                                                    : emptyDash(value);
-
+                                                            : Array.isArray(value) ? value.join(", ")
+                                                            : typeof value === "boolean" ? (value ? "Evet" : "Hayır")
+                                                            : emptyDash(value);
                                                         return (
-                                                            <div
-                                                                key={key}
-                                                                className="rounded-xl border border-slate-700/80 bg-slate-950/20 p-3"
-                                                            >
-                                                                <div className="text-xs text-slate-400">{label}</div>
-                                                                <div className="text-sm text-slate-200 font-medium mt-1 break-words">
-                                                                    {displayValue}
-                                                                </div>
+                                                            <div key={key} className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                                                <div className="text-[10px] text-slate-500 mb-1">{label}</div>
+                                                                <div className="text-sm text-slate-200 font-medium break-words">{display}</div>
                                                             </div>
                                                         );
                                                     })}
@@ -622,7 +658,9 @@ const EmployeeListPage = () => {
                 </div>
 
                 {filtered.length === 0 && (
-                    <div className="p-6 text-center text-slate-400">Sonuç bulunamadı</div>
+                    <div className="p-8 text-center text-slate-500 text-sm">
+                        {search ? `"${search}" için sonuç bulunamadı` : "Henüz çalışan yok"}
+                    </div>
                 )}
             </div>
         </div>
