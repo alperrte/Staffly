@@ -1,4 +1,4 @@
-package com.organization_service;
+package com.organizationservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
