@@ -6,3 +6,10 @@ CREATE TABLE users (
                        created_at DATETIME2 DEFAULT GETDATE(),
                        updated_at DATETIME2
 );
+
+ALTER TABLE users
+    ADD employee_id BIGINT NULL;
+
+ALTER TABLE users
+    ADD CONSTRAINT UQ_users_employee_id UNIQUE (employee_id);
+

@@ -37,10 +37,16 @@ public class AuthService {
             throw new RuntimeException("Email already exists");
         }
 
+        if (request.getEmployeeId() != null &&
+                userRepository.existsByEmployeeId(request.getEmployeeId())) {
+            throw new RuntimeException("This employee already has a user account");
+        }
+
         Role role = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         User user = User.builder()
+                .employeeId(request.getEmployeeId()) // null olabilir
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .active(true)
