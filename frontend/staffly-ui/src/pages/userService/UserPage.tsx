@@ -15,6 +15,7 @@ import {
 } from "react-icons/fa";
 import {
     createUser,
+    getEmployeesForUserCreation,
     getRoles,
     getUsers,
     setUserActive,
@@ -26,7 +27,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "PASSIVE";
 type SettingsTab = "MEMBERSHIP" | "PERMISSIONS";
 
 type ConfirmKind =
-    | { type: "CREATE_USER"; email: string; password: string }
+    | { type: "CREATE_USER"; email: string; password: string; employeeId?: number }
     | { type: "UPDATE_ACTIVE"; email: string; active: boolean }
     | { type: "UPDATE_ROLES"; email: string; roles: string[] }
     | null;
@@ -36,6 +37,16 @@ type UserWithOptionalName = User & {
     fullName?: string;
     firstName?: string;
     lastName?: string;
+};
+
+type Employee = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status: string;
+    departmentId?: number;
+    positionName?: string;
 };
 
 const UserPage = () => {
@@ -50,7 +61,9 @@ const UserPage = () => {
     const [createEmail, setCreateEmail] = useState("");
     const [createPassword, setCreatePassword] = useState("");
     const [isCreating, setIsCreating] = useState(false);
-
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | "">("");
+    const [useEmployeeLink, setUseEmployeeLink] = useState(false);
     const [settingsOpenForEmail, setSettingsOpenForEmail] = useState<string | null>(null);
     const [settingsTab, setSettingsTab] = useState<SettingsTab>("MEMBERSHIP");
 
@@ -140,8 +153,14 @@ const UserPage = () => {
         }
     };
 
+    const fetchEmployees = async () => {
+        const data = await getEmployeesForUserCreation();
+        setEmployees(data);
+    };
+
     useEffect(() => {
         fetchUsers().catch((error) => console.error("Kullanıcıları alma hatası:", error));
+        fetchEmployees().catch((error) => console.error("Çalışanları alma hatası:", error));
     }, []);
 
     useEffect(() => {
@@ -178,6 +197,8 @@ const UserPage = () => {
     const openCreateModal = () => {
         setCreateEmail("");
         setCreatePassword("");
+        setSelectedEmployeeId("");
+        setUseEmployeeLink(false);
         setIsCreating(false);
         setIsCreateOpen(true);
     };
@@ -218,6 +239,7 @@ const UserPage = () => {
             if (confirmKind.type === "CREATE_USER") {
                 setIsCreating(true);
                 await createUser({
+                    employeeId: confirmKind.employeeId,
                     email: confirmKind.email,
                     password: confirmKind.password,
                 });
@@ -243,6 +265,7 @@ const UserPage = () => {
 
     const onSubmitCreate = (e: FormEvent) => {
         e.preventDefault();
+
         const email = createEmail.trim();
         const password = createPassword;
 
@@ -252,6 +275,7 @@ const UserPage = () => {
             type: "CREATE_USER",
             email,
             password,
+            employeeId: useEmployeeLink && selectedEmployeeId !== "" ? Number(selectedEmployeeId) : undefined,
         });
     };
 
@@ -286,6 +310,23 @@ const UserPage = () => {
             email: currentUser.email,
             roles: roleDraft,
         });
+    };
+
+    const onSelectEmployee = (employeeIdValue: string) => {
+        if (!employeeIdValue) {
+            setSelectedEmployeeId("");
+            setCreateEmail("");
+            return;
+        }
+
+        const employeeId = Number(employeeIdValue);
+        setSelectedEmployeeId(employeeId);
+
+        const employee = employees.find((e) => e.id === employeeId);
+
+        if (employee) {
+            setCreateEmail(employee.email);
+        }
     };
 
     const toggleRole = (roleName: string) => {
@@ -777,6 +818,37 @@ const UserPage = () => {
                         </div>
 
                         <form onSubmit={onSubmitCreate} className="space-y-3">
+                            <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+                                <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={useEmployeeLink}
+                                        onChange={(e) => {
+                                            setUseEmployeeLink(e.target.checked);
+                                            setSelectedEmployeeId("");
+                                            setCreateEmail("");
+                                        }}
+                                        className="accent-blue-500"
+                                    />
+                                    Mevcut çalışana kullanıcı hesabı bağla
+                                </label>
+
+                                {useEmployeeLink && (
+                                    <select
+                                        value={selectedEmployeeId}
+                                        onChange={(e) => onSelectEmployee(e.target.value)}
+                                        className="mt-3 bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition"
+                                    >
+                                        <option value="">Çalışan seç</option>
+                                        {employees.map((employee) => (
+                                            <option key={employee.id} value={employee.id}>
+                                                {employee.firstName} {employee.lastName} - {employee.email}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
                             <div className="relative">
                                 <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
                                 <input
@@ -784,7 +856,8 @@ const UserPage = () => {
                                     placeholder="E-posta"
                                     value={createEmail}
                                     onChange={(e) => setCreateEmail(e.target.value)}
-                                    className="pl-8 bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition"
+                                    disabled={useEmployeeLink && selectedEmployeeId !== ""}
+                                    className="pl-8 bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition disabled:opacity-70 disabled:cursor-not-allowed"
                                 />
                             </div>
 

@@ -20,6 +20,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "employee_id", unique = true)
+    private Long employeeId;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -45,4 +48,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles;
+
+
+
 }
