@@ -1,45 +1,16 @@
 import axios from "axios";
 
-/**
- * Axios path'leri `/payrolls/...` ile başlar; Spring tarafı `/api/v1/payrolls` altında.
- * Sık hata: .env'de sadece `http://localhost:8086` yazılınca istek `/payrolls`'a gider (404).
- */
-function normalizePayrollBase(raw: string): string {
-    const s = raw.trim().replace(/\/+$/, "");
-    if (!s || s === "/payroll-api") {
-        return s;
-    }
-    if (/^https?:\/\//i.test(s)) {
-        if (/\/api\/v1$/i.test(s)) {
-            return s;
-        }
-        return `${s}/api/v1`;
-    }
-    return s;
-}
-
-function payrollBaseUrl(): string {
-    const explicit = import.meta.env.VITE_PAYROLL_API_URL as string | undefined;
-    if (explicit && explicit.trim().length > 0) {
-        return normalizePayrollBase(explicit);
-    }
-    if (import.meta.env.DEV) {
-        return "/payroll-api";
-    }
-    return "http://127.0.0.1:8086/api/v1";
-}
-
-const PAYROLL_BASE = payrollBaseUrl();
-
 const payrollApi = axios.create({
-    baseURL: PAYROLL_BASE,
+    baseURL: "http://localhost:8086/api/v1",
 });
 
 payrollApi.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
+
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
 });
 

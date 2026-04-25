@@ -8,6 +8,26 @@ const departmentApi = axios.create({
     baseURL: "http://localhost:8083",
 });
 
+cvApi.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+});
+
+departmentApi.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+});
+
 export const createApplication = async (formData: FormData) => {
     const response = await cvApi.post("/applications", formData, {
         headers: {
@@ -31,14 +51,9 @@ export const updateApplicationStatus = async (
     return response.data;
 };
 
-export const getApplicationCv = async (id: number, token?: string | null) => {
+export const getApplicationCv = async (id: number) => {
     const response = await cvApi.get(`/applications/${id}/cv`, {
         responseType: "blob",
-        headers: token
-            ? {
-                Authorization: `Bearer ${token}`,
-            }
-            : undefined,
     });
 
     return response.data;
@@ -58,5 +73,6 @@ export const getPositionsBySubDepartmentId = async (subDepartmentId: number) => 
     const response = await departmentApi.get(
         `/departments/sub-departments/${subDepartmentId}/positions`
     );
+
     return response.data;
 };
