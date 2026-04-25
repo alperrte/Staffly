@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 // CORS açık
-                .cors(cors -> {})
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // Session kullanmıyoruz
                 .sessionManagement(session ->
@@ -56,18 +56,20 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // AUTH endpoints
+                        // Auth public
                         .requestMatchers(
                                 "/auth/register",
                                 "/auth/login",
-                                "/auth/refresh",
-                                "/auth/logout"
+                                "/auth/refresh"
                         ).permitAll()
+
+                        // logout artık korumalı
+                        .requestMatchers("/auth/logout").authenticated()
 
                         // preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // diğer tüm endpointler JWT ister
+                        // diğerleri
                         .anyRequest().authenticated()
                 )
 

@@ -127,6 +127,7 @@ export const getPositionsBySubDepartmentId = async (
     const response = await departmentApi.get(
         `/departments/sub-departments/${subDepartmentId}/positions`
     );
+
     const payload = response.data;
     return Array.isArray(payload) ? payload : payload?.content ?? [];
 };

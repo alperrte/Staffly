@@ -8,6 +8,7 @@ import com.auth_service.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,9 +34,18 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody String refreshToken) {
+    public ResponseEntity<?> logout(
+            @RequestBody String refreshToken,
+            Authentication authentication
+    ) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
         authService.logout(refreshToken);
-        return ResponseEntity.ok("Logout successful");
+
+        return ResponseEntity.ok("Logged out successfully");
     }
 
 }

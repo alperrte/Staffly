@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -26,7 +27,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 🔥 OPTIONS bypass
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
@@ -34,17 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // permitAll payroll uçları: Bearer başlığını hiç işleme (403 / yanlış secret karmaşası olmasın)
-        if (path.startsWith("/api/v1/payrolls")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // 🔥 SWAGGER TAM BYPASS (EN ÖNEMLİ FIX)
-        if (
-                path.contains("swagger") ||
-                        path.contains("api-docs")
-        ) {
+        if (path.contains("swagger") || path.contains("api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -59,15 +49,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = authHeader.substring(7);
 
         try {
-            String userEmail = jwtService.extractUsername(jwt);
+            if (jwtService.isTokenValid(jwt)
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                String userEmail = jwtService.extractUsername(jwt);
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userEmail,
                                 null,
-                                null
+                                Collections.emptyList()
                         );
 
                 authToken.setDetails(
@@ -78,8 +69,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            // İmza/secret uyuşmazlığı veya süresi dolmuş token: 401 dönme.
-            // permitAll uçları ve hatalı token ile bile istek controller'a ulaşabilsin.
             SecurityContextHolder.clearContext();
         }
 

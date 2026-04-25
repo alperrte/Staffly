@@ -23,7 +23,7 @@ export type Employee = {
 };
 
 const employeeApi = axios.create({
-    baseURL: "http://localhost:8082",
+    baseURL: "http://localhost:8082/api/v1",
 });
 
 employeeApi.interceptors.request.use((config) => {
@@ -65,6 +65,7 @@ export const setUserActive = async (email: string, active: boolean): Promise<Use
         `/users/${encodeURIComponent(email)}/active`,
         { active }
     );
+
     return response.data;
 };
 
@@ -73,6 +74,7 @@ export const setUserRoles = async (email: string, roles: string[]): Promise<User
         `/users/${encodeURIComponent(email)}/roles`,
         { roles }
     );
+
     return response.data;
 };
 

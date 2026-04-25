@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -23,15 +25,11 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
-
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 Swagger açık
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -39,15 +37,10 @@ public class SecurityConfig {
                                 "/swagger-ui/index.html"
                         ).permitAll()
 
-                        // 🔥 PAYROLL TEST İÇİN AÇ
-                        .requestMatchers("/api/v1/payrolls/**").permitAll()
-
-                        // 🔥 Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -59,18 +52,17 @@ public class SecurityConfig {
         org.springframework.web.cors.CorsConfiguration config =
                 new org.springframework.web.cors.CorsConfiguration();
 
-        config.setAllowedOriginPatterns(java.util.List.of(
+        config.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "http://[::1]:*"
         ));
 
-        config.setAllowedMethods(java.util.List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
 
-        config.setAllowedHeaders(java.util.List.of("*"));
-
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source =

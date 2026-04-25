@@ -5,11 +5,19 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-
     const token = localStorage.getItem("token");
 
-    // 🔥 LOGIN endpointine token gönderme
-    if (token && !config.url?.includes("/auth/login")) {
+    const publicEndpoints = [
+        "/auth/login",
+        "/auth/register",
+        "/auth/refresh",
+    ];
+
+    const isPublic = publicEndpoints.some((endpoint) =>
+        config.url?.includes(endpoint)
+    );
+
+    if (token && !isPublic) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -19,8 +27,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (res) => res,
     (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
             localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
             window.location.href = "/";
         }
 

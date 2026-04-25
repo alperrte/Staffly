@@ -79,6 +79,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
     ports:
       - "${SERVER_PORT_EMPLOYEE}:${SERVER_PORT_EMPLOYEE}"
@@ -101,6 +102,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
     ports:
       - "${SERVER_PORT_DEPARTMENT}:${SERVER_PORT_DEPARTMENT}"
@@ -123,8 +125,8 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
       JWT_SECRET: ${JWT_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
     ports:
       - "${SERVER_PORT_PAYROLL}:${SERVER_PORT_PAYROLL}"
     restart: unless-stopped
@@ -146,6 +148,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
     ports:
       - "${SERVER_PORT_TASK}:${SERVER_PORT_TASK}"
@@ -167,6 +170,7 @@ services:
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
+      JWT_SECRET: ${JWT_SECRET}
       DB_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
     ports:
