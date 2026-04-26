@@ -41,9 +41,11 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+
                         // CV başvuru ekranı token olmadan departman/pozisyon seçebilsin
                         .requestMatchers(HttpMethod.GET, "/departments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/departments/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/positions/**").permitAll()
 
                         // POST / PUT / PATCH / DELETE korumalı
                         .anyRequest().authenticated()

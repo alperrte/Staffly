@@ -47,33 +47,24 @@ public class ApplicationService {
             File destination = new File(directory, storedFileName);
             cvFile.transferTo(destination);
 
-            Map<String, Object> department = departmentClient.getDepartment(request.getDepartmentId());
-            Map<String, Object> subDepartment = departmentClient.getSubDepartment(request.getSubDepartmentId());
+
             Map<String, Object> position = departmentClient.getPosition(request.getPositionId());
-
-            if (department == null) {
-                throw new RuntimeException("Department not found");
-            }
-
-            if (subDepartment == null) {
-                throw new RuntimeException("Sub department not found");
-            }
 
             if (position == null) {
                 throw new RuntimeException("Position not found");
             }
 
-            Object subDepartmentDepartmentId = subDepartment.get("departmentId");
-            if (subDepartmentDepartmentId == null ||
-                    Long.parseLong(subDepartmentDepartmentId.toString()) != request.getDepartmentId()) {
-                throw new RuntimeException("Sub department does not belong to selected department");
-            }
+            Long subDepartmentId = Long.valueOf(position.get("subDepartmentId").toString());
 
-            Object positionSubDepartmentId = position.get("subDepartmentId");
-            if (positionSubDepartmentId == null ||
-                    Long.parseLong(positionSubDepartmentId.toString()) != request.getSubDepartmentId()) {
-                throw new RuntimeException("Position does not belong to selected sub department");
-            }
+            Map<String, Object> subDepartment = departmentClient.getSubDepartment(subDepartmentId);
+
+            Long departmentId = Long.valueOf(subDepartment.get("departmentId").toString());
+
+            Map<String, Object> department = departmentClient.getDepartment(departmentId);
+
+
+
+
 
             Application application = Application.builder()
                     .firstName(request.getFirstName())
@@ -81,9 +72,9 @@ public class ApplicationService {
                     .email(request.getEmail())
                     .phone(request.getPhone())
 
-                    .departmentId(request.getDepartmentId())
-                    .subDepartmentId(request.getSubDepartmentId())
                     .positionId(request.getPositionId())
+                    .departmentId(departmentId)
+                    .subDepartmentId(subDepartmentId)
 
                     .departmentName(String.valueOf(department.get("name")))
                     .subDepartmentName(String.valueOf(subDepartment.get("name")))
