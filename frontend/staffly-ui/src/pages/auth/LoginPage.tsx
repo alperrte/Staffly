@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import {useNavigate} from "react-router-dom";
+import {useEffect, useRef, useState} from "react";
 import loginBg from "../../assets/login-bg.jpg";
 import stafflyLogo from "../../assets/logo.png";
 import {
@@ -16,12 +16,11 @@ import {
     AlertTriangle,
     Info,
 } from "lucide-react";
-import { login } from "../../services/authService";
+import {login} from "../../services/authService";
+
 import {
     createApplication,
-    getDepartments,
-    getSubDepartmentsByDepartmentId,
-    getPositionsBySubDepartmentId,
+    getAllPositions
 } from "../../services/applicationService";
 
 type ModalType = "success" | "error" | "info" | "confirm";
@@ -33,17 +32,6 @@ type ModalState = {
     message: string;
 };
 
-type Department = {
-    id: number;
-    name: string;
-};
-
-type SubDepartment = {
-    id: number;
-    name: string;
-    departmentId: number;
-};
-
 type Position = {
     id: number;
     name: string;
@@ -51,14 +39,14 @@ type Position = {
 };
 
 const COUNTRY_CODES = [
-    { code: "+90", label: "TR (+90)" },
-    { code: "+1", label: "US (+1)" },
-    { code: "+44", label: "UK (+44)" },
-    { code: "+49", label: "DE (+49)" },
-    { code: "+33", label: "FR (+33)" },
-    { code: "+39", label: "IT (+39)" },
-    { code: "+31", label: "NL (+31)" },
-    { code: "+34", label: "ES (+34)" },
+    {code: "+90", label: "TR (+90)"},
+    {code: "+1", label: "US (+1)"},
+    {code: "+44", label: "UK (+44)"},
+    {code: "+49", label: "DE (+49)"},
+    {code: "+33", label: "FR (+33)"},
+    {code: "+39", label: "IT (+39)"},
+    {code: "+31", label: "NL (+31)"},
+    {code: "+34", label: "ES (+34)"},
 ];
 
 const emailRegex =
@@ -79,15 +67,17 @@ function FeedbackModal({
     if (!modal.open) return null;
 
     const iconMap = {
-        success: <CheckCircle2 className="h-10 w-10 text-emerald-400" />,
-        error: <AlertTriangle className="h-10 w-10 text-rose-400" />,
-        info: <Info className="h-10 w-10 text-sky-400" />,
-        confirm: <Info className="h-10 w-10 text-amber-400" />,
+        success: <CheckCircle2 className="h-10 w-10 text-emerald-400"/>,
+        error: <AlertTriangle className="h-10 w-10 text-rose-400"/>,
+        info: <Info className="h-10 w-10 text-sky-400"/>,
+        confirm: <Info className="h-10 w-10 text-amber-400"/>,
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="w-full max-w-md rounded-3xl border border-white/15 bg-slate-950/95 p-6 shadow-[0_0_50px_rgba(15,23,42,0.95)] animate-in zoom-in-95 duration-300">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm animate-in fade-in duration-300">
+            <div
+                className="w-full max-w-md rounded-3xl border border-white/15 bg-slate-950/95 p-6 shadow-[0_0_50px_rgba(15,23,42,0.95)] animate-in zoom-in-95 duration-300">
                 <div className="mb-4 flex items-start justify-between gap-4">
                     <div className="flex items-center gap-3">
                         {iconMap[modal.type]}
@@ -103,7 +93,7 @@ function FeedbackModal({
                         onClick={onClose}
                         className="rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
                     >
-                        <X className="h-5 w-5" />
+                        <X className="h-5 w-5"/>
                     </button>
                 </div>
 
@@ -146,16 +136,10 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+    const [positions, setPositions] = useState<Position[]>([]);
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
-    const [departments, setDepartments] = useState<Department[]>([]);
-    const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([]);
-    const [positions, setPositions] = useState<Position[]>([]);
-
-    const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | "">("");
-    const [selectedSubDepartmentId, setSelectedSubDepartmentId] = useState<number | "">("");
     const [selectedPositionId, setSelectedPositionId] = useState<number | "">("");
     const [selectedCountryCode, setSelectedCountryCode] = useState("+90");
 
@@ -194,19 +178,20 @@ export default function LoginPage() {
         };
     }, []);
 
-
     useEffect(() => {
-        const fetchDepartments = async () => {
+        const fetchPositions = async () => {
             try {
-                const data = await getDepartments();
-                setDepartments(data);
+                const data = await getAllPositions();
+                console.log("Pozisyonlar:", data);
+                setPositions(data);
             } catch (error) {
-                console.error("Departmanlar yüklenemedi:", error);
+                console.error("Pozisyonlar alınamadı:", error);
             }
         };
 
-        fetchDepartments();
+        fetchPositions();
     }, []);
+
 
     const openModal = (
         type: ModalType,
@@ -227,7 +212,7 @@ export default function LoginPage() {
             }
 
             autoCloseTimerRef.current = setTimeout(() => {
-                setModal((prev) => ({ ...prev, open: false }));
+                setModal((prev) => ({...prev, open: false}));
             }, 5000);
         }
     };
@@ -236,7 +221,7 @@ export default function LoginPage() {
         if (autoCloseTimerRef.current) {
             clearTimeout(autoCloseTimerRef.current);
         }
-        setModal((prev) => ({ ...prev, open: false }));
+        setModal((prev) => ({...prev, open: false}));
     };
 
     const validateNameField = (value: string) => {
@@ -294,42 +279,10 @@ export default function LoginPage() {
         }
     };
 
-
-    const handleDepartmentSelect = async (departmentId: number) => {
-        setSelectedDepartmentId(departmentId);
-        setSelectedSubDepartmentId("");
-        setSelectedPositionId("");
-        setSubDepartments([]);
-        setPositions([]);
-
-        try {
-            const data = await getSubDepartmentsByDepartmentId(departmentId);
-            setSubDepartments(data);
-        } catch (error) {
-            console.error("Alt departmanlar yüklenemedi:", error);
-        }
-    };
-
-
-    const handleSubDepartmentSelect = async (subDepartmentId: number) => {
-        setSelectedSubDepartmentId(subDepartmentId);
-        setSelectedPositionId("");
-        setPositions([]);
-
-        try {
-            const data = await getPositionsBySubDepartmentId(subDepartmentId);
-            setPositions(data);
-        } catch (error) {
-            console.error("Pozisyonlar yüklenemedi:", error);
-        }
-    };
-
-
-
     const handleApplicationChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         setApplicationForm((prev) => ({
             ...prev,
@@ -449,16 +402,6 @@ export default function LoginPage() {
             return false;
         }
 
-        if (!selectedDepartmentId) {
-            openModal("error", "Eksik Bilgi", "Lütfen bir departman seçin.");
-            return false;
-        }
-
-        if (!selectedSubDepartmentId) {
-            openModal("error", "Eksik Bilgi", "Lütfen bir alt departman seçin.");
-            return false;
-        }
-
         if (!selectedPositionId) {
             openModal("error", "Eksik Bilgi", "Lütfen bir pozisyon seçin.");
             return false;
@@ -503,8 +446,6 @@ export default function LoginPage() {
                 "phone",
                 `${selectedCountryCode}${applicationForm.phone.trim()}`
             );
-            formData.append("departmentId", selectedDepartmentId.toString());
-            formData.append("subDepartmentId", selectedSubDepartmentId.toString());
             formData.append("positionId", selectedPositionId.toString());
             formData.append("cvFile", cvFile as File);
 
@@ -516,11 +457,7 @@ export default function LoginPage() {
                 email: "",
                 phone: "",
             });
-            setSelectedDepartmentId("");
-            setSelectedSubDepartmentId("");
             setSelectedPositionId("");
-            setSubDepartments([]);
-            setPositions([]);
             setSelectedCountryCode("+90");
             setCvFile(null);
             setFieldErrors({
@@ -576,8 +513,9 @@ export default function LoginPage() {
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.45),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.45),transparent_55%)] mix-blend-screen opacity-70" />
-                <div className="absolute inset-0 bg-gradient-to-br from-black/90 via-black/70 to-slate-950/80" />
+                <div
+                    className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.45),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.45),transparent_55%)] mix-blend-screen opacity-70"/>
+                <div className="absolute inset-0 bg-gradient-to-br from-black/90 via-black/70 to-slate-950/80"/>
             </div>
 
             <FeedbackModal
@@ -588,7 +526,8 @@ export default function LoginPage() {
 
             <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-10">
                 <div className="mb-10 flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-[3px] shadow-[0_0_25px_rgba(59,130,246,0.7)]">
+                    <div
+                        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-[3px] shadow-[0_0_25px_rgba(59,130,246,0.7)]">
                         <div className="h-full w-full overflow-hidden rounded-2xl bg-slate-950">
                             <img
                                 src={stafflyLogo}
@@ -609,14 +548,16 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex w-full max-w-5xl flex-col gap-6 lg:flex-row">
-                    <div className="flex-1 rounded-3xl border border-white/12 bg-white/6 p-8 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl lg:p-9">
+                    <div
+                        className="flex-1 rounded-3xl border border-white/12 bg-white/6 p-8 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl lg:p-9">
                         <h2 className="mb-7 text-[1.6rem] font-semibold tracking-wide text-white">
                             Sisteme Giriş Yap
                         </h2>
 
                         <form className="space-y-5" onSubmit={handleLogin}>
                             <div className="relative">
-                                <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <Mail
+                                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"/>
                                 <input
                                     type="email"
                                     placeholder="E-posta Adresi"
@@ -627,7 +568,8 @@ export default function LoginPage() {
                             </div>
 
                             <div className="relative">
-                                <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <Lock
+                                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"/>
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Şifre"
@@ -641,9 +583,9 @@ export default function LoginPage() {
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                                 >
                                     {showPassword ? (
-                                        <EyeOff className="h-5 w-5" />
+                                        <EyeOff className="h-5 w-5"/>
                                     ) : (
-                                        <Eye className="h-5 w-5" />
+                                        <Eye className="h-5 w-5"/>
                                     )}
                                 </button>
                             </div>
@@ -671,12 +613,13 @@ export default function LoginPage() {
                                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 py-3.5 text-sm font-semibold text-white shadow-[0_15px_40px_rgba(56,189,248,0.55)] transition hover:from-sky-400 hover:via-blue-500 hover:to-indigo-500 focus:outline-none"
                             >
                                 Giriş Yap
-                                <ArrowRight className="h-5 w-5" />
+                                <ArrowRight className="h-5 w-5"/>
                             </button>
                         </form>
                     </div>
 
-                    <div className="flex-1 rounded-3xl border border-white/12 bg-white/6 p-8 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl lg:p-9">
+                    <div
+                        className="flex-1 rounded-3xl border border-white/12 bg-white/6 p-8 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl lg:p-9">
                         <h2 className="mb-1 text-[1.6rem] font-semibold tracking-wide text-white">
                             İş Başvurusu Yap
                         </h2>
@@ -686,8 +629,9 @@ export default function LoginPage() {
                         </p>
 
                         <form className="space-y-5" onSubmit={handleApplicationSubmit}>
-                            <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/40 p-6">
-                                <Upload className="mb-3 h-9 w-9 text-slate-300" />
+                            <div
+                                className="flex flex-col items-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/40 p-6">
+                                <Upload className="mb-3 h-9 w-9 text-slate-300"/>
                                 <p className="text-sm font-semibold text-white">CV Yükle</p>
                                 <p className="mb-4 text-[0.7rem] text-slate-300">
                                     PDF (Max. 5MB)
@@ -786,7 +730,8 @@ export default function LoginPage() {
                                             </option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                    <ChevronDown
+                                        className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"/>
                                 </div>
 
                                 <div className="flex-1">
@@ -808,68 +753,14 @@ export default function LoginPage() {
                             </div>
 
 
-
                             <div className="relative">
-    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-        Departman
-    </span>
-                                <select
-                                    value={selectedDepartmentId}
-                                    onChange={(e) => handleDepartmentSelect(Number(e.target.value))}
-                                    className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-24 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70"
-                                    required
-                                >
-                                    <option value="" className="bg-slate-900">
-                                        Seçiniz
-                                    </option>
-                                    {departments.map((department) => (
-                                        <option
-                                            key={department.id}
-                                            value={department.id}
-                                            className="bg-slate-900"
-                                        >
-                                            {department.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                            </div>
-
-                            <div className="relative">
-    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-        Alt Departman
-    </span>
-                                <select
-                                    value={selectedSubDepartmentId}
-                                    onChange={(e) => handleSubDepartmentSelect(Number(e.target.value))}
-                                    disabled={!selectedDepartmentId}
-                                    className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-28 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70 disabled:cursor-not-allowed disabled:opacity-50"
-                                    required
-                                >
-                                    <option value="" className="bg-slate-900">
-                                        Seçiniz
-                                    </option>
-                                    {subDepartments.map((subDepartment) => (
-                                        <option
-                                            key={subDepartment.id}
-                                            value={subDepartment.id}
-                                            className="bg-slate-900"
-                                        >
-                                            {subDepartment.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                            </div>
-
-                            <div className="relative">
-    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-        Pozisyon
-    </span>
+                            <span
+                                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                            Pozisyon
+                            </span>
                                 <select
                                     value={selectedPositionId}
                                     onChange={(e) => setSelectedPositionId(Number(e.target.value))}
-                                    disabled={!selectedSubDepartmentId}
                                     className="w-full appearance-none rounded-xl border border-white/15 bg-slate-900/40 py-3 pl-24 pr-10 text-sm text-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/70 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
                                 >
@@ -886,7 +777,8 @@ export default function LoginPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <ChevronDown
+                                    className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"/>
                             </div>
 
                             <button
@@ -895,11 +787,11 @@ export default function LoginPage() {
                                 className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-white/95 py-3.5 text-sm font-semibold text-slate-900 shadow-[0_15px_45px_rgba(15,23,42,0.9)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {applicationLoading ? "Gönderiliyor..." : "Başvuru Yap"}
-                                <ArrowRight className="h-5 w-5" />
+                                <ArrowRight className="h-5 w-5"/>
                             </button>
 
                             <p className="flex items-center justify-center gap-2 text-[0.7rem] text-slate-300/90">
-                                <ShieldCheck className="h-4 w-4 text-sky-400" />
+                                <ShieldCheck className="h-4 w-4 text-sky-400"/>
                                 Başvurunuz İnsan Kaynakları ekibine iletilecektir.
                             </p>
                         </form>

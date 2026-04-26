@@ -238,4 +238,19 @@ public class DepartmentService {
         return response;
     }
 
+    public List<DepartmentPositionResponse> getAllPositions() {
+
+        List<DepartmentPosition> positions =
+                departmentPositionRepository.findAll();
+
+        return positions.stream().map(position -> {
+            DepartmentPositionResponse response = new DepartmentPositionResponse();
+            response.setId(position.getId());
+            response.setName(position.getName());
+            response.setDescription(position.getDescription());
+            response.setSubDepartmentId(position.getSubDepartmentId());
+            return response;
+        }).toList();
+    }
+
 }

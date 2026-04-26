@@ -27,12 +27,6 @@ public class ApplicationCreateRequestDto {
     @NotBlank(message = "Phone cannot be blank")
     private String phone;
 
-    @NotNull(message = "Department id cannot be null")
-    private Long departmentId;
-
-    @NotNull(message = "Sub department id cannot be null")
-    private Long subDepartmentId;
-
     @NotNull(message = "Position id cannot be null")
     private Long positionId;
 }

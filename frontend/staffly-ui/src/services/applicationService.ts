@@ -59,20 +59,9 @@ export const getApplicationCv = async (id: number) => {
     return response.data;
 };
 
-export const getDepartments = async () => {
-    const response = await departmentApi.get("/departments");
+export const getAllPositions = async () => {
+    const response = await departmentApi.get("/departments/positions");
     return response.data;
 };
 
-export const getSubDepartmentsByDepartmentId = async (departmentId: number) => {
-    const response = await departmentApi.get(`/departments/${departmentId}/sub-departments`);
-    return response.data;
-};
 
-export const getPositionsBySubDepartmentId = async (subDepartmentId: number) => {
-    const response = await departmentApi.get(
-        `/departments/sub-departments/${subDepartmentId}/positions`
-    );
-
-    return response.data;
-};
