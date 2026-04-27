@@ -18,6 +18,10 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
+    @Column(name = "job_posting_id", nullable = false)
+    private Long jobPostingId;
+
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 

@@ -53,6 +53,13 @@ public class ApplicationController {
         return applicationService.getApplicationCv(id);
     }
 
+    @GetMapping("/job-posting/{jobPostingId}")
+    public ResponseEntity<List<ApplicationResponseDto>> getApplicationsByJobPosting(
+            @PathVariable Long jobPostingId
+    ) {
+        return ResponseEntity.ok(applicationService.getApplicationsByJobPosting(jobPostingId));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApplicationResponseDto> updateApplicationStatus(
             @PathVariable Long id,

@@ -27,6 +27,6 @@ public class ApplicationCreateRequestDto {
     @NotBlank(message = "Phone cannot be blank")
     private String phone;
 
-    @NotNull(message = "Position id cannot be null")
-    private Long positionId;
+    @NotNull(message = "Job posting id cannot be null")
+    private Long jobPostingId;
 }

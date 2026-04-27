@@ -5,7 +5,7 @@ CREATE TABLE applications (
                               last_name NVARCHAR(100) NOT NULL,
                               email NVARCHAR(150) NOT NULL,
                               phone NVARCHAR(30) NOT NULL,
-
+                              job_posting_id BIGINT NOT NULL,
                               department_id BIGINT NOT NULL,
                               sub_department_id BIGINT NOT NULL,
                               position_id BIGINT NOT NULL,

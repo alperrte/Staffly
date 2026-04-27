@@ -15,6 +15,7 @@ import {
     User,
     Users,
     Layers3,
+    Filter,
 } from "lucide-react";
 
 interface Application {
@@ -23,6 +24,9 @@ interface Application {
     lastName: string;
     email: string;
     phone?: string;
+
+    jobPostingId?: number;
+    jobPostingTitle?: string | null;
 
     departmentId: number;
     subDepartmentId: number;
@@ -37,6 +41,8 @@ interface Application {
     reviewedAt?: string;
     createdAt?: string;
     updatedAt?: string;
+
+    countryCode?: string;
 }
 
 type TabType = "PENDING" | "ACCEPTED" | "REJECTED";
@@ -151,6 +157,7 @@ const CvServicePage = () => {
     const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
     const [pageError, setPageError] = useState("");
     const [showAllApplications, setShowAllApplications] = useState(false);
+    const [jobPostingFilter, setJobPostingFilter] = useState<string>("");
     const [cvModalOpen, setCvModalOpen] = useState(false);
     const [cvUrl, setCvUrl] = useState<string | null>(null);
     const [cvLoading, setCvLoading] = useState(false);
@@ -272,11 +279,36 @@ const CvServicePage = () => {
         setSortDirection("asc");
     };
 
+    const jobPostingFilterOptions = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const app of applications) {
+            if (app.jobPostingId == null) continue;
+            const label =
+                (app.jobPostingTitle && app.jobPostingTitle.trim()) ||
+                `İlan #${app.jobPostingId}`;
+            if (!map.has(app.jobPostingId)) {
+                map.set(app.jobPostingId, label);
+            }
+        }
+        return [...map.entries()].sort((a, b) =>
+            a[1].localeCompare(b[1], "tr", { sensitivity: "base" })
+        );
+    }, [applications]);
+
     const filteredApplications = useMemo(() => {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         const filtered = applications.filter((app) => {
             const matchesTab = showAllApplications ? true : app.status === activeTab;
+
+            const matchesJobPosting =
+                !jobPostingFilter ||
+                (app.jobPostingId != null && String(app.jobPostingId) === jobPostingFilter);
+
+            const postingLabel = (
+                (app.jobPostingTitle && app.jobPostingTitle.trim()) ||
+                (app.jobPostingId != null ? `İlan #${app.jobPostingId}` : "")
+            ).toLowerCase();
 
             const matchesSearch =
                 `${app.firstName} ${app.lastName}`.toLowerCase().includes(normalizedSearch) ||
@@ -284,9 +316,10 @@ const CvServicePage = () => {
                 app.subDepartmentName.toLowerCase().includes(normalizedSearch) ||
                 app.positionName.toLowerCase().includes(normalizedSearch) ||
                 app.email.toLowerCase().includes(normalizedSearch) ||
-                (app.phone || "").toLowerCase().includes(normalizedSearch);
+                (app.phone || "").toLowerCase().includes(normalizedSearch) ||
+                postingLabel.includes(normalizedSearch);
 
-            return matchesTab && matchesSearch;
+            return matchesTab && matchesJobPosting && matchesSearch;
         });
 
         return filtered.sort((a, b) => {
@@ -304,6 +337,7 @@ const CvServicePage = () => {
         sortField,
         sortDirection,
         showAllApplications,
+        jobPostingFilter,
     ]);
 
     const counts = useMemo(() => {
@@ -450,35 +484,52 @@ const CvServicePage = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                        <div>
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                        <div className="lg:col-span-1">
                             <div className="relative">
                                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Ad, soyad, departman, pozisyon, mail ile ara..."
+                                    placeholder="Ad, soyad, departman, pozisyon, ilan, mail..."
                                     className="h-[58px] w-full rounded-2xl border border-slate-800 bg-slate-900/80 py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-all duration-300 hover:border-sky-400/40 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                                 />
                             </div>
                         </div>
 
-                        <div>
+                        <div className="relative lg:col-span-1">
+                            <Filter className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <select
+                                value={jobPostingFilter}
+                                onChange={(e) => setJobPostingFilter(e.target.value)}
+                                className="h-[58px] w-full cursor-pointer appearance-none rounded-2xl border border-slate-800 bg-slate-900/80 py-3 pl-11 pr-10 text-sm text-white transition-all duration-300 hover:border-sky-400/40 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                            >
+                                <option value="">Tüm iş ilanları</option>
+                                {jobPostingFilterOptions.map(([id, label]) => (
+                                    <option key={id} value={String(id)}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        </div>
+
+                        <div className="lg:col-span-1">
                             <label className="group flex h-[58px] cursor-pointer items-center rounded-2xl border border-slate-800 bg-slate-900/60 px-4 text-sm text-slate-200 transition-all duration-300 hover:border-sky-400/30 hover:bg-slate-900/80">
                                 <div className="flex items-center gap-3 overflow-hidden">
                                     <input
                                         type="checkbox"
                                         checked={showAllApplications}
                                         onChange={(e) => setShowAllApplications(e.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-emerald-500"
+                                        className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-900 accent-emerald-500"
                                     />
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-white">
+                                    <div className="flex min-w-0 flex-col">
+                                        <span className="truncate font-medium text-white">
                                             Tüm başvuruları göster
                                         </span>
-                                        <span className="text-xs text-slate-400">
-                                            Sekmelere bakmadan tüm kayıtları tek listede gösterir
+                                        <span className="truncate text-xs text-slate-400">
+                                            Tüm durumlar tek listede
                                         </span>
                                     </div>
                                 </div>
@@ -673,7 +724,16 @@ const CvServicePage = () => {
                                                                 <span className="text-white">{app.positionName}</span>
                                                             </div>
 
-
+                                                            <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
+                                                                <span className="text-slate-400">İş ilanı</span>
+                                                                <span className="max-w-[60%] text-right text-white">
+                                                                    {(app.jobPostingTitle &&
+                                                                        app.jobPostingTitle.trim()) ||
+                                                                        (app.jobPostingId != null
+                                                                            ? `İlan #${app.jobPostingId}`
+                                                                            : "—")}
+                                                                </span>
+                                                            </div>
 
                                                             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-2">
                                                                 <span className="text-slate-400">Durum</span>

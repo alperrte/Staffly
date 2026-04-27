@@ -1,10 +1,11 @@
 package com.staffly.cv_service.service;
 
-import com.staffly.cv_service.client.DepartmentClient;
 import com.staffly.cv_service.dto.request.ApplicationCreateRequestDto;
 import com.staffly.cv_service.dto.response.ApplicationResponseDto;
 import com.staffly.cv_service.entity.Application;
+import com.staffly.cv_service.entity.JobPosting;
 import com.staffly.cv_service.repository.ApplicationRepository;
+import com.staffly.cv_service.repository.JobPostingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -19,23 +20,51 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
 
-    private final DepartmentClient departmentClient;
     private final ApplicationRepository applicationRepository;
+    private final JobPostingRepository jobPostingRepository;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
     public ApplicationResponseDto createApplication(ApplicationCreateRequestDto request, MultipartFile cvFile) {
         try {
+            JobPosting jobPosting = jobPostingRepository.findById(request.getJobPostingId())
+                    .orElseThrow(() -> new RuntimeException("Job posting not found with id: " + request.getJobPostingId()));
+
+            if (Boolean.TRUE.equals(jobPosting.getIsDeleted())) {
+                throw new RuntimeException("Job posting is deleted");
+            }
+
+            if (!"ACTIVE".equals(jobPosting.getStatus())) {
+                throw new RuntimeException("Job posting is not active");
+            }
+
+            if (jobPosting.getApplicationDeadline() != null &&
+                    jobPosting.getApplicationDeadline().isBefore(LocalDate.now())) {
+                throw new RuntimeException("Application deadline has passed");
+            }
+
+            if (cvFile == null || cvFile.isEmpty()) {
+                throw new RuntimeException("CV file cannot be empty");
+            }
+
+            if (!"application/pdf".equals(cvFile.getContentType())) {
+                throw new RuntimeException("Only PDF files are allowed");
+            }
+
+            if (cvFile.getSize() > 5242880) {
+                throw new RuntimeException("CV file size cannot exceed 5MB");
+            }
+
             String originalFileName = cvFile.getOriginalFilename();
             String storedFileName = UUID.randomUUID() + "_" + originalFileName;
 
@@ -47,38 +76,21 @@ public class ApplicationService {
             File destination = new File(directory, storedFileName);
             cvFile.transferTo(destination);
 
-
-            Map<String, Object> position = departmentClient.getPosition(request.getPositionId());
-
-            if (position == null) {
-                throw new RuntimeException("Position not found");
-            }
-
-            Long subDepartmentId = Long.valueOf(position.get("subDepartmentId").toString());
-
-            Map<String, Object> subDepartment = departmentClient.getSubDepartment(subDepartmentId);
-
-            Long departmentId = Long.valueOf(subDepartment.get("departmentId").toString());
-
-            Map<String, Object> department = departmentClient.getDepartment(departmentId);
-
-
-
-
-
             Application application = Application.builder()
                     .firstName(request.getFirstName())
                     .lastName(request.getLastName())
                     .email(request.getEmail())
                     .phone(request.getPhone())
 
-                    .positionId(request.getPositionId())
-                    .departmentId(departmentId)
-                    .subDepartmentId(subDepartmentId)
+                    .jobPostingId(jobPosting.getId())
 
-                    .departmentName(String.valueOf(department.get("name")))
-                    .subDepartmentName(String.valueOf(subDepartment.get("name")))
-                    .positionName(String.valueOf(position.get("name")))
+                    .positionId(jobPosting.getPositionId())
+                    .departmentId(jobPosting.getDepartmentId())
+                    .subDepartmentId(jobPosting.getSubDepartmentId())
+
+                    .departmentName(jobPosting.getDepartmentName())
+                    .subDepartmentName(jobPosting.getSubDepartmentName())
+                    .positionName(jobPosting.getPositionName())
 
                     .cvOriginalFileName(originalFileName)
                     .cvStoredFileName(storedFileName)
@@ -124,6 +136,13 @@ public class ApplicationService {
                 .toList();
     }
 
+    public List<ApplicationResponseDto> getApplicationsByJobPosting(Long jobPostingId) {
+        return applicationRepository.findByJobPostingId(jobPostingId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     public ResponseEntity<Resource> getApplicationCv(Long id) {
         try {
             Application application = applicationRepository.findById(id)
@@ -153,9 +172,16 @@ public class ApplicationService {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + id));
 
+        if (!List.of("PENDING", "IN_REVIEW", "ACCEPTED", "REJECTED").contains(status)) {
+            throw new RuntimeException("Invalid application status: " + status);
+        }
+
         application.setStatus(status);
-        application.setIsReviewed(true);
-        application.setReviewedAt(LocalDateTime.now());
+
+        if ("ACCEPTED".equals(status) || "REJECTED".equals(status)) {
+            application.setIsReviewed(true);
+            application.setReviewedAt(LocalDateTime.now());
+        }
 
         Application updated = applicationRepository.save(application);
 
@@ -163,12 +189,19 @@ public class ApplicationService {
     }
 
     private ApplicationResponseDto mapToResponse(Application app) {
+        String jobPostingTitle = jobPostingRepository.findById(app.getJobPostingId())
+                .map(JobPosting::getTitle)
+                .orElse(null);
+
         return ApplicationResponseDto.builder()
                 .id(app.getId())
                 .firstName(app.getFirstName())
                 .lastName(app.getLastName())
                 .email(app.getEmail())
                 .phone(app.getPhone())
+
+                .jobPostingId(app.getJobPostingId())
+                .jobPostingTitle(jobPostingTitle)
 
                 .departmentId(app.getDepartmentId())
                 .subDepartmentId(app.getSubDepartmentId())
@@ -183,6 +216,7 @@ public class ApplicationService {
                 .cvFilePath(app.getCvFilePath())
                 .cvContentType(app.getCvContentType())
                 .cvFileSize(app.getCvFileSize())
+
                 .status(app.getStatus())
                 .isReviewed(app.getIsReviewed())
                 .appliedAt(app.getAppliedAt())
