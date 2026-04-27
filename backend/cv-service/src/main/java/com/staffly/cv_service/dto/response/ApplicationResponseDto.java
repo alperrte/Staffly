@@ -19,7 +19,9 @@ public class ApplicationResponseDto {
     private String lastName;
     private String email;
     private String phone;
-
+    private Long jobPostingId;
+    /** İlan başlığı (liste/detay için; silinmiş ilanda null olabilir) */
+    private String jobPostingTitle;
     private Long departmentId;
     private Long subDepartmentId;
     private Long positionId;

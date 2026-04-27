@@ -86,6 +86,10 @@ const Sidebar = () => {
                   `${linkBase} ${isActive ? linkActive : linkInactive}`
               }
           >
+
+
+
+
             <FaBuilding /> Departmanlar
           </NavLink>
             <NavLink
@@ -105,7 +109,14 @@ const Sidebar = () => {
             <FaUsers /> Kullanıcılar
           </NavLink>
 
-
+            <NavLink
+                to="/app/job-postings"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaFileAlt /> İş İlanları
+            </NavLink>
 
 
 

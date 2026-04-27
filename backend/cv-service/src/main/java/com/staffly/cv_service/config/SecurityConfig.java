@@ -49,7 +49,17 @@ public class SecurityConfig {
                         // Aday başvuru oluşturabilir, token gerekmez
                         .requestMatchers(HttpMethod.POST, "/applications").permitAll()
 
-                        // Diğer tüm CV işlemleri JWT ister
+                        // Aday tarafı public
+                        .requestMatchers(HttpMethod.POST, "/applications").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/job-postings/public/active").permitAll()
+
+                        // HR/Admin tarafı tokenlı
+                        .requestMatchers(HttpMethod.GET, "/job-postings").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/job-postings").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/job-postings/*/close").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/job-postings/*/activate").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/job-postings/*").authenticated()
+
                         .anyRequest().authenticated()
                 )
 

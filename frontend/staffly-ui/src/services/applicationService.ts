@@ -29,12 +29,8 @@ departmentApi.interceptors.request.use((config) => {
 });
 
 export const createApplication = async (formData: FormData) => {
-    const response = await cvApi.post("/applications", formData, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    });
-
+    // Content-Type verme: axios boundary ile otomatik ekler; elle vermek başvuruyu bozabilir.
+    const response = await cvApi.post("/applications", formData);
     return response.data;
 };
 
@@ -64,4 +60,27 @@ export const getAllPositions = async () => {
     return response.data;
 };
 
+export const getActiveJobPostings = async () => {
+    const response = await cvApi.get("/job-postings/public/active");
+    return response.data;
+};
 
+export const getJobPostings = async () => {
+    const response = await cvApi.get("/job-postings");
+    return response.data;
+};
+
+export const createJobPosting = async (data: unknown) => {
+    const response = await cvApi.post("/job-postings", data);
+    return response.data;
+};
+
+export const closeJobPosting = async (id: number) => {
+    const response = await cvApi.patch(`/job-postings/${id}/close`);
+    return response.data;
+};
+
+export const activateJobPosting = async (id: number) => {
+    const response = await cvApi.patch(`/job-postings/${id}/activate`);
+    return response.data;
+};
