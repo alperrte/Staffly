@@ -10,6 +10,7 @@ import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
+import MyTasksPage from "./pages/task/MyTasksPage.tsx";
 
 function App() {
     return (
@@ -32,6 +33,8 @@ function App() {
                     <Route path="applications" element={<CvServicePage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
+
+                    <Route path="my-tasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
 

@@ -96,6 +96,15 @@ const Sidebar = () => {
             >
                 <FaTasks /> Görevler
             </NavLink>
+
+            <NavLink
+                to="/app/my-tasks"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaTasks /> Görevlerim
+            </NavLink>
           <NavLink
               to="/app/users"
               className={({ isActive }) =>

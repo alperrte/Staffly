@@ -1,37 +1,42 @@
-import axios from "axios";
+import API from "../utils/api";
 
-const TASK_API = axios.create({
-  baseURL: "http://localhost:8084",
-});
+// 🔥 BASE PATH
+const BASE = "http://localhost:8084";
 
-TASK_API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export const getMyTasks = () => {
-  return TASK_API.get("/tasks/my-tasks");
+// 🔥 MY TASKS (JWT)
+export const getMyTasks = async () => {
+  const res = await API.get(`${BASE}/tasks/my-tasks`);
+  return res.data;
 };
 
-export const createTask = (data: any) => {
-  return TASK_API.post("/tasks", data);
+// 🔥 EMPLOYEE TASKS (admin UI vs)
+export const getTasksByEmployee = async (employeeId: number) => {
+  const res = await API.get(`${BASE}/tasks/employee/${employeeId}`);
+  return res.data;
 };
 
-export const assignTask = (taskId: number, employeeId: number) => {
-  return TASK_API.post(`/tasks/${taskId}/assign`, { employeeId });
+// 🔥 CREATE
+export const createTask = async (data: any) => {
+  const res = await API.post(`${BASE}/tasks`, data);
+  return res.data;
 };
 
-export const updateStatus = (taskId: number, statusId: number) => {
-  return TASK_API.put(`/tasks/${taskId}/status`, { statusId });
+// 🔥 ASSIGN
+export const assignTask = async (taskId: number, employeeId: number) => {
+  await API.post(`${BASE}/tasks/${taskId}/assign`, { employeeId });
 };
 
-export const getComments = (taskId: number) => {
-  return TASK_API.get(`/tasks/${taskId}/comments`);
+// 🔥 STATUS
+export const updateStatus = async (taskId: number, statusId: number) => {
+  await API.put(`${BASE}/tasks/${taskId}/status`, { statusId });
 };
 
-export const addComment = (taskId: number, comment: string) => {
-  return TASK_API.post(`/tasks/${taskId}/comments`, { comment });
+// 🔥 COMMENTS
+export const getComments = async (taskId: number) => {
+  const res = await API.get(`${BASE}/tasks/${taskId}/comments`);
+  return res.data;
+};
+
+export const addComment = async (taskId: number, comment: string) => {
+  await API.post(`${BASE}/tasks/${taskId}/comments`, { comment });
 };

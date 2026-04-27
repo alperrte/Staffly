@@ -24,7 +24,17 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
-    private final JwtService jwtService; // 🔥 EKLENDİ
+    private final JwtService jwtService;
+
+    // 🔥 TOKEN CHECK METHOD
+    private Long extractUserId(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Invalid token");
+        }
+
+        String token = authHeader.substring(7);
+        return jwtService.extractUserId(token);
+    }
 
     // ✅ CREATE
     @PostMapping
@@ -54,17 +64,16 @@ public class TaskController {
         return ResponseEntity.ok("Status updated");
     }
 
-    // ✅ COMMENT
+    // ✅ COMMENT (JWT)
     @PostMapping("/{taskId}/comments")
     public ResponseEntity<String> addComment(
             @PathVariable Long taskId,
             @RequestBody CommentRequest request,
             @RequestHeader("Authorization") String authHeader
     ) {
-        String token = authHeader.substring(7);
-        Long userId = jwtService.extractUserId(token);
+        Long userId = extractUserId(authHeader);
 
-        taskService.addComment(taskId, request.getComment(), userId); // 🔥 artık gerçek user
+        taskService.addComment(taskId, request.getComment(), userId);
         return ResponseEntity.ok("Comment added");
     }
 
@@ -76,7 +85,15 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getComments(taskId));
     }
 
-    // 🔥 MY TASKS (JWT BASED)
+    // 🔥 EMPLOYEE TASKS (FRONT İÇİN)
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<TaskResponse>> getTasksByEmployee(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(taskService.getTasksByEmployee(employeeId));
+    }
+
+    // 🔥 MY TASKS (JWT BASED + FILTER)
     @GetMapping("/my-tasks")
     public ResponseEntity<Page<TaskResponse>> getMyTasks(
 
@@ -97,8 +114,7 @@ public class TaskController {
             @ParameterObject Pageable pageable
     ) {
 
-        String token = authHeader.substring(7);
-        Long userId = jwtService.extractUserId(token); // 🔥 BURASI ASIL OLAY
+        Long userId = extractUserId(authHeader);
 
         return ResponseEntity.ok(
                 taskService.getTasksByEmployeeWithFilter(
