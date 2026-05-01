@@ -11,6 +11,7 @@ type TaskResponse = {
   startDate?: string | null;
   dueDate?: string | null;
   status?: string;
+  statusId?: number;
   createdAt?: string;
   updatedAt?: string;
   assigneeEmployeeIds?: number[];
@@ -78,10 +79,12 @@ const formatMaybeDateTR = (v: unknown) => {
 
 function normalizeTaskStatus(raw: string | null | undefined): string {
   const s = String(raw ?? "").trim().toUpperCase();
-  if (["TODO", "PENDING", "NEW", "OPEN"].includes(s)) return "TODO";
-  if (["IN_PROGRESS", "STARTED", "ACTIVE", "WORKING"].includes(s)) return "IN_PROGRESS";
-  if (["DONE", "COMPLETED", "CLOSED", "FINISHED", "RESOLVED"].includes(s)) return "DONE";
-  if (["CANCELLED", "CANCELED", "VOID"].includes(s)) return "CANCELLED";
+
+  if (["1", "TODO", "PENDING", "NEW"].includes(s)) return "TODO";
+  if (["2", "IN_PROGRESS", "STARTED", "ACTIVE"].includes(s)) return "IN_PROGRESS";
+  if (["3", "DONE", "COMPLETED"].includes(s)) return "DONE";
+  if (["4", "CANCELLED", "CANCELED"].includes(s)) return "CANCELLED";
+
   return "TODO";
 }
 
@@ -131,7 +134,9 @@ const TaskPage = () => {
   const loadTasks = () => {
     Promise.all([getMyTasks(), getAllEmployees()])
         .then(([taskRes, employeeRes]) => {
-          const taskData = Array.isArray(taskRes.data) ? taskRes.data : taskRes.data?.content || [];
+          const taskData = Array.isArray(taskRes)
+              ? taskRes
+              : taskRes?.content || [];
           const employeeData = Array.isArray(employeeRes) ? employeeRes : employeeRes?.content || [];
           setTasks(taskData);
           setEmployees(employeeData);
@@ -342,10 +347,10 @@ const TaskPage = () => {
                         <td className="p-3">
                         <span
                             className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                                statusStyles[normalizeTaskStatus(task.status)] ?? ""
+                                statusStyles[normalizeTaskStatus(task.status || String(task.statusId))] ?? ""
                             }`}
                         >
-                          {statusLabelTR[normalizeTaskStatus(task.status)] ?? task.status}
+                          {statusLabelTR[normalizeTaskStatus(task.status || String(task.statusId))]}
                         </span>
                         </td>
                         <td className="p-3 text-slate-300 text-xs">
@@ -383,7 +388,7 @@ const TaskPage = () => {
                                 <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
                                   <div className="text-[10px] text-slate-500 mb-1">Durum</div>
                                   <div className="text-sm text-slate-200 font-medium">
-                                    {statusLabelTR[normalizeTaskStatus(task.status)] ?? task.status}
+                                    {statusLabelTR[normalizeTaskStatus(task.status || String(task.statusId))]}
                                   </div>
                                 </div>
 
@@ -428,7 +433,7 @@ const TaskPage = () => {
                               <div className="mt-4 border-t border-slate-700/50 pt-4">
                                 <div className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">İşlemler</div>
                                 <div className="flex flex-wrap gap-2">
-                                  {normalizeTaskStatus(task.status) !== "CANCELLED" && (
+                                  {normalizeTaskStatus(task.status || String(task.statusId)) !== "CANCELLED" && (
                                       <button
                                           type="button"
                                           onClick={(e) => {
@@ -441,7 +446,7 @@ const TaskPage = () => {
                                         {actionLoading ? "Güncelleniyor..." : "İptal Et"}
                                       </button>
                                   )}
-                                  {normalizeTaskStatus(task.status) === "CANCELLED" && (
+                                  {normalizeTaskStatus(task.status || String(task.statusId)) === "CANCELLED" && (
                                       <span className="text-xs text-red-300 px-3 py-1.5">İptal Edildi</span>
                                   )}
                                 </div>

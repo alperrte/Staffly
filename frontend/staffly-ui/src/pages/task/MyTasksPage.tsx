@@ -14,14 +14,16 @@ type TaskResponse = {
     id: number;
     title: string;
     description: string;
-    priority?: string;
-    status?: string | null;
+    priority: string;
+
+    status?: string;
+    statusId?: number; //
+
     startDate?: string | null;
     dueDate?: string | null;
-    createdAt?: string | null;
-    updatedAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
     assigneeEmployeeIds?: number[];
-    assigneeNames?: string[];
 };
 
 type StatusFilter = "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
@@ -57,10 +59,12 @@ const statusBadgeStyles: Record<StatusFilter, string> = {
 function normalizeTaskStatus(raw: string | null | undefined): NormalizedStatus {
     const s = String(raw ?? "").trim().toUpperCase();
 
-    if (["TODO", "PENDING", "NEW", "OPEN"].includes(s)) return "TODO";
-    if (["IN_PROGRESS", "STARTED", "ACTIVE", "WORKING"].includes(s)) return "IN_PROGRESS";
-    if (["DONE", "COMPLETED", "CLOSED", "RESOLVED", "FINISHED"].includes(s)) return "DONE";
-    if (["CANCELLED", "CANCELED", "VOID"].includes(s)) return "CANCELLED";
+    // 🔥 ID DESTEĞİ EKLE
+    if (["1", "TODO", "PENDING", "NEW", "OPEN"].includes(s)) return "TODO";
+    if (["2", "IN_PROGRESS", "STARTED", "ACTIVE", "WORKING"].includes(s)) return "IN_PROGRESS";
+    if (["3", "DONE", "COMPLETED", "CLOSED", "RESOLVED", "FINISHED"].includes(s)) return "DONE";
+    if (["4", "CANCELLED", "CANCELED", "VOID"].includes(s)) return "CANCELLED";
+
     return "TODO";
 }
 
@@ -88,7 +92,7 @@ export default function MyTasksPage() {
 
             // API, token'dan oturumdaki kullanıcıyı okuyup ona atanmış görevleri döndürmeli.
             const res = await getMyTasks();
-            const list: TaskResponse[] = Array.isArray(res.data) ? res.data : res.data?.content ?? [];
+            const list: TaskResponse[] = Array.isArray(res) ? res : res?.content ?? [];
             setTasks(list);
         } catch (error) {
             console.error("Görevlerim alınamadı:", error);
@@ -122,7 +126,7 @@ export default function MyTasksPage() {
     const counters = useMemo(() => {
         const initial = { TODO: 0, IN_PROGRESS: 0, DONE: 0, CANCELLED: 0 };
         for (const task of tasks) {
-            const key = normalizeTaskStatus(task.status);
+            const key =normalizeTaskStatus(task.status || String(task.statusId));
             initial[key] += 1;
         }
         return initial;
@@ -132,7 +136,7 @@ export default function MyTasksPage() {
         const search = searchTerm.trim().toLowerCase();
 
         return tasks.filter((task) => {
-            if (normalizeTaskStatus(task.status) !== statusFilter) return false;
+            if (normalizeTaskStatus(task.status || String(task.statusId)) !== statusFilter) return false;
 
             if (!search) return true;
 
@@ -144,6 +148,9 @@ export default function MyTasksPage() {
             );
         });
     }, [tasks, searchTerm, statusFilter]);
+    const currentStatus = viewTask
+        ? normalizeTaskStatus(viewTask.status || String(viewTask.statusId))
+        : "TODO";
 
     const detailModal =
         viewTask &&
@@ -167,10 +174,10 @@ export default function MyTasksPage() {
                             <div className="mb-3 flex flex-wrap gap-2">
                 <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        statusBadgeStyles[normalizeTaskStatus(viewTask.status)]
+                        statusBadgeStyles[currentStatus]
                     }`}
                 >
-                  {statusMap[normalizeTaskStatus(viewTask.status)]}
+                  {statusMap[currentStatus]}
                 </span>
                                 <span
                                     className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -206,49 +213,56 @@ export default function MyTasksPage() {
                             </div>
 
                             <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-800 pt-6">
-                                {normalizeTaskStatus(viewTask.status) !== "TODO" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleChangeStatus(viewTask.id, "TODO")}
-                                        disabled={actionLoading}
-                                        className="rounded-lg border border-slate-600 bg-slate-700/30 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-600/40 disabled:opacity-50"
-                                    >
-                                        {actionLoading ? "Güncelleniyor..." : "Yapılacak"}
-                                    </button>
+
+                                {currentStatus !== "CANCELLED" ? (
+                                    <>
+                                        {currentStatus !== "TODO" && (
+                                            <button
+                                                onClick={() => handleChangeStatus(viewTask.id, "TODO")}
+                                                disabled={actionLoading}
+                                                className="rounded-lg border border-slate-600 bg-slate-700/30 px-4 py-2 text-sm text-slate-200"
+                                            >
+                                                Yapılacak
+                                            </button>
+                                        )}
+
+                                        {currentStatus !== "IN_PROGRESS" && (
+                                            <button
+                                                onClick={() => handleChangeStatus(viewTask.id, "IN_PROGRESS")}
+                                                disabled={actionLoading}
+                                                className="rounded-lg border border-blue-600 bg-blue-700/30 px-4 py-2 text-sm text-blue-200"
+                                            >
+                                                İşleme Al
+                                            </button>
+                                        )}
+
+                                        {currentStatus !== "DONE" && (
+                                            <button
+                                                onClick={() => handleChangeStatus(viewTask.id, "DONE")}
+                                                disabled={actionLoading}
+                                                className="rounded-lg border border-green-600 bg-green-700/30 px-4 py-2 text-sm text-green-200"
+                                            >
+                                                Tamamlandı
+                                            </button>
+                                        )}
+
+                                        {currentStatus !== "CANCELLED" && (
+                                            <button
+                                                onClick={() => handleChangeStatus(viewTask.id, "CANCELLED")}
+                                                disabled={actionLoading}
+                                                className="rounded-lg border border-red-600 bg-red-700/30 px-4 py-2 text-sm text-red-200"
+                                            >
+                                                İptal Et
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-red-400">
+                                        Bu görev iptal edildi ve tekrar işleme alınamaz.
+                                    </p>
                                 )}
 
-                                {normalizeTaskStatus(viewTask.status) !== "IN_PROGRESS" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleChangeStatus(viewTask.id, "IN_PROGRESS")}
-                                        disabled={actionLoading}
-                                        className="rounded-lg border border-blue-600 bg-blue-700/30 px-4 py-2 text-sm font-medium text-blue-200 transition hover:bg-blue-600/40 disabled:opacity-50"
-                                    >
-                                        {actionLoading ? "Güncelleniyor..." : "İşleme Al"}
-                                    </button>
-                                )}
 
-                                {normalizeTaskStatus(viewTask.status) !== "DONE" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleChangeStatus(viewTask.id, "DONE")}
-                                        disabled={actionLoading}
-                                        className="rounded-lg border border-green-600 bg-green-700/30 px-4 py-2 text-sm font-medium text-green-200 transition hover:bg-green-600/40 disabled:opacity-50"
-                                    >
-                                        {actionLoading ? "Güncelleniyor..." : "Tamamlandı"}
-                                    </button>
-                                )}
-
-                                {normalizeTaskStatus(viewTask.status) !== "CANCELLED" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleChangeStatus(viewTask.id, "CANCELLED")}
-                                        disabled={actionLoading}
-                                        className="rounded-lg border border-red-600 bg-red-700/30 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-600/40 disabled:opacity-50"
-                                    >
-                                        {actionLoading ? "Güncelleniyor..." : "İptal Et"}
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -376,7 +390,7 @@ export default function MyTasksPage() {
                     ) : (
                         <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
                             {filteredTasks.map((task) => {
-                                const normalizedStatus = normalizeTaskStatus(task.status);
+                                const normalizedStatus = normalizeTaskStatus(task.status || String(task.statusId));
                                 return (
                                     <div
                                         key={task.id}

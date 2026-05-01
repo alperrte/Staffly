@@ -65,8 +65,12 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        task.setStatusId(statusId);
+        // 🔥 KURAL
+        if (task.getStatusId() == 4) {
+            throw new RuntimeException("Cancelled task cannot be updated");
+        }
 
+        task.setStatusId(statusId);
         taskRepository.save(task);
     }
 
@@ -128,5 +132,14 @@ public class TaskService {
         );
 
         return res;
+    }
+    private String mapStatus(Integer statusId) {
+        return switch (statusId) {
+            case 1 -> "TODO";
+            case 2 -> "IN_PROGRESS";
+            case 3 -> "DONE";
+            case 4 -> "CANCELLED";
+            default -> "TODO";
+        };
     }
 }

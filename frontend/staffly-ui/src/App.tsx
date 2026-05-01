@@ -5,15 +5,13 @@ import CvServicePage from "./pages/cvService/CvServicePage";
 
 import EmployeeListPage from "./pages/employee/EmployeeListPage";
 import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
-
+import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
 import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
-import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
-import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
 import MyTasksPage from "./pages/task/MyTasksPage.tsx";
-
+import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
 
 function App() {
     return (
@@ -34,12 +32,13 @@ function App() {
                     <Route path="users" element={<UserPage />} />
 
                     <Route path="applications" element={<CvServicePage />} />
-
                     <Route path="job-postings" element={<JobPostingsPage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
                     <Route path="/app/tasks/create" element={<CreateTaskPage />} />
+
                     <Route path="/app/tasks/mytasks" element={<MyTasksPage />} />
+
                     <Route path="payroll" element={<PayrollPage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
