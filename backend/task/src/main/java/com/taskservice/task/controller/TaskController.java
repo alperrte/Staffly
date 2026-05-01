@@ -24,14 +24,22 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
-    private final JwtService jwtService; // 🔥 EKLENDİ
+    private final JwtService jwtService;
 
-    // ✅ CREATE
+    // ✅ CREATE (USER ID BASED)
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(
-            @RequestBody CreateTaskRequest request
+            @RequestBody CreateTaskRequest request,
+            @RequestHeader("Authorization") String authHeader
     ) {
-        return ResponseEntity.ok(taskService.createTask(request));
+
+        String token = authHeader.substring(7);
+
+        Long userId = jwtService.extractUserId(token); // 🔥
+
+        return ResponseEntity.ok(
+                taskService.createTask(request, userId)
+        );
     }
 
     // ✅ ASSIGN
@@ -54,17 +62,20 @@ public class TaskController {
         return ResponseEntity.ok("Status updated");
     }
 
-    // ✅ COMMENT
+    // ✅ COMMENT (FIXED)
     @PostMapping("/{taskId}/comments")
     public ResponseEntity<String> addComment(
             @PathVariable Long taskId,
             @RequestBody CommentRequest request,
             @RequestHeader("Authorization") String authHeader
     ) {
-        String token = authHeader.substring(7);
-        Long userId = jwtService.extractUserId(token);
 
-        taskService.addComment(taskId, request.getComment(), userId); // 🔥 artık gerçek user
+        String token = authHeader.substring(7);
+
+        Long userId = jwtService.extractUserId(token); // 🔥
+
+        taskService.addComment(taskId, request.getComment(), userId);
+
         return ResponseEntity.ok("Comment added");
     }
 
@@ -76,29 +87,19 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getComments(taskId));
     }
 
-    // 🔥 MY TASKS (JWT BASED)
+    // 🔥 MY TASKS
     @GetMapping("/my-tasks")
     public ResponseEntity<Page<TaskResponse>> getMyTasks(
-
             @RequestHeader("Authorization") String authHeader,
-
-            @Parameter(description = "Filter by status")
             @RequestParam(required = false) Integer statusId,
-
-            @Parameter(description = "Filter by priority")
             @RequestParam(required = false) String priority,
-
-            @Parameter(description = "Start date filter")
             @RequestParam(required = false) java.time.LocalDateTime startDate,
-
-            @Parameter(description = "End date filter")
             @RequestParam(required = false) java.time.LocalDateTime endDate,
-
             @ParameterObject Pageable pageable
     ) {
 
         String token = authHeader.substring(7);
-        Long userId = jwtService.extractUserId(token); // 🔥 BURASI ASIL OLAY
+        Long userId = jwtService.extractUserId(token);
 
         return ResponseEntity.ok(
                 taskService.getTasksByEmployeeWithFilter(

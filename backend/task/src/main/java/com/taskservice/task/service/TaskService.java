@@ -5,7 +5,6 @@ import com.taskservice.task.dto.response.*;
 import com.taskservice.task.entity.*;
 import com.taskservice.task.repository.*;
 
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -22,21 +21,25 @@ public class TaskService {
     private final TaskAssignmentRepository assignmentRepository;
     private final TaskCommentRepository commentRepository;
 
-    // ✅ CREATE
-    public TaskResponse createTask(CreateTaskRequest request) {
+    // ✅ CREATE (EMAIL BASED)
+    // ✅ CREATE (USER ID BASED)
+    public TaskResponse createTask(CreateTaskRequest request, Long userId) {
 
         Task task = new Task();
 
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
-        task.setPriority(request.getPriority());
-        task.setStartDate(request.getStartDate());
-        task.setDueDate(request.getDueDate());
         task.setStatusId(1);
+        task.setPriority(request.getPriority());
 
-        Task saved = taskRepository.save(task);
+        task.setStartDate(request.getStartDate()); //
+        task.setDueDate(request.getDueDate());
 
-        return mapToResponse(saved);
+        task.setCreatedBy(userId);
+
+        task = taskRepository.save(task); //
+
+        return mapToResponse(task);
     }
 
     // ✅ ASSIGN
@@ -67,12 +70,12 @@ public class TaskService {
         taskRepository.save(task);
     }
 
-    // ✅ COMMENT
+    // ✅ COMMENT (EMAIL BASED)
     public void addComment(Long taskId, String comment, Long userId) {
 
         TaskComment taskComment = new TaskComment();
         taskComment.setTaskId(taskId);
-        taskComment.setUserId(userId);
+        taskComment.setUserId(userId); // 🔥 DOĞRU
         taskComment.setComment(comment);
 
         commentRepository.save(taskComment);
@@ -82,7 +85,7 @@ public class TaskService {
         return commentRepository.findByTaskId(taskId);
     }
 
-    // 🔥 NEW → PAGINATION + FILTER
+    // 🔥 FILTER
     public Page<TaskResponse> getTasksByEmployeeWithFilter(
             Long employeeId,
             Integer statusId,
@@ -116,6 +119,8 @@ public class TaskService {
         res.setPriority(task.getPriority());
         res.setStartDate(task.getStartDate());
         res.setDueDate(task.getDueDate());
+        res.setCreatedAt(task.getCreatedAt());
+        res.setUpdatedAt(task.getUpdatedAt());
         res.setAssigneeEmployeeIds(
                 assignmentRepository.findByTaskId(task.getId()).stream()
                         .map(TaskAssignment::getEmployeeId)

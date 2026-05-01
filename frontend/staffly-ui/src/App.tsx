@@ -11,6 +11,8 @@ import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
 import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
+import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
+import MyTasksPage from "./pages/task/MyTasksPage.tsx";
 
 
 function App() {
@@ -36,7 +38,8 @@ function App() {
                     <Route path="job-postings" element={<JobPostingsPage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
-
+                    <Route path="/app/tasks/create" element={<CreateTaskPage />} />
+                    <Route path="/app/tasks/mytasks" element={<MyTasksPage />} />
                     <Route path="payroll" element={<PayrollPage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />

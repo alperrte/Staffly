@@ -1,30 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { getMyTasks, createTask, assignTask } from "../../services/taskService";
-import { getDepartments } from "../../services/departmentService";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getMyTasks, updateStatus } from "../../services/taskService";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getAllEmployees } from "../../services/employeeService";
-import axios from "axios";
 
-type DepartmentPositionResponse = { id: number; name: string; description?: string };
-type SubDepartmentResponse = {
-  id: number; name: string; description?: string;
-  positions?: DepartmentPositionResponse[];
-};
-type DepartmentResponse = {
-  id: number; name: string; description?: string;
-  subDepartments?: SubDepartmentResponse[];
-};
-type DropdownOption = { value: string; label: string };
-type EmployeeResponse = {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  departmentId?: number | null;
-  subDepartmentId?: number | null;
-  positionId?: number | null;
-  department?: { id?: number | null };
-  subDepartment?: { id?: number | null };
-  position?: { id?: number | null };
-};
 type TaskResponse = {
   id: number;
   title: string;
@@ -32,560 +10,459 @@ type TaskResponse = {
   priority: string;
   startDate?: string | null;
   dueDate?: string | null;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
   assigneeEmployeeIds?: number[];
+  assigneeNames?: string[];
+  assignees?: Array<{
+    id?: number;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    fullName?: string;
+    name?: string;
+  }>;
 };
 
-/* ══ MiniDropdown ══════════════════════════════════════════════════════ */
-function MiniDropdown(props: {
-  value: string;
-  options: DropdownOption[];
-  placeholder: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-}) {
-  const { value, options, placeholder, onChange, disabled } = props;
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+type EmployeeLite = {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+};
 
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
+type SortDir = "asc" | "desc";
+type SortKey = keyof TaskResponse | null;
 
-  const selected = options.find(o => o.value === value);
+/* ══ Helpers ════════════════════════════════════════════════════════ */
+const priorityStyles: Record<string, string> = {
+  LOW: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+  MEDIUM: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+  HIGH: "bg-red-500/20 text-red-400 border border-red-500/30",
+};
 
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setOpen(v => !v)}
-        className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition outline-none
-          ${disabled
-            ? "border-white/5 bg-slate-900/20 text-slate-600 cursor-not-allowed"
-            : "border-white/10 bg-slate-900/45 text-white hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"}`}
-      >
-        <span className={selected ? "text-white truncate" : "text-slate-400 truncate"}>
-          {selected ? selected.label : placeholder}
-        </span>
-        <span className="text-slate-500 shrink-0 text-xs">{open ? "▴" : "▾"}</span>
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 mt-1.5 z-50 rounded-xl border border-white/10 bg-slate-950 shadow-[0_8px_48px_rgba(0,0,0,0.8)]">
-          <div className="p-1.5 max-h-56 overflow-y-auto">
-            {options.length === 0 && <p className="px-3 py-2.5 text-sm text-slate-500">Seçenek yok</p>}
-            {options.map(opt => (
-              <button key={opt.value} type="button"
-                onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition
-                  ${opt.value === value ? "bg-sky-500/20 text-sky-100 font-medium" : "text-slate-200 hover:bg-sky-500/10"}`}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+const priorityLabelTR: Record<string, string> = {
+  LOW: "Düşük",
+  MEDIUM: "Orta",
+  HIGH: "Yüksek",
+};
+
+const statusStyles: Record<string, string> = {
+  TODO: "bg-slate-500/20 text-slate-300 border border-slate-500/30",
+  IN_PROGRESS: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+  DONE: "bg-green-500/20 text-green-300 border border-green-500/30",
+  CANCELLED: "bg-red-500/20 text-red-300 border border-red-500/30",
+};
+
+const statusLabelTR: Record<string, string> = {
+  TODO: "Yapılacak",
+  IN_PROGRESS: "İşlemde",
+  DONE: "Tamamlandı",
+  CANCELLED: "İptal Edildi",
+};
+
+const emptyDash = (v: unknown) => {
+  if (v == null) return "-";
+  const s = String(v).trim();
+  return s || "-";
+};
+
+const formatMaybeDateTR = (v: unknown) => {
+  if (v == null) return "-";
+  const s = String(v).trim();
+  if (!s) return "-";
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s : d.toLocaleString("tr-TR");
+};
+
+function normalizeTaskStatus(raw: string | null | undefined): string {
+  const s = String(raw ?? "").trim().toUpperCase();
+  if (["TODO", "PENDING", "NEW", "OPEN"].includes(s)) return "TODO";
+  if (["IN_PROGRESS", "STARTED", "ACTIVE", "WORKING"].includes(s)) return "IN_PROGRESS";
+  if (["DONE", "COMPLETED", "CLOSED", "FINISHED", "RESOLVED"].includes(s)) return "DONE";
+  if (["CANCELLED", "CANCELED", "VOID"].includes(s)) return "CANCELLED";
+  return "TODO";
 }
 
-/* ══ MultiDropdown ══════════════════════════════════════════════════════ */
-function MultiDropdown(props: {
-  values: string[];
-  options: DropdownOption[];
-  placeholder: string;
-  onChange: (values: string[]) => void;
-  disabled?: boolean;
-}) {
-  const { values, options, placeholder, onChange, disabled } = props;
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  const selectedLabels = useMemo(
-    () => options.filter(o => values.includes(o.value)).map(o => o.label),
-    [options, values]
-  );
-
-  const toggleValue = (value: string) => {
-    if (values.includes(value)) onChange(values.filter(v => v !== value));
-    else onChange([...values, value]);
-  };
-
+/* ══ SortIcon ═══════════════════════════════════════════════════════ */
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setOpen(v => !v)}
-        className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition outline-none
-          ${disabled
-            ? "border-white/5 bg-slate-900/20 text-slate-600 cursor-not-allowed"
-            : "border-white/10 bg-slate-900/45 text-white hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"}`}
+      <span className={`inline-flex flex-col ml-1.5 shrink-0 ${active ? "opacity-100" : "opacity-30"}`}>
+      <svg
+          className={`w-2 h-2 -mb-0.5 ${active && dir === "asc" ? "text-sky-400" : "text-slate-400"}`}
+          viewBox="0 0 6 4"
+          fill="currentColor"
       >
-        <span className={selectedLabels.length ? "text-white truncate" : "text-slate-400 truncate"}>
-          {selectedLabels.length ? selectedLabels.join(", ") : placeholder}
-        </span>
-        <span className="text-slate-500 shrink-0 text-xs">{open ? "▴" : "▾"}</span>
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 mt-1.5 z-50 rounded-xl border border-white/10 bg-slate-950 shadow-[0_8px_48px_rgba(0,0,0,0.8)]">
-          <div className="p-1.5 max-h-56 overflow-y-auto">
-            {options.length === 0 && <p className="px-3 py-2.5 text-sm text-slate-500">Seçenek yok</p>}
-            {options.map(opt => {
-              const checked = values.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => toggleValue(opt.value)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition flex items-center gap-2
-                    ${checked ? "bg-sky-500/20 text-sky-100 font-medium" : "text-slate-200 hover:bg-sky-500/10"}`}
-                >
-                  <span className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px]
-                    ${checked ? "border-sky-300 bg-sky-400 text-slate-950" : "border-slate-500 text-transparent"}`}>
-                    ✓
-                  </span>
-                  <span className="truncate">{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ══ StepBadge ═════════════════════════════════════════════════════════ */
-function StepBadge({ step, label, done }: { step: number; label: string; done: boolean }) {
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${done ? "text-sky-400" : "text-slate-500"}`}>
-      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold
-        ${done ? "bg-sky-500 text-white" : "bg-slate-700 text-slate-400"}`}>
-        {done ? "✓" : step}
-      </span>
-      {label}
+        <path d="M3 0L6 4H0z" />
+      </svg>
+      <svg
+          className={`w-2 h-2 ${active && dir === "desc" ? "text-sky-400" : "text-slate-400"}`}
+          viewBox="0 0 6 4"
+          fill="currentColor"
+      >
+        <path d="M3 4L0 0h6z" />
+      </svg>
     </span>
   );
 }
 
-/* ══ TaskPage ══════════════════════════════════════════════════════════ */
+/* ══ TaskPage ══════════════════════════════════════════════════════ */
 const TaskPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
-  const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
+  const [employees, setEmployees] = useState<EmployeeLite[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [search, setSearch] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // Org seçimleri
-  const [selectedDeptId, setSelectedDeptId] = useState("");
-  const [selectedSubDeptId, setSelectedSubDeptId] = useState("");
-  const [selectedPositionIds, setSelectedPositionIds] = useState<string[]>([]);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  /* Sort */
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    priority: "LOW",
-    startDate: "",
-    dueDate: "",
-  });
+  /* Expand */
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   /* ── Loads ── */
   const loadTasks = () => {
-    getMyTasks()
-      .then((res) => setTasks(res.data.content || res.data || []))
-      .catch((err) => console.error("TASK ERROR:", err));
+    Promise.all([getMyTasks(), getAllEmployees()])
+        .then(([taskRes, employeeRes]) => {
+          const taskData = Array.isArray(taskRes.data) ? taskRes.data : taskRes.data?.content || [];
+          const employeeData = Array.isArray(employeeRes) ? employeeRes : employeeRes?.content || [];
+          setTasks(taskData);
+          setEmployees(employeeData);
+        })
+        .catch((err) => {
+          console.error("TASK ERROR:", err);
+          setError("Görevler yüklenemedi");
+        })
+        .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     loadTasks();
-    Promise.all([getDepartments(), getAllEmployees()])
-      .then(([departmentData, employeeData]: [unknown, unknown]) => {
-        const list: DepartmentResponse[] = Array.isArray(departmentData) ? departmentData : (departmentData as any)?.content ?? [];
-        setDepartments(list);
-        const empList: EmployeeResponse[] = Array.isArray(employeeData) ? employeeData : (employeeData as any)?.content ?? [];
-        setEmployees(empList);
-      })
-      .catch(console.error);
   }, []);
 
-  /* ── Cascade options ── */
-  const deptOptions: DropdownOption[] = useMemo(
-    () => departments.map(d => ({ value: String(d.id), label: d.name })),
-    [departments]
-  );
+  useEffect(() => {
+    const state = location.state as
+        | { taskCreated?: boolean; createdTaskTitle?: string }
+        | null;
 
-  const selectedDept = useMemo(
-    () => departments.find(d => String(d.id) === selectedDeptId) ?? null,
-    [departments, selectedDeptId]
-  );
-
-  const subDeptOptions: DropdownOption[] = useMemo(
-    () => (selectedDept?.subDepartments ?? []).map(s => ({ value: String(s.id), label: s.name })),
-    [selectedDept]
-  );
-
-  const selectedSubDept = useMemo(
-    () => (selectedDept?.subDepartments ?? []).find(s => String(s.id) === selectedSubDeptId) ?? null,
-    [selectedDept, selectedSubDeptId]
-  );
-
-  const positionOptions: DropdownOption[] = useMemo(
-    () => (selectedSubDept?.positions ?? []).map(p => ({ value: String(p.id), label: p.name })),
-    [selectedSubDept]
-  );
-
-  const employeeOptions: DropdownOption[] = useMemo(() => {
-    const deptId = selectedDeptId ? Number(selectedDeptId) : null;
-    const subDeptId = selectedSubDeptId ? Number(selectedSubDeptId) : null;
-    const positionIds = selectedPositionIds.map(Number);
-
-    return employees
-      .filter((emp) => {
-        const rawDeptId = emp.departmentId ?? emp.department?.id ?? null;
-        const rawSubDeptId = emp.subDepartmentId ?? emp.subDepartment?.id ?? null;
-        const rawPositionId = emp.positionId ?? emp.position?.id ?? null;
-
-        const employeePositionId = rawPositionId != null ? Number(rawPositionId) : null;
-        let employeeDeptId = rawDeptId != null ? Number(rawDeptId) : null;
-        let employeeSubDeptId = rawSubDeptId != null ? Number(rawSubDeptId) : null;
-
-        // Bazı employee payload'larında subDepartmentId gelmiyor.
-        // Bu durumda positionId üzerinden departman/alt departman bilgisini türetiyoruz.
-        if (employeePositionId != null && (employeeDeptId == null || employeeSubDeptId == null)) {
-          for (const dept of departments) {
-            for (const sub of dept.subDepartments ?? []) {
-              const hasPosition = (sub.positions ?? []).some((p) => Number(p.id) === employeePositionId);
-              if (hasPosition) {
-                if (employeeDeptId == null) employeeDeptId = Number(dept.id);
-                if (employeeSubDeptId == null) employeeSubDeptId = Number(sub.id);
-                break;
-              }
-            }
-            if (employeeDeptId != null && employeeSubDeptId != null) break;
-          }
-        }
-
-        if (deptId != null && Number(employeeDeptId) !== deptId) return false;
-        if (subDeptId != null && Number(employeeSubDeptId) !== subDeptId) return false;
-        if (positionIds.length > 0 && !positionIds.includes(Number(employeePositionId))) return false;
-        return true;
-      })
-      .map((e) => ({
-        value: String(e.id),
-        label: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || `Çalışan #${e.id}`,
-      }));
-  }, [employees, selectedDeptId, selectedSubDeptId, selectedPositionIds]);
-
-  const employeeNameById = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const e of employees) {
-      const name = `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || `Çalışan #${e.id}`;
-      map.set(Number(e.id), name);
+    if (state?.taskCreated) {
+      const title = state.createdTaskTitle?.trim();
+      setSuccessMessage(title ? `"${title}" başarıyla oluşturuldu.` : "Görev başarıyla oluşturuldu.");
+      window.history.replaceState({}, document.title);
     }
-    return map;
-  }, [employees]);
+  }, [location.state]);
 
-  /* ── Handlers ── */
-  const handleDeptChange = (v: string) => {
-    setSelectedDeptId(v);
-    setSelectedSubDeptId("");
-    setSelectedPositionIds([]);
-    setSelectedEmployeeIds([]);
-  };
-
-  const handleSubDeptChange = (v: string) => {
-    setSelectedSubDeptId(v);
-    setSelectedPositionIds([]);
-    setSelectedEmployeeIds([]);
-  };
-
-  /* ── Create task ── */
-  const handleCreateTask = async () => {
-    setSubmitted(true);
-    const title = form.title.trim();
-    const description = form.description.trim();
-    if (!title || !description) {
-      setError("Başlık ve açıklama zorunludur.");
-      setSuccess("");
-      return;
-    }
+  const handleChangeStatus = async (taskId: number, newStatus: string) => {
     try {
-      setError("");
-      setSuccess("");
-      const payload = {
-        ...form,
-        title,
-        description,
-        startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
-        dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
+      setActionLoading(true);
+      const statusMap: Record<string, number> = {
+        TODO: 1,
+        IN_PROGRESS: 2,
+        DONE: 3,
+        CANCELLED: 4,
       };
-      const res = await createTask(payload);
-      const taskId = res.data.id;
-      if (selectedEmployeeIds.length > 0) {
-        const uniqueEmployeeIds = [...new Set(selectedEmployeeIds.map(Number))];
-        await Promise.all(uniqueEmployeeIds.map((employeeId) => assignTask(taskId, employeeId)));
-      }
-
-      setForm({ title: "", description: "", priority: "LOW", startDate: "", dueDate: "" });
-      setSelectedDeptId("");
-      setSelectedSubDeptId("");
-      setSelectedPositionIds([]);
-      setSelectedEmployeeIds([]);
-      setSubmitted(false);
-      setSuccess("Görev başarıyla oluşturuldu.");
-      loadTasks();
-    } catch (err: unknown) {
-      console.error("CREATE TASK ERROR:", err);
-      if (axios.isAxiosError(err)) {
-        const message =
-          (err.response?.data as { message?: string })?.message ||
-          (typeof err.response?.data === "string" ? err.response.data : "") ||
-          `Görev oluşturulamadı (${err.response?.status ?? "hata"})`;
-        setError(message);
-        return;
-      }
-      setError("Görev oluşturulamadı");
+      await updateStatus(taskId, statusMap[newStatus]);
+      await loadTasks();
+    } catch (error) {
+      console.error("Durum güncellenirken hata oluştu:", error);
+      setError("Durum güncellerken hata oluştu.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const titleError = submitted && !form.title.trim();
-  const descriptionError = submitted && !form.description.trim();
-  const isCreateDisabled = !form.title.trim() || !form.description.trim();
+  /* ── Filter + Sort ── */
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
 
-  const inputClass =
-    "w-full rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2.5 text-sm text-white placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30";
-  const labelClass = "mb-1.5 block text-xs font-medium tracking-wide text-slate-300";
-  const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString().slice(0, 16);
+    let list = q
+        ? tasks.filter((task) =>
+            Object.values(task)
+                .map((v) => (v == null ? "" : String(v)))
+                .join(" ")
+                .toLowerCase()
+                .includes(q)
+        )
+        : [...tasks];
+
+    if (sortKey) {
+      list.sort((a, b) => {
+        const as = String(a[sortKey] ?? "").toLowerCase();
+        const bs = String(b[sortKey] ?? "").toLowerCase();
+        return sortDir === "asc" ? as.localeCompare(bs, "tr") : bs.localeCompare(as, "tr");
+      });
+    }
+
+    return list;
+  }, [search, tasks, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  if (loading) return <div className="text-slate-400 p-6">Görevler yükleniyor...</div>;
+
+  const employeeById = new Map<number, EmployeeLite>();
+  for (const e of employees) {
+    employeeById.set(Number(e.id), e);
+  }
+
+  const getAssigneeDetailLines = (task: TaskResponse): string[] => {
+    if (Array.isArray(task.assignees) && task.assignees.length > 0) {
+      return task.assignees.map((a) => {
+        const fullName =
+            `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || a.fullName || a.name || `Çalışan #${a.id ?? "-"}`;
+        return `${fullName} - ${a.email ?? "-"}`;
+      });
+    }
+
+    if (Array.isArray(task.assigneeEmployeeIds) && task.assigneeEmployeeIds.length > 0) {
+      return task.assigneeEmployeeIds.map((id) => {
+        const emp = employeeById.get(Number(id));
+        const fullName =
+            emp ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim() || `Çalışan #${id}` : `Çalışan #${id}`;
+        return `${fullName} - ${emp?.email ?? "-"}`;
+      });
+    }
+
+    if (Array.isArray(task.assigneeNames) && task.assigneeNames.length > 0) {
+      return task.assigneeNames.map((n) => `${n} - -`);
+    }
+
+    return [];
+  };
+
+  /* ── Th helper ── */
+  const Th = ({
+                children,
+                sk,
+                right,
+              }: {
+    children: ReactNode;
+    sk?: SortKey;
+    right?: boolean;
+  }) => (
+      <th
+          onClick={() => sk && handleSort(sk)}
+          className={`p-3 text-left whitespace-nowrap select-none
+          ${sk ? "cursor-pointer hover:text-sky-300 transition-colors" : ""}
+          ${right ? "text-right" : ""}`}
+      >
+      <span className="inline-flex items-center">
+        {children}
+        {sk && <SortIcon active={sortKey === sk} dir={sortDir} />}
+      </span>
+      </th>
+  );
 
   return (
-    <div className="px-3 py-6 text-white sm:px-6">
-      <h1 className="mb-6 text-2xl font-semibold">Görevler</h1>
-
-      {/* ── CREATE ── */}
-      <div className="mb-6 rounded-2xl border border-white/10 bg-slate-900/45 p-6 shadow-[0_0_45px_rgba(15,23,42,0.7)]">
-        <div className="mb-5">
-          <h2 className="text-lg font-semibold">Yeni Görev</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Görevi oluşturun ve isteğe bağlı olarak bir çalışana atayın.
-          </p>
+      <div className="w-full flex flex-col gap-6 px-3 sm:px-6">
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <h1 className="text-2xl font-semibold">Görevler</h1>
+          <div className="flex gap-3 items-center">
+            <button
+                onClick={() => navigate("/app/tasks/create")}
+                className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+            >
+              + Görev Ekle
+            </button>
+            <input
+                type="text"
+                placeholder="Ara..."
+                className="w-[260px] max-w-full rounded-lg bg-slate-900/50 border border-slate-700 px-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
+            <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
         )}
-        {success && (
-          <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {success}
-          </div>
+        {successMessage && (
+            <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              ✓ {successMessage}
+            </div>
         )}
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {/* Başlık — full width */}
-          <div className="md:col-span-2">
-            <label className={labelClass}>Başlık *</label>
-            <input
-              placeholder="Örn: Dashboard hata düzeltmesi"
-              value={form.title}
-              className={`${inputClass} ${titleError ? "border-red-400/60 focus:border-red-400 focus:ring-red-400/20" : ""}`}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            {titleError && <p className="mt-1.5 text-xs text-red-300">Başlık zorunludur.</p>}
+        {/* ── Table ── */}
+        <div className="rounded-xl border border-slate-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[1240px]">
+              <thead className="bg-slate-800/60 text-slate-400 text-xs uppercase tracking-wide">
+              <tr>
+                <Th sk="title">Başlık</Th>
+                <Th sk="priority">Öncelik</Th>
+                <Th sk="status">Durum</Th>
+                <Th sk="startDate">Başlangıç</Th>
+                <Th sk="dueDate">Bitiş</Th>
+              </tr>
+              </thead>
+
+              <tbody>
+              {filtered.map((task) => {
+                const isOpen = expandedId === task.id;
+
+                return (
+                    <Fragment key={task.id}>
+                      {/* ── Main row ── */}
+                      <tr
+                          onClick={() => setExpandedId((p) => (p === task.id ? null : task.id))}
+                          className="border-t border-slate-700/70 transition cursor-pointer hover:bg-slate-800/30"
+                      >
+                        <td className="p-3 font-medium text-slate-200">
+                        <span className="flex items-center gap-1.5">
+                          {task.title}
+                          <span className="text-slate-600 text-xs">{isOpen ? "▾" : "▸"}</span>
+                        </span>
+                        </td>
+                        <td className="p-3">
+                        <span
+                            className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                                priorityStyles[task.priority] ?? ""
+                            }`}
+                        >
+                          {priorityLabelTR[task.priority] ?? task.priority}
+                        </span>
+                        </td>
+                        <td className="p-3">
+                        <span
+                            className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                                statusStyles[normalizeTaskStatus(task.status)] ?? ""
+                            }`}
+                        >
+                          {statusLabelTR[normalizeTaskStatus(task.status)] ?? task.status}
+                        </span>
+                        </td>
+                        <td className="p-3 text-slate-300 text-xs">
+                          {formatMaybeDateTR(task.startDate)}
+                        </td>
+                        <td className="p-3 text-slate-300 text-xs">
+                          {formatMaybeDateTR(task.dueDate)}
+                        </td>
+                      </tr>
+
+                      {/* ══ EXPAND PANEL ════════════════════════════════════════ */}
+                      {isOpen && (
+                          <tr>
+                            <td colSpan={5} className="border-t border-slate-700/50 bg-slate-900/25 p-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Başlık</div>
+                                  <div className="text-sm text-slate-200 font-medium">{task.title}</div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Açıklama</div>
+                                  <div className="text-sm text-slate-200 font-medium break-words">
+                                    {emptyDash(task.description)}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Öncelik</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {priorityLabelTR[task.priority] ?? task.priority}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Durum</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {statusLabelTR[normalizeTaskStatus(task.status)] ?? task.status}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Başlangıç Tarihi</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {formatMaybeDateTR(task.startDate)}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Bitiş Tarihi</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {formatMaybeDateTR(task.dueDate)}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Oluşturma Tarihi</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {formatMaybeDateTR(task.createdAt)}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                  <div className="text-[10px] text-slate-500 mb-1">Güncellenme Tarihi</div>
+                                  <div className="text-sm text-slate-200 font-medium">
+                                    {formatMaybeDateTR(task.updatedAt)}
+                                  </div>
+                                </div>
+
+                                {getAssigneeDetailLines(task).length > 0 && (
+                                    <div className="sm:col-span-2 lg:col-span-2 rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
+                                      <div className="text-[10px] text-slate-500 mb-1">Atananlar</div>
+                                      <div className="text-sm text-slate-200 font-medium break-words">
+                                        {getAssigneeDetailLines(task).join(", ")}
+                                      </div>
+                                    </div>
+                                )}
+                              </div>
+
+                              <div className="mt-4 border-t border-slate-700/50 pt-4">
+                                <div className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">İşlemler</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {normalizeTaskStatus(task.status) !== "CANCELLED" && (
+                                      <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleChangeStatus(task.id, "CANCELLED");
+                                          }}
+                                          disabled={actionLoading}
+                                          className="rounded-lg border border-red-600 bg-red-700/30 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-600/40 disabled:opacity-50"
+                                      >
+                                        {actionLoading ? "Güncelleniyor..." : "İptal Et"}
+                                      </button>
+                                  )}
+                                  {normalizeTaskStatus(task.status) === "CANCELLED" && (
+                                      <span className="text-xs text-red-300 px-3 py-1.5">İptal Edildi</span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                      )}
+                    </Fragment>
+                );
+              })}
+              </tbody>
+            </table>
           </div>
 
-          {/* Açıklama — full width */}
-          <div className="md:col-span-2">
-            <label className={labelClass}>Açıklama *</label>
-            <textarea
-              placeholder="Görev detaylarını yaz..."
-              value={form.description}
-              rows={3}
-              className={`${inputClass} resize-y ${descriptionError ? "border-red-400/60 focus:border-red-400 focus:ring-red-400/20" : ""}`}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-            {descriptionError && <p className="mt-1.5 text-xs text-red-300">Açıklama zorunludur.</p>}
-          </div>
-
-          {/* Başlangıç & Bitiş — yan yana */}
-          <div>
-            <label className={labelClass}>Başlangıç Tarihi</label>
-            <input type="datetime-local" value={form.startDate} min={nowLocal} className={inputClass}
-              onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-          </div>
-          <div>
-            <label className={labelClass}>Bitiş Tarihi</label>
-            <input type="datetime-local" value={form.dueDate} min={form.startDate || nowLocal} className={inputClass}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
-          </div>
-
-          {/* ── Organizasyon başlığı ── */}
-          <div className="md:col-span-2 mt-1">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Çalışan Ata</h3>
-              <div className="flex items-center gap-3">
-                <StepBadge step={1} label="Departman" done={!!selectedDeptId} />
-                <span className="text-slate-700">›</span>
-                <StepBadge step={2} label="Alt Departman" done={!!selectedSubDeptId} />
-                <span className="text-slate-700">›</span>
-                <StepBadge step={3} label="Pozisyon" done={selectedPositionIds.length > 0} />
-                <span className="text-slate-700">›</span>
-                <StepBadge step={4} label="Çalışan" done={selectedEmployeeIds.length > 0} />
+          {filtered.length === 0 && (
+              <div className="p-8 text-center text-slate-500 text-sm">
+                {search ? `"${search}" için sonuç bulunamadı` : "Henüz görev yok"}
               </div>
-            </div>
-            <div className="h-px bg-slate-700/60" />
-          </div>
-
-          {/* Departman */}
-          <div>
-            <label className={labelClass}>Departman</label>
-            <MiniDropdown
-              value={selectedDeptId}
-              options={deptOptions}
-              placeholder="Departman seçin"
-              onChange={handleDeptChange}
-            />
-          </div>
-
-          {/* Alt Departman */}
-          <div>
-            <label className={labelClass}>
-              Alt Departman
-              {!selectedDeptId && <span className="ml-1 text-slate-600 font-normal">— önce departman seçin</span>}
-            </label>
-            <MiniDropdown
-              value={selectedSubDeptId}
-              options={subDeptOptions}
-              placeholder={!selectedDeptId ? "Önce departman seçin" : subDeptOptions.length ? "Alt departman seçin" : "Alt departman bulunamadı"}
-              disabled={!selectedDeptId || subDeptOptions.length === 0}
-              onChange={handleSubDeptChange}
-            />
-          </div>
-
-          {/* Pozisyon */}
-          <div className="md:col-span-2">
-            <label className={labelClass}>
-              Pozisyon
-              {!selectedSubDeptId && <span className="ml-1 text-slate-600 font-normal">— önce alt departman seçin</span>}
-            </label>
-            <MultiDropdown
-              values={selectedPositionIds}
-              options={positionOptions}
-              placeholder={
-                !selectedSubDeptId ? "Önce alt departman seçin"
-                : positionOptions.length === 0 ? "Bu alt departmanda pozisyon bulunamadı"
-                : "Pozisyon seçin (çoklu)"
-              }
-              disabled={!selectedSubDeptId || positionOptions.length === 0}
-              onChange={(values) => {
-                setSelectedPositionIds(values);
-                setSelectedEmployeeIds([]);
-              }}
-            />
-          </div>
-
-          {/* Çalışan */}
-          <div className="md:col-span-2">
-            <label className={labelClass}>
-              Çalışan
-              {!selectedSubDeptId && <span className="ml-1 text-slate-600 font-normal">— önce alt departman seçin</span>}
-            </label>
-            <MultiDropdown
-              values={selectedEmployeeIds}
-              options={employeeOptions}
-              placeholder={
-                !selectedSubDeptId ? "Önce alt departman seçin"
-                : employeeOptions.length === 0 ? "Bu departmanda çalışan bulunamadı"
-                : "Çalışan seçin (çoklu, opsiyonel)"
-              }
-              disabled={!selectedSubDeptId || employeeOptions.length === 0}
-              onChange={setSelectedEmployeeIds}
-            />
-          </div>
-
-          {/* ── Alt çizgi + Öncelik ── */}
-          <div className="md:col-span-2 mt-1">
-            <div className="h-px bg-slate-700/60 mb-4" />
-            <div className="md:w-1/2">
-              <label className={labelClass}>Öncelik</label>
-              <MiniDropdown
-                value={form.priority}
-                options={[
-                  { value: "LOW", label: "Düşük" },
-                  { value: "MEDIUM", label: "Orta" },
-                  { value: "HIGH", label: "Yüksek" },
-                ]}
-                placeholder="Öncelik seçin"
-                onChange={v => setForm({ ...form, priority: v })}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-5 flex justify-end border-t border-white/10 pt-4">
-          <button
-            onClick={handleCreateTask}
-            disabled={isCreateDisabled}
-            className="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-sky-500/50"
-          >
-            Görev Oluştur
-          </button>
+          )}
         </div>
       </div>
-
-      {/* ── TASK LIST ── */}
-      {tasks.length === 0 ? (
-        <p className="text-slate-400">Görev bulunamadı</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {tasks.map((task) => (
-            <div key={task.id}
-              className="rounded-xl border border-white/10 bg-slate-900/45 p-4 transition hover:border-sky-400/35 hover:bg-slate-900/60">
-              <h3 className="font-semibold">{task.title}</h3>
-              <p className="mt-1 text-slate-200/90">{task.description}</p>
-              <p className="mt-2 text-sm text-slate-400">
-                Öncelik:{" "}
-                <span className="font-medium text-slate-200">
-                  {task.priority === "LOW" ? "Düşük" : task.priority === "MEDIUM" ? "Orta" : task.priority === "HIGH" ? "Yüksek" : task.priority}
-                </span>
-              </p>
-              <p className="text-sm text-slate-400">
-                Başlangıç: {task.startDate ? new Date(task.startDate).toLocaleString("tr-TR") : "-"}
-              </p>
-              <p className="text-sm text-slate-400">
-                Bitiş: {task.dueDate ? new Date(task.dueDate).toLocaleString("tr-TR") : "-"}
-              </p>
-              <div className="mt-2 text-sm text-slate-400">
-                Atananlar:{" "}
-                {task.assigneeEmployeeIds?.length ? (
-                  <span className="text-slate-200">
-                    {task.assigneeEmployeeIds
-                      .map((id) => employeeNameById.get(Number(id)) ?? `Çalışan #${id}`)
-                      .join(", ")}
-                  </span>
-                ) : (
-                  <span className="text-slate-500">Atama yok</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 };
 

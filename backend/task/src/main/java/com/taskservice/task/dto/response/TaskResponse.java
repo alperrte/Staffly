@@ -15,5 +15,7 @@ public class TaskResponse {
     private String priority;
     private LocalDateTime startDate;
     private LocalDateTime dueDate;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private List<Long> assigneeEmployeeIds;
 }
