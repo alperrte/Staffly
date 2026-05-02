@@ -179,6 +179,36 @@ services:
       - ./backend/cv-service/uploads:/app/uploads
     restart: unless-stopped
 
+  leave-service:
+    build: ./backend/leave-service
+    container_name: staffly-leave-service
+
+    env_file:
+      - .env
+
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT_LEAVE}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+
+    ports:
+      - "${SERVER_PORT_LEAVE}:${SERVER_PORT_LEAVE}"
+
+    restart: unless-stopped
+
   organization-service:
     build: ./backend/organization-service
     container_name: staffly-organization-service
