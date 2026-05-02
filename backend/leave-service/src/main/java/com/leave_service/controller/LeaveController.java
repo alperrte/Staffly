@@ -16,19 +16,16 @@ public class LeaveController {
 
     private final LeaveService leaveService;
 
-    // 🔥 1️⃣ İZİN OLUŞTUR
     @PostMapping
     public LeaveResponse createLeave(@RequestBody LeaveRequestCreateRequest request) {
         return leaveService.createLeave(request);
     }
 
-    // 🔥 2️⃣ ÇALIŞANIN İZİNLERİ
-    @GetMapping("/{employeeId}")
+    @GetMapping("/employee/{employeeId}")
     public List<LeaveResponse> getEmployeeLeaves(@PathVariable Long employeeId) {
         return leaveService.getEmployeeLeaves(employeeId);
     }
 
-    // 🔥 3️⃣ ONAY / RED
     @PostMapping("/approve")
     public void approveLeave(@RequestBody LeaveApprovalRequest request) {
         leaveService.approveLeave(request);

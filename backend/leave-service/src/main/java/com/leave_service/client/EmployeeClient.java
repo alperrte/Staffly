@@ -1,11 +1,11 @@
 package com.leave_service.client;
 
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
@@ -16,17 +16,23 @@ public class EmployeeClient {
     private final RestTemplate restTemplate;
     private final HttpServletRequest request;
 
+    @Value("${employee.service.url}")
+    private String employeeServiceUrl;
+
     public Map<String, Object> getEmployeeById(Long id) {
 
         String token = request.getHeader("Authorization");
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", token);
+
+        if (token != null && !token.isBlank()) {
+            headers.set("Authorization", token);
+        }
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
-                "http://employee-service:8082/api/v1/employees/" + id,
+                employeeServiceUrl + "/api/v1/employees/" + id,
                 HttpMethod.GET,
                 entity,
                 Map.class

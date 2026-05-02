@@ -18,16 +18,13 @@ public class LeaveBalance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🔥 EMPLOYEE
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
-    // 🔥 LEAVE TYPE RELATION
     @ManyToOne
     @JoinColumn(name = "leave_type_id", nullable = false)
     private LeaveType leaveType;
 
-    // 🔥 BAKİYE
     @Column(name = "remaining_days")
     private Integer remainingDays;
 
@@ -36,4 +33,24 @@ public class LeaveBalance {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.remainingDays == null) {
+            this.remainingDays = 0;
+        }
+
+        if (this.remainingHours == null) {
+            this.remainingHours = 0;
+        }
+
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
