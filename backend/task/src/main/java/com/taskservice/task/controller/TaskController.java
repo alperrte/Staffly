@@ -24,14 +24,22 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
-    private final JwtService jwtService; // 🔥 EKLENDİ
+    private final JwtService jwtService; //
 
     // ✅ CREATE
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(
-            @RequestBody CreateTaskRequest request
+            @RequestBody CreateTaskRequest request,
+            @RequestHeader("Authorization") String authHeader
     ) {
-        return ResponseEntity.ok(taskService.createTask(request));
+
+        String token = authHeader.substring(7);
+
+        Long userId = jwtService.extractUserId(token);
+
+        return ResponseEntity.ok(
+                taskService.createTask(request, userId)
+        );
     }
 
     // ✅ ASSIGN

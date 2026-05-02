@@ -2,11 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth scroll */
 html {
     scroll-behavior: smooth;
 }
 
-/* Fade üst-alt efekt */
+/* 🔥 INPUT FIX (BEYAZ PROBLEMİ BİTSİN) */
+input,
+textarea,
+select {
+    background-color: transparent !important;
+    color: white;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #64748b; /* slate-500 */
+}
+
+/* Autofill fix (Chrome saçmalığını kapatır) */
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgba(15,23,42,0.45) inset !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* ───────────────────────────── */
+/* SCROLL DESIGN */
+/* ───────────────────────────── */
+
 .staffly-scroll {
     mask-image: linear-gradient(
             to bottom,
@@ -25,19 +48,19 @@ html {
     width: 8px;
 }
 
-/* Track görünmez */
+/* Track */
 .staffly-scroll::-webkit-scrollbar-track {
     background: transparent;
 }
 
-/* Default → görünmez */
+/* Default */
 .staffly-scroll::-webkit-scrollbar-thumb {
     background: transparent;
     border-radius: 999px;
     transition: all 0.3s ease;
 }
 
-/* Hover → görünür + gradient */
+/* Hover aktif */
 .staffly-scroll:hover::-webkit-scrollbar-thumb {
     background: linear-gradient(
             180deg,
@@ -56,3 +79,26 @@ html {
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
 }
 
+/* ───────────────────────────── */
+/* GLOBAL CARD & PANEL FEEL */
+/* ───────────────────────────── */
+
+.staffly-card {
+    @apply bg-slate-900/50 border border-white/10 rounded-2xl shadow-lg;
+}
+
+/* ───────────────────────────── */
+/* BUTTON STANDARD */
+/* ───────────────────────────── */
+
+.staffly-btn {
+    @apply px-4 py-2 rounded-xl font-semibold transition;
+}
+
+.staffly-btn-primary {
+    @apply bg-sky-500 text-white hover:bg-sky-400;
+}
+
+.staffly-btn-danger {
+    @apply bg-red-500 text-white hover:bg-red-400;
+}
