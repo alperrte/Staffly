@@ -1,5 +1,10 @@
 package com.employee_service.employee.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.employee_service.employee.client.EmployeeDepartmentClient;
 import com.employee_service.employee.dto.request.CreateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateEmployeeRequest;
@@ -10,11 +15,8 @@ import com.employee_service.employee.entity.EmployeePersonalInfo;
 import com.employee_service.employee.repository.EmployeeJobInfoRepository;
 import com.employee_service.employee.repository.EmployeePersonalInfoRepository;
 import com.employee_service.employee.repository.EmployeeRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +79,31 @@ public class EmployeeService {
 
         EmployeeJobInfo jobInfo =
                 jobInfoRepository.findByEmployeeId(id).orElse(null);
+
+        return EmployeeResponse.builder()
+                .id(employee.getId())
+                .firstName(employee.getFirstName())
+                .lastName(employee.getLastName())
+                .email(employee.getEmail())
+                .hireDate(employee.getHireDate())
+                .status(employee.getStatus())
+                .phone(personalInfo != null ? personalInfo.getPhone() : null)
+                .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
+                .gender(personalInfo != null ? personalInfo.getGender() : null)
+                .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
+                .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
+                .build();
+    }
+
+    public EmployeeResponse getEmployeeByEmail(String email) {
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        EmployeePersonalInfo personalInfo =
+                personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+        EmployeeJobInfo jobInfo =
+                jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
 
         return EmployeeResponse.builder()
                 .id(employee.getId())
@@ -183,23 +210,6 @@ public class EmployeeService {
         employee.setUpdatedAt(LocalDateTime.now());
 
         employeeRepository.save(employee);
-    }
-
-    private EmployeeResponse mapToResponse(Employee employee, CreateEmployeeRequest request) {
-
-        return EmployeeResponse.builder()
-                .id(employee.getId())
-                .firstName(employee.getFirstName())
-                .lastName(employee.getLastName())
-                .email(employee.getEmail())
-                .hireDate(employee.getHireDate())
-                .status(employee.getStatus())
-                .phone(request != null ? request.getPhone() : null)
-                .birthDate(request != null ? request.getBirthDate() : null)
-                .gender(request != null ? request.getGender() : null)
-                .departmentId(request != null ? request.getDepartmentId() : null)
-                .positionId(request != null ? request.getPositionId() : null)
-                .build();
     }
     private EmployeeResponse buildEmployeeResponse(
             Employee employee,

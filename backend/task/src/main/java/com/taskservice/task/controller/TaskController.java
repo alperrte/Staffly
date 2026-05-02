@@ -1,22 +1,31 @@
 package com.taskservice.task.controller;
 
-import com.taskservice.task.dto.request.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.taskservice.task.dto.request.AssignTaskRequest;
+import com.taskservice.task.dto.request.CommentRequest;
+import com.taskservice.task.dto.request.CreateTaskRequest;
+import com.taskservice.task.dto.request.UpdateTaskStatusRequest;
 import com.taskservice.task.dto.response.TaskResponse;
 import com.taskservice.task.entity.TaskComment;
 import com.taskservice.task.security.JwtService;
 import com.taskservice.task.service.TaskService;
 
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import org.springdoc.core.annotations.ParameterObject;
-import io.swagger.v3.oas.annotations.Parameter;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/tasks")
@@ -87,30 +96,17 @@ public class TaskController {
     // 🔥 MY TASKS (JWT BASED)
     @GetMapping("/my-tasks")
     public ResponseEntity<Page<TaskResponse>> getMyTasks(
-
             @RequestHeader("Authorization") String authHeader,
-
-            @Parameter(description = "Filter by status")
             @RequestParam(required = false) Integer statusId,
-
-            @Parameter(description = "Filter by priority")
             @RequestParam(required = false) String priority,
-
-            @Parameter(description = "Start date filter")
-            @RequestParam(required = false) java.time.LocalDateTime startDate,
-
-            @Parameter(description = "End date filter")
-            @RequestParam(required = false) java.time.LocalDateTime endDate,
-
-            @ParameterObject Pageable pageable
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate,
+            Pageable pageable
     ) {
-
-        String token = authHeader.substring(7);
-        Long userId = jwtService.extractUserId(token); // 🔥 BURASI ASIL OLAY
 
         return ResponseEntity.ok(
                 taskService.getTasksByEmployeeWithFilter(
-                        userId,
+                        authHeader,
                         statusId,
                         priority,
                         startDate,
@@ -119,4 +115,12 @@ public class TaskController {
                 )
         );
     }
+
+        @GetMapping
+        public ResponseEntity<Page<TaskResponse>> getAllTasks(
+                @RequestHeader("Authorization") String authHeader,
+                Pageable pageable
+        ) {
+                return ResponseEntity.ok(taskService.getAllTasks(authHeader, pageable));
+        }
 }

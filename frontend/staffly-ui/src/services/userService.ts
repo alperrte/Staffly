@@ -7,8 +7,10 @@ export interface Role {
 }
 
 export interface User {
+    id?: number;
     email: string;
     active: boolean;
+    employeeId?: number | null;
     roles: Role[];
 }
 
@@ -38,6 +40,11 @@ employeeApi.interceptors.request.use((config) => {
 
 export const getUsers = async (): Promise<User[]> => {
     const response = await api.get("/users");
+    return response.data;
+};
+
+export const getCurrentUser = async (): Promise<User> => {
+    const response = await api.get("/users/me");
     return response.data;
 };
 

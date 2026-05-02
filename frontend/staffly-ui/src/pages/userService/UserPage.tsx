@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
     FaCheck,
     FaCog,
@@ -10,7 +10,6 @@ import {
     FaUserCheck,
     FaUserPlus,
     FaUserSlash,
-    FaUserTag,
     FaUsers,
 } from "react-icons/fa";
 import {

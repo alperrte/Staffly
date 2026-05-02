@@ -9,6 +9,12 @@ export const getMyTasks = async () => {
   return res.data;
 };
 
+// 🔥 ALL TASKS (admin / tasks page)
+export const getAllTasks = async () => {
+  const res = await API.get(`${BASE}/tasks`);
+  return res.data;
+};
+
 // 🔥 EMPLOYEE TASKS (admin UI vs)
 export const getTasksByEmployee = async (employeeId: number) => {
   const res = await API.get(`${BASE}/tasks/employee/${employeeId}`);

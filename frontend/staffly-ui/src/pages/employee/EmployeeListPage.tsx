@@ -335,8 +335,9 @@ const EmployeeListPage = () => {
 
         if (sortKey) {
             list.sort((a, b) => {
-                const as = String(a[sortKey] ?? "").toLowerCase();
-                const bs = String(b[sortKey] ?? "").toLowerCase();
+                const key = sortKey as keyof typeof a;
+                const as = String(a[key] ?? "").toLowerCase();
+                const bs = String(b[key] ?? "").toLowerCase();
                 return sortDir === "asc" ? as.localeCompare(bs, "tr") : bs.localeCompare(as, "tr");
             });
         }
