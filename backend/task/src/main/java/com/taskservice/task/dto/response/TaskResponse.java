@@ -1,8 +1,9 @@
 package com.taskservice.task.dto.response;
 
-import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import lombok.Data;
 
 @Data
 public class TaskResponse {
@@ -19,4 +20,5 @@ public class TaskResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<Long> assigneeEmployeeIds;
+    private List<String> assigneeEmails;
 }

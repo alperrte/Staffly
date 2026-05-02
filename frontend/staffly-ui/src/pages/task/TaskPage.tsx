@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getMyTasks, updateStatus } from "../../services/taskService";
+import { getAllTasks, updateStatus } from "../../services/taskService";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getAllEmployees } from "../../services/employeeService";
 
 type TaskResponse = {
   id: number;
@@ -15,6 +14,7 @@ type TaskResponse = {
   createdAt?: string;
   updatedAt?: string;
   assigneeEmployeeIds?: number[];
+  assigneeEmails?: string[];
   assigneeNames?: string[];
   assignees?: Array<{
     id?: number;
@@ -24,13 +24,6 @@ type TaskResponse = {
     fullName?: string;
     name?: string;
   }>;
-};
-
-type EmployeeLite = {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
 };
 
 type SortDir = "asc" | "desc";
@@ -116,7 +109,6 @@ const TaskPage = () => {
   const location = useLocation();
 
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [employees, setEmployees] = useState<EmployeeLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -132,14 +124,12 @@ const TaskPage = () => {
 
   /* ── Loads ── */
   const loadTasks = () => {
-    Promise.all([getMyTasks(), getAllEmployees()])
-        .then(([taskRes, employeeRes]) => {
+    getAllTasks()
+        .then((taskRes) => {
           const taskData = Array.isArray(taskRes)
               ? taskRes
               : taskRes?.content || [];
-          const employeeData = Array.isArray(employeeRes) ? employeeRes : employeeRes?.content || [];
           setTasks(taskData);
-          setEmployees(employeeData);
         })
         .catch((err) => {
           console.error("TASK ERROR:", err);
@@ -218,31 +208,13 @@ const TaskPage = () => {
 
   if (loading) return <div className="text-slate-400 p-6">Görevler yükleniyor...</div>;
 
-  const employeeById = new Map<number, EmployeeLite>();
-  for (const e of employees) {
-    employeeById.set(Number(e.id), e);
-  }
-
   const getAssigneeDetailLines = (task: TaskResponse): string[] => {
-    if (Array.isArray(task.assignees) && task.assignees.length > 0) {
-      return task.assignees.map((a) => {
-        const fullName =
-            `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || a.fullName || a.name || `Çalışan #${a.id ?? "-"}`;
-        return `${fullName} - ${a.email ?? "-"}`;
-      });
-    }
-
-    if (Array.isArray(task.assigneeEmployeeIds) && task.assigneeEmployeeIds.length > 0) {
-      return task.assigneeEmployeeIds.map((id) => {
-        const emp = employeeById.get(Number(id));
-        const fullName =
-            emp ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim() || `Çalışan #${id}` : `Çalışan #${id}`;
-        return `${fullName} - ${emp?.email ?? "-"}`;
-      });
+    if (Array.isArray(task.assigneeEmails) && task.assigneeEmails.length > 0) {
+      return task.assigneeEmails;
     }
 
     if (Array.isArray(task.assigneeNames) && task.assigneeNames.length > 0) {
-      return task.assigneeNames.map((n) => `${n} - -`);
+      return task.assigneeNames;
     }
 
     return [];

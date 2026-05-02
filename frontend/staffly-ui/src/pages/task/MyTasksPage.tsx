@@ -24,6 +24,7 @@ type TaskResponse = {
     createdAt?: string;
     updatedAt?: string;
     assigneeEmployeeIds?: number[];
+    assigneeEmails?: string[];
 };
 
 type StatusFilter = "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
@@ -85,18 +86,19 @@ export default function MyTasksPage() {
     const [viewTask, setViewTask] = useState<TaskResponse | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
-    const fetchMyTasks = async () => {
+    const fetchMyTasks = async (): Promise<TaskResponse[]> => {
         try {
             setLoading(true);
             setPageError("");
 
-            // API, token'dan oturumdaki kullanıcıyı okuyup ona atanmış görevleri döndürmeli.
             const res = await getMyTasks();
             const list: TaskResponse[] = Array.isArray(res) ? res : res?.content ?? [];
             setTasks(list);
+            return list;
         } catch (error) {
             console.error("Görevlerim alınamadı:", error);
             setPageError("Görevlerim yüklenirken hata oluştu.");
+            return [];
         } finally {
             setLoading(false);
         }
@@ -109,12 +111,19 @@ export default function MyTasksPage() {
     const handleChangeStatus = async (taskId: number, newStatus: StatusFilter) => {
         try {
             setActionLoading(true);
+
             const statusMap = { TODO: 1, IN_PROGRESS: 2, DONE: 3, CANCELLED: 4 };
+
             await updateStatus(taskId, statusMap[newStatus]);
 
-            // Görevleri yeniden yükle
-            await fetchMyTasks();
-            setViewTask(null);
+            const refreshedTasks = await fetchMyTasks();
+
+            // 🔥 güncel task'i bul
+            const updated = refreshedTasks.find((t) => t.id === taskId);
+            if (updated) {
+                setViewTask(updated);
+            }
+
         } catch (error) {
             console.error("Durum güncellenirken hata oluştu:", error);
             setPageError("Durum güncellenirken hata oluştu.");
@@ -148,9 +157,13 @@ export default function MyTasksPage() {
             );
         });
     }, [tasks, searchTerm, statusFilter]);
-    const currentStatus = viewTask
-        ? normalizeTaskStatus(viewTask.status || String(viewTask.statusId))
-        : "TODO";
+    const currentStatus = (viewTask
+        ? normalizeTaskStatus(
+            viewTask.statusId !== undefined
+                ? String(viewTask.statusId)
+                : viewTask.status
+        )
+        : "TODO") as StatusFilter;
 
     const detailModal =
         viewTask &&
@@ -246,7 +259,7 @@ export default function MyTasksPage() {
                                             </button>
                                         )}
 
-                                        {currentStatus !== "CANCELLED" && (
+
                                             <button
                                                 onClick={() => handleChangeStatus(viewTask.id, "CANCELLED")}
                                                 disabled={actionLoading}
@@ -254,7 +267,7 @@ export default function MyTasksPage() {
                                             >
                                                 İptal Et
                                             </button>
-                                        )}
+
                                     </>
                                 ) : (
                                     <p className="text-sm text-red-400">

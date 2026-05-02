@@ -77,7 +77,7 @@ function PhoneInput(props: {
                 onClick={() => setOpen((v) => !v)}
                 className="flex items-center gap-2 px-3 py-2.5 border-r border-white/10 text-sm text-white hover:bg-white/5 transition shrink-0 rounded-l-xl"
             >
-                <span className="text-base leading-none">{selected.flag}</span>
+                <span className="text-base leading-none">{selected.code}</span>
                 <span className="text-slate-200 whitespace-nowrap">{selected.label}</span>
                 <span className="text-slate-500 text-xs ml-0.5">{open ? "▴" : "▾"}</span>
             </button>
@@ -100,7 +100,7 @@ function PhoneInput(props: {
                                             : "text-slate-200 hover:bg-sky-500/10"
                                     }`}
                             >
-                                <span className="text-base">{c.flag}</span>
+                                <span className="text-base">{c.code}</span>
                                 <span>{c.label}</span>
                             </button>
                         ))}

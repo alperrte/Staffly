@@ -35,9 +35,9 @@ function App() {
                     <Route path="job-postings" element={<JobPostingsPage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
-                    <Route path="/app/tasks/create" element={<CreateTaskPage />} />
+                    <Route path="tasks/create" element={<CreateTaskPage />} />
 
-                    <Route path="/app/tasks/mytasks" element={<MyTasksPage />} />
+                    <Route path="tasks/mytasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
 

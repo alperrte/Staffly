@@ -1,17 +1,26 @@
 package com.taskservice.task.service;
 
-import com.taskservice.task.dto.request.*;
-import com.taskservice.task.dto.response.*;
-import com.taskservice.task.entity.*;
-import com.taskservice.task.repository.*;
-
-import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.stream.Collectors;
+import com.taskservice.task.client.AuthClient;
+import com.taskservice.task.client.EmployeeClient;
+import com.taskservice.task.dto.request.CreateTaskRequest;
+import com.taskservice.task.dto.response.CurrentUserResponse;
+import com.taskservice.task.dto.response.EmployeeLookupResponse;
+import com.taskservice.task.dto.response.TaskResponse;
+import com.taskservice.task.entity.Task;
+import com.taskservice.task.entity.TaskAssignment;
+import com.taskservice.task.entity.TaskComment;
+import com.taskservice.task.repository.TaskAssignmentRepository;
+import com.taskservice.task.repository.TaskCommentRepository;
+import com.taskservice.task.repository.TaskRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +29,8 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskAssignmentRepository assignmentRepository;
     private final TaskCommentRepository commentRepository;
+    private final AuthClient authClient;
+    private final EmployeeClient employeeClient;
 
     // ✅ CREATE (EMAIL BASED)
     // ✅ CREATE (USER ID BASED)
@@ -91,7 +102,7 @@ public class TaskService {
 
     // 🔥 FILTER
     public Page<TaskResponse> getTasksByEmployeeWithFilter(
-            Long employeeId,
+            String authHeader,
             Integer statusId,
             String priority,
             java.time.LocalDateTime startDate,
@@ -99,7 +110,35 @@ public class TaskService {
             Pageable pageable
     ) {
 
-        Page<Task> tasks = taskRepository.findTasksFullFilter(
+        CurrentUserResponse currentUser = authClient.getCurrentUser(authHeader);
+        Long employeeId = null;
+
+        if (currentUser != null) {
+            employeeId = currentUser.getEmployeeId();
+
+            boolean hasValidEmployeeId = employeeId != null
+                    && employeeId > 0
+                    && employeeClient.isEmployeeExists(authHeader, employeeId);
+
+            if (!hasValidEmployeeId && currentUser.getEmail() != null) {
+                EmployeeLookupResponse employee = employeeClient.getEmployeeByEmail(authHeader, currentUser.getEmail());
+                if (employee != null) {
+                    employeeId = employee.getId();
+                } else {
+                    employeeId = null;
+                }
+            }
+        }
+
+        if (currentUser == null) {
+            return new PageImpl<>(java.util.List.of(), pageable, 0);
+        }
+
+        if (employeeId == null) {
+            return new PageImpl<>(java.util.List.of(), pageable, 0);
+        }
+
+        Page<Task> tasks = taskRepository.findMyTasksFullFilter(
                 employeeId,
                 statusId,
                 priority,
@@ -108,11 +147,20 @@ public class TaskService {
                 pageable
         );
 
-        return tasks.map(this::mapToResponse);
+        return tasks.map(task -> mapToResponse(task, authHeader));
+    }
+
+    public Page<TaskResponse> getAllTasks(String authHeader, Pageable pageable) {
+        Page<Task> tasks = taskRepository.findAll(pageable);
+        return tasks.map(task -> mapToResponse(task, authHeader));
+    }
+
+    private TaskResponse mapToResponse(Task task) {
+        return mapToResponse(task, null);
     }
 
     // 🔥 MAPPER
-    private TaskResponse mapToResponse(Task task) {
+    private TaskResponse mapToResponse(Task task, String authHeader) {
 
         TaskResponse res = new TaskResponse();
 
@@ -125,21 +173,25 @@ public class TaskService {
         res.setDueDate(task.getDueDate());
         res.setCreatedAt(task.getCreatedAt());
         res.setUpdatedAt(task.getUpdatedAt());
-        res.setAssigneeEmployeeIds(
-                assignmentRepository.findByTaskId(task.getId()).stream()
-                        .map(TaskAssignment::getEmployeeId)
-                        .collect(Collectors.toList())
-        );
+
+        java.util.List<Long> assigneeEmployeeIds = assignmentRepository.findByTaskId(task.getId()).stream()
+            .map(TaskAssignment::getEmployeeId)
+            .collect(Collectors.toList());
+
+        res.setAssigneeEmployeeIds(assigneeEmployeeIds);
+        if (authHeader != null && !authHeader.isBlank()) {
+            res.setAssigneeEmails(
+                assigneeEmployeeIds.stream()
+                    .map(employeeId -> employeeClient.getEmployeeById(authHeader, employeeId))
+                    .filter(java.util.Objects::nonNull)
+                    .map(EmployeeLookupResponse::getEmail)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            res.setAssigneeEmails(java.util.List.of());
+        }
 
         return res;
-    }
-    private String mapStatus(Integer statusId) {
-        return switch (statusId) {
-            case 1 -> "TODO";
-            case 2 -> "IN_PROGRESS";
-            case 3 -> "DONE";
-            case 4 -> "CANCELLED";
-            default -> "TODO";
-        };
     }
 }

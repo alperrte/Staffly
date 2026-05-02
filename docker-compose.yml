@@ -150,6 +150,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
     ports:
       - "${SERVER_PORT_TASK}:${SERVER_PORT_TASK}"
     restart: unless-stopped
