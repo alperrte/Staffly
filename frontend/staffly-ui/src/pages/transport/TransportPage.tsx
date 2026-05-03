@@ -1,15 +1,18 @@
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
-import { BusFront, CheckCircle2, MapPin, Plus, Route, Search, X } from "lucide-react";
+import { BusFront, CheckCircle2, Map, MapPin, Plus, Route, Search, X } from "lucide-react";
 import { getCurrentUser } from "../../services/userService";
 import { getEmployeeById } from "../../services/employeeService";
 import {
     createTransportRequest,
     getActiveTransportRoutes,
+    getTransportRouteStops,
     getTransportRequestsByEmployee,
     type TransportRequest,
     type TransportRoute,
+    type TransportRouteStop,
 } from "../../services/transportService";
+import TransportRouteMapPanel from "./TransportRouteMapPanel";
 
 type EmployeeProfile = {
     id: number;
@@ -64,6 +67,11 @@ export default function TransportPage() {
     const [selectedRoute, setSelectedRoute] = useState<TransportRoute | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
+    const [mapOpen, setMapOpen] = useState(false);
+    const [mapLoading, setMapLoading] = useState(false);
+    const [mapError, setMapError] = useState("");
+    const [mapRoute, setMapRoute] = useState<TransportRoute | null>(null);
+    const [mapStops, setMapStops] = useState<TransportRouteStop[]>([]);
 
     const loadData = async () => {
         try {
@@ -143,6 +151,32 @@ export default function TransportPage() {
         setFormOpen(false);
         setSelectedRoute(null);
         setForm(emptyForm);
+    };
+
+    const closeMapPanel = () => {
+        setMapOpen(false);
+        setMapError("");
+        setMapLoading(false);
+        setMapRoute(null);
+        setMapStops([]);
+    };
+
+    const openMapPanel = async (route: TransportRoute) => {
+        try {
+            setMapRoute(route);
+            setMapOpen(true);
+            setMapLoading(true);
+            setMapError("");
+
+            const stops = await getTransportRouteStops(route.id);
+            setMapStops(stops);
+        } catch (err) {
+            console.error(err);
+            setMapStops([]);
+            setMapError("Rota durakları yüklenemedi.");
+        } finally {
+            setMapLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -343,6 +377,15 @@ export default function TransportPage() {
     return (
         <div className="w-full px-3 py-1 sm:px-6">
             {requestModal}
+            <TransportRouteMapPanel
+                open={mapOpen}
+                loading={mapLoading}
+                error={mapError}
+                routeCode={mapRoute?.routeCode}
+                routeName={mapRoute?.routeName}
+                stops={mapStops}
+                onClose={closeMapPanel}
+            />
 
             <div className="mb-5 rounded-2xl border border-slate-800/80 bg-slate-950/40 p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -431,11 +474,9 @@ export default function TransportPage() {
                                     </div>
                                 ) : (
                                     filteredRoutes.map((route) => (
-                                        <button
+                                        <div
                                             key={route.id}
-                                            type="button"
-                                            onClick={() => openRequestForm(route)}
-                                            className="group rounded-3xl border border-slate-800/90 bg-slate-950/70 p-5 text-left transition hover:border-sky-500/35 hover:shadow-[0_24px_60px_rgba(56,189,248,0.12)]"
+                                            className="group rounded-3xl border border-slate-800/90 bg-slate-950/70 p-5 transition hover:border-sky-500/35 hover:shadow-[0_24px_60px_rgba(56,189,248,0.12)]"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
@@ -469,13 +510,27 @@ export default function TransportPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                                            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-500">
                                                 <span>Kapasite: {route.capacity}</span>
-                                                <span className="text-sky-300 transition group-hover:text-sky-200">
-                                                    Talep oluşturmak için tıkla
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openMapPanel(route)}
+                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+                                                    >
+                                                        <Map className="h-3.5 w-3.5" />
+                                                        Gercek Rotayi Haritada Gor
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openRequestForm(route)}
+                                                        className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-500/20"
+                                                    >
+                                                        Talep oluştur
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </button>
+                                        </div>
                                     ))
                                 )}
                             </div>

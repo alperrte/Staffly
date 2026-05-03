@@ -12,6 +12,7 @@ import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
 import MyTasksPage from "./pages/task/MyTasksPage.tsx";
 import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
+import TransportPage from "./pages/transport/TransportPage";
 
 function App() {
     return (
@@ -40,6 +41,8 @@ function App() {
                     <Route path="tasks/mytasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
+
+                    <Route path="transport" element={<TransportPage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>
