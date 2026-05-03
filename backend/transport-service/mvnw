@@ -1,0 +1,3 @@
+#!/bin/sh
+# Apache Maven Wrapper
+$(sed -n '1,200p' "c:\Users\Umut\OneDrive\Desktop\Staffly\backend\task\mvnw")
