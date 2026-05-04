@@ -5,6 +5,19 @@ import { Bell, ChevronDown, Search } from "lucide-react";
 import { Power } from "lucide-react";
 import { useEffect, useState } from "react";
 
+const decodeJwtPayload = (token: string) => {
+    const payload = token.split(".")[1];
+
+    if (!payload) {
+        throw new Error("Invalid token payload");
+    }
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+
+    return JSON.parse(atob(padded));
+};
+
 const MainLayout = () => {
     const navigate = useNavigate();
 
@@ -19,13 +32,17 @@ const MainLayout = () => {
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (!token) return;
+
+        if (!token) {
+            navigate("/login");
+            return;
+        }
 
         try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
+            const payload = decodeJwtPayload(token);
             setEmail(payload.sub || payload.email);
         } catch (e) {
-            setEmail("");
+            navigate("/login"); // 🔥 token bozuksa da at
         }
     }, []);
 //Push
