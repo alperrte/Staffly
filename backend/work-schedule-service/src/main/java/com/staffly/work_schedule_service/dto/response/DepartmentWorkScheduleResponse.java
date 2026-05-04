@@ -9,16 +9,17 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ShiftResponse {
+public class DepartmentWorkScheduleResponse {
 
     private Long id;
 
-    private String name;
+    private Long departmentId;
 
     private LocalTime startTime;
     private LocalTime endTime;
 
-    private Integer breakMinutes;
+    private LocalTime breakStartTime;
+    private LocalTime breakEndTime;
 
     private Boolean active;
 }

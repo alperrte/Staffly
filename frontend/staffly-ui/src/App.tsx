@@ -10,6 +10,11 @@ import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
+import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
+
+import WorkScheduleManagementPage from "./pages/workSchedule/WorkScheduleManagementPage";
+import MeetingPlanningPage from "./pages/workSchedule/MeetingPlanningPage";
+import MySchedulePage from "./pages/workSchedule/MySchedulePage";
 import MyTasksPage from "./pages/task/MyTasksPage.tsx";
 import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
 
@@ -28,18 +33,19 @@ function App() {
                     <Route path="employees/create" element={<CreateEmployeePage />} />
 
                     <Route path="departments" element={<DepartmentsPage />} />
-
                     <Route path="users" element={<UserPage />} />
-
                     <Route path="applications" element={<CvServicePage />} />
                     <Route path="job-postings" element={<JobPostingsPage />} />
-
                     <Route path="tasks" element={<TaskPage />} />
                     <Route path="tasks/create" element={<CreateTaskPage />} />
 
                     <Route path="tasks/mytasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
+
+                    <Route path="work-schedules" element={<WorkScheduleManagementPage />} />
+                    <Route path="meetings" element={<MeetingPlanningPage />} />
+                    <Route path="my-schedule" element={<MySchedulePage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>

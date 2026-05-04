@@ -11,6 +11,11 @@ import {
     FaClipboardList,
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
+import { FaTasks } from "react-icons/fa";
+
+import { FaFileAlt } from "react-icons/fa";
+import { FaMoneyBillWave } from "react-icons/fa";
+import { FaCalendarAlt } from "react-icons/fa";
 
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
@@ -36,6 +41,138 @@ const Sidebar = () => {
                     <span className="text-[0.6rem] font-medium tracking-[0.25em] text-sky-400/80 uppercase">
             HR MANAGEMENT SYSTEM
           </span>
+          </div>
+        </div>
+
+        {/* MENÜ */}
+        <nav className="flex flex-col gap-1 text-sm">
+          <NavLink
+              to="/app"
+              end
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaHome /> Ana Sayfa
+          </NavLink>
+
+          <NavLink
+              to="/app/employees"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaUsers /> Çalışanlar
+          </NavLink>
+
+          <NavLink
+              to="/app/payroll"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaMoneyBillWave /> Maaş &amp; bordro
+          </NavLink>
+
+            <NavLink
+                to="/app/applications"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaFileAlt /> Başvurular
+            </NavLink>
+
+          <NavLink
+              to="/app/departments"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+
+
+
+
+            <FaBuilding /> Departmanlar
+          </NavLink>
+            <NavLink
+                to="/app/tasks"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaTasks /> Görevler
+            </NavLink>
+          <NavLink
+              to="/app/users"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaUsers /> Kullanıcılar
+          </NavLink>
+
+            <NavLink
+                to="/app/job-postings"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaFileAlt /> İş İlanları
+            </NavLink>
+
+
+            <NavLink
+                to="/app/work-schedules"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Çalışma Takvimi
+            </NavLink>
+
+            <NavLink
+                to="/app/meetings"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Toplantı Planlama
+            </NavLink>
+
+            <NavLink
+                to="/app/my-schedule"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Takvimim
+            </NavLink>
+
+          <NavLink
+              to="/app/support"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaHeadset /> Destek
+          </NavLink>
+
+        </nav>
+
+        {/* ALT SETTINGS */}
+        <div className="mt-auto pt-4 border-t border-slate-800/70">
+          <NavLink
+              to="/app/settings"
+              className={({ isActive }) =>
+                  `${linkBase} ${isActive ? linkActive : linkInactive}`
+              }
+          >
+            <FaCog /> Ayarlar
+          </NavLink>
+        </div>
+      </aside>
+  );
                 </div>
             </div>
 
