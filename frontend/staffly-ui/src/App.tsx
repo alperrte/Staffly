@@ -5,7 +5,6 @@ import CvServicePage from "./pages/cvService/CvServicePage";
 
 import EmployeeListPage from "./pages/employee/EmployeeListPage";
 import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
-import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
 import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";

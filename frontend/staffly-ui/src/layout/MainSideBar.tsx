@@ -9,17 +9,15 @@ import {
     FaFileAlt,
     FaMoneyBillWave,
     FaClipboardList,
+    FaCalendarAlt,
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
-import { FaTasks } from "react-icons/fa";
-
-import { FaFileAlt } from "react-icons/fa";
-import { FaMoneyBillWave } from "react-icons/fa";
-import { FaCalendarAlt } from "react-icons/fa";
 
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
+
 const linkInactive = "text-slate-300 hover:bg-[#1E293B]";
+
 const linkActive =
     "bg-[#1E293B] text-white shadow-[0_0_18px_rgba(15,23,42,0.8)]";
 
@@ -34,145 +32,14 @@ const Sidebar = () => {
                         className="h-full w-full object-cover"
                     />
                 </div>
+
                 <div className="flex flex-col">
-          <span className="text-[0.75rem] font-semibold tracking-[0.25em] text-white/95">
-            STAFFLY
-          </span>
+                    <span className="text-[0.75rem] font-semibold tracking-[0.25em] text-white/95">
+                        STAFFLY
+                    </span>
                     <span className="text-[0.6rem] font-medium tracking-[0.25em] text-sky-400/80 uppercase">
-            HR MANAGEMENT SYSTEM
-          </span>
-          </div>
-        </div>
-
-        {/* MENÜ */}
-        <nav className="flex flex-col gap-1 text-sm">
-          <NavLink
-              to="/app"
-              end
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaHome /> Ana Sayfa
-          </NavLink>
-
-          <NavLink
-              to="/app/employees"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaUsers /> Çalışanlar
-          </NavLink>
-
-          <NavLink
-              to="/app/payroll"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaMoneyBillWave /> Maaş &amp; bordro
-          </NavLink>
-
-            <NavLink
-                to="/app/applications"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaFileAlt /> Başvurular
-            </NavLink>
-
-          <NavLink
-              to="/app/departments"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-
-
-
-
-            <FaBuilding /> Departmanlar
-          </NavLink>
-            <NavLink
-                to="/app/tasks"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaTasks /> Görevler
-            </NavLink>
-          <NavLink
-              to="/app/users"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaUsers /> Kullanıcılar
-          </NavLink>
-
-            <NavLink
-                to="/app/job-postings"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaFileAlt /> İş İlanları
-            </NavLink>
-
-
-            <NavLink
-                to="/app/work-schedules"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaCalendarAlt /> Çalışma Takvimi
-            </NavLink>
-
-            <NavLink
-                to="/app/meetings"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaCalendarAlt /> Toplantı Planlama
-            </NavLink>
-
-            <NavLink
-                to="/app/my-schedule"
-                className={({ isActive }) =>
-                    `${linkBase} ${isActive ? linkActive : linkInactive}`
-                }
-            >
-                <FaCalendarAlt /> Takvimim
-            </NavLink>
-
-          <NavLink
-              to="/app/support"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaHeadset /> Destek
-          </NavLink>
-
-        </nav>
-
-        {/* ALT SETTINGS */}
-        <div className="mt-auto pt-4 border-t border-slate-800/70">
-          <NavLink
-              to="/app/settings"
-              className={({ isActive }) =>
-                  `${linkBase} ${isActive ? linkActive : linkInactive}`
-              }
-          >
-            <FaCog /> Ayarlar
-          </NavLink>
-        </div>
-      </aside>
-  );
+                        HR MANAGEMENT SYSTEM
+                    </span>
                 </div>
             </div>
 
@@ -202,7 +69,7 @@ const Sidebar = () => {
                         `${linkBase} ${isActive ? linkActive : linkInactive}`
                     }
                 >
-                    <FaMoneyBillWave /> Maaş &amp; bordro
+                    <FaMoneyBillWave /> Maaş &amp; Bordro
                 </NavLink>
 
                 <NavLink
@@ -258,6 +125,33 @@ const Sidebar = () => {
                     }
                 >
                     <FaFileAlt /> İş İlanları
+                </NavLink>
+
+                <NavLink
+                    to="/app/work-schedules"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaCalendarAlt /> Çalışma Takvimi
+                </NavLink>
+
+                <NavLink
+                    to="/app/meetings"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaCalendarAlt /> Toplantı Planlama
+                </NavLink>
+
+                <NavLink
+                    to="/app/my-schedule"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaCalendarAlt /> Takvimim
                 </NavLink>
 
                 <NavLink
