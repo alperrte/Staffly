@@ -1,17 +1,26 @@
 package com.auth_service.auth.controller;
 
-import com.auth_service.auth.entity.User;
-import com.auth_service.auth.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.auth_service.auth.entity.Role;
-import com.auth_service.auth.repository.RoleRepository;
-
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.auth_service.auth.entity.Role;
+import com.auth_service.auth.entity.User;
+import com.auth_service.auth.repository.RoleRepository;
+import com.auth_service.auth.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/users")
@@ -24,6 +33,18 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
+
+        @GetMapping("/me")
+        public ResponseEntity<User> getCurrentUser(Authentication authentication) {
+                if (authentication == null || authentication.getName() == null) {
+                        return ResponseEntity.status(401).build();
+                }
+
+                User user = userRepository.findByEmail(authentication.getName())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                return ResponseEntity.ok(user);
+        }
 
     @PatchMapping("/{email}/active")
     public ResponseEntity<User> setActive(

@@ -4,6 +4,10 @@ const cvApi = axios.create({
     baseURL: "http://localhost:8085",
 });
 
+const publicCvApi = axios.create({
+    baseURL: "http://localhost:8085",
+});
+
 const departmentApi = axios.create({
     baseURL: "http://localhost:8083",
 });
@@ -61,7 +65,7 @@ export const getAllPositions = async () => {
 };
 
 export const getActiveJobPostings = async () => {
-    const response = await cvApi.get("/job-postings/public/active");
+    const response = await publicCvApi.get("/job-postings/public/active");
     return response.data;
 };
 
