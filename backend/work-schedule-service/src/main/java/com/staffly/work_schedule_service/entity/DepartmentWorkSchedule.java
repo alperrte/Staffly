@@ -7,20 +7,20 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "shifts")
+@Table(name = "department_work_schedules")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Shift {
+public class DepartmentWorkSchedule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String name;
+    @Column(name = "department_id", nullable = false)
+    private Long departmentId;
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
@@ -28,8 +28,11 @@ public class Shift {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(name = "break_minutes", nullable = false)
-    private Integer breakMinutes;
+    @Column(name = "break_start_time")
+    private LocalTime breakStartTime;
+
+    @Column(name = "break_end_time")
+    private LocalTime breakEndTime;
 
     @Column(name = "is_active", nullable = false)
     private Boolean active;
@@ -46,10 +49,6 @@ public class Shift {
 
         if (this.active == null) {
             this.active = true;
-        }
-
-        if (this.breakMinutes == null) {
-            this.breakMinutes = 0;
         }
     }
 

@@ -9,12 +9,13 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateShiftRequest {
+public class UpdateDepartmentWorkScheduleRequest {
 
-    private String name;
+    private Long departmentId;
 
     private LocalTime startTime;
     private LocalTime endTime;
 
-    private Integer breakMinutes;
+    private LocalTime breakStartTime;
+    private LocalTime breakEndTime;
 }

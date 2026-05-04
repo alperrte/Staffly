@@ -1,23 +1,24 @@
 package com.staffly.work_schedule_service.dto.request;
 
-import com.staffly.work_schedule_service.entity.enums.WorkModel;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateWorkScheduleRequest {
+public class UpdateOvertimeRequest {
 
     private Long employeeId;
     private Long departmentId;
 
-    private LocalDate workDate;
+    private LocalDate overtimeDate;
 
-    private WorkModel workModel;
+    private LocalTime startTime;
+    private LocalTime endTime;
 
-    private String note;
+    private String reason;
 }

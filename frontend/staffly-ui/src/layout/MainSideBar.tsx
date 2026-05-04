@@ -11,6 +11,7 @@ import { FaTasks } from "react-icons/fa";
 
 import { FaFileAlt } from "react-icons/fa";
 import { FaMoneyBillWave } from "react-icons/fa";
+import { FaCalendarAlt } from "react-icons/fa";
 
 const linkBase =
     "flex items-center gap-3 p-2.5 rounded-lg text-sm transition-colors";
@@ -119,9 +120,32 @@ const Sidebar = () => {
             </NavLink>
 
 
+            <NavLink
+                to="/app/work-schedules"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Çalışma Takvimi
+            </NavLink>
 
+            <NavLink
+                to="/app/meetings"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Toplantı Planlama
+            </NavLink>
 
-
+            <NavLink
+                to="/app/my-schedule"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaCalendarAlt /> Takvimim
+            </NavLink>
 
           <NavLink
               to="/app/support"

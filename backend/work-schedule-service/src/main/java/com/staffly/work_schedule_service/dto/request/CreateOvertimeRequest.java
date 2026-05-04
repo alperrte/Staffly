@@ -2,6 +2,7 @@ package com.staffly.work_schedule_service.dto.request;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Getter
@@ -9,14 +10,15 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UpdateShiftRequest {
+public class CreateOvertimeRequest {
 
-    private String name;
+    private Long employeeId;
+    private Long departmentId;
+
+    private LocalDate overtimeDate;
 
     private LocalTime startTime;
     private LocalTime endTime;
 
-    private Integer breakMinutes;
-
-    private Boolean active;
+    private String reason;
 }
