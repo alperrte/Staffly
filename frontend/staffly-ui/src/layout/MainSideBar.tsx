@@ -71,6 +71,16 @@ const Sidebar = () => {
             <FaMoneyBillWave /> Maaş &amp; bordro
           </NavLink>
 
+
+            <NavLink
+                to="/app/leaveService"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaFileAlt /> İzin Talepleri
+            </NavLink>
+
             <NavLink
                 to="/app/applications"
                 className={({ isActive }) =>

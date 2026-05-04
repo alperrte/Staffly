@@ -11,7 +11,7 @@ import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
 import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
-
+import LeaveServicePage from "./pages/leaveService/LeaveServicePage";
 
 function App() {
     return (
@@ -38,6 +38,8 @@ function App() {
                     <Route path="tasks" element={<TaskPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
+
+                    <Route path="leaveService" element={<LeaveServicePage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>
