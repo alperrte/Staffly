@@ -48,3 +48,4 @@ export const approveLeave = async (data: any) => {
 export const rejectLeave = async (data: any) => {
     return await leaveApi.post("/leaves/approve", data);
 };
+
