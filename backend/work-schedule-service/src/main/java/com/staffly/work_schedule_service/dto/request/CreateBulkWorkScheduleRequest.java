@@ -14,8 +14,6 @@ public class CreateBulkWorkScheduleRequest {
 
     private Long departmentId;
 
-    private Long shiftId;
-
     private LocalDate startDate;
     private LocalDate endDate;
 

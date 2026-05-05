@@ -2,9 +2,10 @@ package com.auth_service.auth.controller;
 
 import com.auth_service.auth.dto.request.LoginRequest;
 import com.auth_service.auth.dto.request.RegisterRequest;
+import com.auth_service.auth.dto.request.SetPasswordRequest;
 import com.auth_service.auth.dto.response.AuthResponse;
 import com.auth_service.auth.service.AuthService;
-
+import com.auth_service.auth.dto.request.ForgotPasswordRequest;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -48,4 +49,27 @@ public class AuthController {
         return ResponseEntity.ok("Logged out successfully");
     }
 
+    @PostMapping("/set-password")
+    public ResponseEntity<?> setPassword(@RequestBody SetPasswordRequest request) {
+        try {
+            return ResponseEntity.ok(
+                    authService.setPassword(request.getToken(), request.getPassword())
+            );
+        } catch (IllegalArgumentException e) {
+            if ("SAME_PASSWORD".equals(e.getMessage())) {
+                return ResponseEntity.badRequest().body("SAME_PASSWORD");
+            }
+
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+
+        authService.forgotPassword(request.getEmail());
+
+        return ResponseEntity.ok("Password reset link sent successfully");
+    }
 }

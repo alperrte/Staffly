@@ -3,7 +3,6 @@ CREATE TABLE work_schedules (
 
                                 employee_id BIGINT NOT NULL,
                                 department_id BIGINT NULL,
-                                shift_id BIGINT NOT NULL,
 
                                 work_date DATE NOT NULL,
 
@@ -15,10 +14,6 @@ CREATE TABLE work_schedules (
 
                                 created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
                                 updated_at DATETIME2 NULL,
-
-                                CONSTRAINT FK_work_schedules_shift
-                                    FOREIGN KEY (shift_id)
-                                        REFERENCES shifts(id),
 
                                 CONSTRAINT CHK_work_model
                                     CHECK (work_model IN ('OFFICE', 'HOME_OFFICE', 'HYBRID', 'REMOTE', 'DAY_OFF')),

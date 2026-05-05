@@ -1,7 +1,6 @@
 package com.staffly.work_schedule_service.entity;
 
 import com.staffly.work_schedule_service.entity.enums.WorkModel;
-import com.staffly.work_schedule_service.entity.enums.WorkScheduleStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,20 +34,12 @@ public class WorkSchedule {
     @Column(name = "department_id")
     private Long departmentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shift_id", nullable = false)
-    private Shift shift;
-
     @Column(name = "work_date", nullable = false)
     private LocalDate workDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "work_model", nullable = false, length = 30)
     private WorkModel workModel;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private WorkScheduleStatus status;
 
     @Column(length = 500)
     private String note;
@@ -65,10 +56,6 @@ public class WorkSchedule {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-
-        if (this.status == null) {
-            this.status = WorkScheduleStatus.PLANNED;
-        }
     }
 
     @PreUpdate

@@ -50,8 +50,8 @@ export const getCurrentUser = async (): Promise<User> => {
 
 export const createUser = async (data: {
     email: string;
-    password: string;
     employeeId?: number;
+    roleNames: string[];
 }) => {
     const response = await api.post("/auth/register", data);
     return response.data;

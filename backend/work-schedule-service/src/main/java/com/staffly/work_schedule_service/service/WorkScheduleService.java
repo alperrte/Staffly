@@ -5,13 +5,10 @@ import com.staffly.work_schedule_service.client.WorkEmployeeClient;
 import com.staffly.work_schedule_service.client.response.EmployeeResponse;
 import com.staffly.work_schedule_service.dto.request.CreateBulkWorkScheduleRequest;
 import com.staffly.work_schedule_service.dto.request.CreateWorkScheduleRequest;
-import com.staffly.work_schedule_service.dto.response.ShiftResponse;
+import com.staffly.work_schedule_service.dto.request.UpdateWorkScheduleRequest;
 import com.staffly.work_schedule_service.dto.response.WorkScheduleResponse;
-import com.staffly.work_schedule_service.entity.Shift;
 import com.staffly.work_schedule_service.entity.WorkSchedule;
-import com.staffly.work_schedule_service.entity.enums.WorkScheduleStatus;
 import com.staffly.work_schedule_service.repository.CompanyHolidayRepository;
-import com.staffly.work_schedule_service.repository.ShiftRepository;
 import com.staffly.work_schedule_service.repository.WorkScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,14 +22,12 @@ import java.util.List;
 public class WorkScheduleService {
 
     private final WorkScheduleRepository workScheduleRepository;
-    private final ShiftRepository shiftRepository;
     private final CompanyHolidayRepository companyHolidayRepository;
 
     private final WorkEmployeeClient workEmployeeClient;
     private final WorkDepartmentClient workDepartmentClient;
 
     public WorkScheduleResponse createWorkSchedule(CreateWorkScheduleRequest request) {
-
         workEmployeeClient.getEmployeeById(request.getEmployeeId());
 
         if (request.getDepartmentId() != null) {
@@ -40,63 +35,41 @@ public class WorkScheduleService {
         }
 
         if (companyHolidayRepository.existsByHolidayDate(request.getWorkDate())) {
-            throw new RuntimeException("Bu tarih şirket tatili olduğu için mesai atanamaz.");
+            throw new RuntimeException("Bu tarih şirket tatili olduğu için çalışma planı atanamaz.");
         }
 
         if (workScheduleRepository.existsByEmployeeIdAndWorkDate(
                 request.getEmployeeId(),
                 request.getWorkDate()
         )) {
-            throw new RuntimeException("Bu çalışana bu tarih için zaten mesai atanmış.");
-        }
-
-        Shift shift = shiftRepository.findById(request.getShiftId())
-                .orElseThrow(() -> new RuntimeException("Mesai şablonu bulunamadı."));
-
-        if (!shift.getActive()) {
-            throw new RuntimeException("Pasif mesai şablonu atanamaz.");
+            throw new RuntimeException("Bu çalışana bu tarih için zaten çalışma planı atanmış.");
         }
 
         WorkSchedule workSchedule = WorkSchedule.builder()
                 .employeeId(request.getEmployeeId())
                 .departmentId(request.getDepartmentId())
-                .shift(shift)
                 .workDate(request.getWorkDate())
                 .workModel(request.getWorkModel())
-                .status(WorkScheduleStatus.PLANNED)
                 .note(request.getNote())
                 .build();
 
-        WorkSchedule savedSchedule = workScheduleRepository.save(workSchedule);
-
-        return toResponse(savedSchedule);
+        return toResponse(workScheduleRepository.save(workSchedule));
     }
 
     public List<WorkScheduleResponse> createBulkWorkSchedule(CreateBulkWorkScheduleRequest request) {
-
         workDepartmentClient.getDepartmentById(request.getDepartmentId());
-
-        Shift shift = shiftRepository.findById(request.getShiftId())
-                .orElseThrow(() -> new RuntimeException("Mesai şablonu bulunamadı."));
-
-        if (!shift.getActive()) {
-            throw new RuntimeException("Pasif mesai şablonu atanamaz.");
-        }
 
         List<EmployeeResponse> employees =
                 workEmployeeClient.getEmployeesByDepartmentId(request.getDepartmentId());
 
         List<WorkScheduleResponse> responses = new ArrayList<>();
-
         LocalDate currentDate = request.getStartDate();
 
         while (!currentDate.isAfter(request.getEndDate())) {
-
             boolean holiday = companyHolidayRepository.existsByHolidayDate(currentDate);
 
             if (!holiday) {
                 for (EmployeeResponse employee : employees) {
-
                     boolean exists = workScheduleRepository.existsByEmployeeIdAndWorkDate(
                             employee.getId(),
                             currentDate
@@ -106,14 +79,11 @@ public class WorkScheduleService {
                         WorkSchedule workSchedule = WorkSchedule.builder()
                                 .employeeId(employee.getId())
                                 .departmentId(request.getDepartmentId())
-                                .shift(shift)
                                 .workDate(currentDate)
                                 .workModel(request.getWorkModel())
-                                .status(WorkScheduleStatus.PLANNED)
                                 .build();
 
-                        WorkSchedule saved = workScheduleRepository.save(workSchedule);
-                        responses.add(toResponse(saved));
+                        responses.add(toResponse(workScheduleRepository.save(workSchedule)));
                     }
                 }
             }
@@ -171,20 +141,41 @@ public class WorkScheduleService {
 
         WorkSchedule workSchedule = workScheduleRepository
                 .findByEmployeeIdAndWorkDate(employeeId, workDate)
-                .orElseThrow(() -> new RuntimeException("Bu tarihe ait mesai planı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("Bu tarihe ait çalışma planı bulunamadı."));
 
         return toResponse(workSchedule);
     }
 
     public WorkScheduleResponse cancelWorkSchedule(Long id) {
         WorkSchedule workSchedule = workScheduleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Mesai planı bulunamadı."));
+                .orElseThrow(() -> new RuntimeException("Çalışma planı bulunamadı."));
 
-        workSchedule.setStatus(WorkScheduleStatus.CANCELLED);
+        workScheduleRepository.delete(workSchedule);
 
-        WorkSchedule updated = workScheduleRepository.save(workSchedule);
+        return toResponse(workSchedule);
+    }
 
-        return toResponse(updated);
+    public WorkScheduleResponse updateWorkSchedule(Long id, UpdateWorkScheduleRequest request) {
+        WorkSchedule workSchedule = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Çalışma planı bulunamadı."));
+
+        workEmployeeClient.getEmployeeById(request.getEmployeeId());
+
+        if (request.getDepartmentId() != null) {
+            workDepartmentClient.getDepartmentById(request.getDepartmentId());
+        }
+
+        if (companyHolidayRepository.existsByHolidayDate(request.getWorkDate())) {
+            throw new RuntimeException("Bu tarih şirket tatili olduğu için çalışma planı atanamaz.");
+        }
+
+        workSchedule.setEmployeeId(request.getEmployeeId());
+        workSchedule.setDepartmentId(request.getDepartmentId());
+        workSchedule.setWorkDate(request.getWorkDate());
+        workSchedule.setWorkModel(request.getWorkModel());
+        workSchedule.setNote(request.getNote());
+
+        return toResponse(workScheduleRepository.save(workSchedule));
     }
 
     private WorkScheduleResponse toResponse(WorkSchedule workSchedule) {
@@ -192,22 +183,9 @@ public class WorkScheduleService {
                 .id(workSchedule.getId())
                 .employeeId(workSchedule.getEmployeeId())
                 .departmentId(workSchedule.getDepartmentId())
-                .shift(toShiftResponse(workSchedule.getShift()))
                 .workDate(workSchedule.getWorkDate())
                 .workModel(workSchedule.getWorkModel())
-                .status(workSchedule.getStatus())
                 .note(workSchedule.getNote())
-                .build();
-    }
-
-    private ShiftResponse toShiftResponse(Shift shift) {
-        return ShiftResponse.builder()
-                .id(shift.getId())
-                .name(shift.getName())
-                .startTime(shift.getStartTime())
-                .endTime(shift.getEndTime())
-                .breakMinutes(shift.getBreakMinutes())
-                .active(shift.getActive())
                 .build();
     }
 }

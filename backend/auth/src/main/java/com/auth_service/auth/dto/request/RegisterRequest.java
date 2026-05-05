@@ -2,6 +2,8 @@ package com.auth_service.auth.dto.request;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -11,8 +13,7 @@ public class RegisterRequest {
 
     private String email;
 
-    private String password;
-
     private Long employeeId;
 
+    private List<String> roleNames;
 }

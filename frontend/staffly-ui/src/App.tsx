@@ -5,14 +5,23 @@ import CvServicePage from "./pages/cvService/CvServicePage";
 
 import EmployeeListPage from "./pages/employee/EmployeeListPage";
 import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
-import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
 import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
-import MyTasksPage from "./pages/task/MyTasksPage.tsx";
-import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
+import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
+import LeaveServicePage from "./pages/leaveService/LeaveServicePage";
+
+import WorkScheduleManagementPage from "./pages/workSchedule/WorkScheduleManagementPage";
+import MeetingPlanningPage from "./pages/workSchedule/MeetingPlanningPage";
+import MySchedulePage from "./pages/workSchedule/MySchedulePage";
+import MyTasksPage from "./pages/task/MyTasksPage";
+import CreateTaskPage from "./pages/task/CreateTaskPage";
 import TransportPage from "./pages/transport/TransportPage";
+
+import SetPasswordPage from "./pages/auth/SetPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+
 
 function App() {
     return (
@@ -22,6 +31,9 @@ function App() {
 
                 <Route path="/login" element={<LoginPage />} />
 
+                <Route path="/set-password" element={<SetPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+
                 <Route path="/app" element={<MainLayout />}>
                     <Route index element={<div>Dashboard</div>} />
 
@@ -29,18 +41,20 @@ function App() {
                     <Route path="employees/create" element={<CreateEmployeePage />} />
 
                     <Route path="departments" element={<DepartmentsPage />} />
-
                     <Route path="users" element={<UserPage />} />
-
                     <Route path="applications" element={<CvServicePage />} />
                     <Route path="job-postings" element={<JobPostingsPage />} />
 
                     <Route path="tasks" element={<TaskPage />} />
                     <Route path="tasks/create" element={<CreateTaskPage />} />
-
                     <Route path="tasks/mytasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
+                    <Route path="leaveService" element={<LeaveServicePage />} />
+
+                    <Route path="work-schedules" element={<WorkScheduleManagementPage />} />
+                    <Route path="meetings" element={<MeetingPlanningPage />} />
+                    <Route path="my-schedule" element={<MySchedulePage />} />
 
                     <Route path="transport" element={<TransportPage />} />
 

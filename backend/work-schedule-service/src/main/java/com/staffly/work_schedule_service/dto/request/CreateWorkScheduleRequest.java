@@ -15,8 +15,6 @@ public class CreateWorkScheduleRequest {
     private Long employeeId;
     private Long departmentId;
 
-    private Long shiftId;
-
     private LocalDate workDate;
 
     private WorkModel workModel;

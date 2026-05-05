@@ -2,6 +2,7 @@ package com.staffly.work_schedule_service.controller;
 
 import com.staffly.work_schedule_service.dto.request.CreateBulkWorkScheduleRequest;
 import com.staffly.work_schedule_service.dto.request.CreateWorkScheduleRequest;
+import com.staffly.work_schedule_service.dto.request.UpdateWorkScheduleRequest;
 import com.staffly.work_schedule_service.dto.response.WorkScheduleResponse;
 import com.staffly.work_schedule_service.service.WorkScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -81,5 +82,13 @@ public class WorkScheduleController {
     @PatchMapping("/{id}/cancel")
     public WorkScheduleResponse cancelWorkSchedule(@PathVariable Long id) {
         return workScheduleService.cancelWorkSchedule(id);
+    }
+
+    @PutMapping("/{id}")
+    public WorkScheduleResponse updateWorkSchedule(
+            @PathVariable Long id,
+            @RequestBody UpdateWorkScheduleRequest request
+    ) {
+        return workScheduleService.updateWorkSchedule(id, request);
     }
 }
