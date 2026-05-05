@@ -15,8 +15,8 @@ import LeaveServicePage from "./pages/leaveService/LeaveServicePage";
 import WorkScheduleManagementPage from "./pages/workSchedule/WorkScheduleManagementPage";
 import MeetingPlanningPage from "./pages/workSchedule/MeetingPlanningPage";
 import MySchedulePage from "./pages/workSchedule/MySchedulePage";
-import MyTasksPage from "./pages/task/MyTasksPage.tsx";
-import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
+import MyTasksPage from "./pages/task/MyTasksPage";
+import CreateTaskPage from "./pages/task/CreateTaskPage";
 
 function App() {
     return (
@@ -36,14 +36,14 @@ function App() {
                     <Route path="users" element={<UserPage />} />
                     <Route path="applications" element={<CvServicePage />} />
                     <Route path="job-postings" element={<JobPostingsPage />} />
+
                     <Route path="tasks" element={<TaskPage />} />
                     <Route path="tasks/create" element={<CreateTaskPage />} />
-
                     <Route path="tasks/mytasks" element={<MyTasksPage />} />
 
                     <Route path="payroll" element={<PayrollPage />} />
-
                     <Route path="leaveService" element={<LeaveServicePage />} />
+
                     <Route path="work-schedules" element={<WorkScheduleManagementPage />} />
                     <Route path="meetings" element={<MeetingPlanningPage />} />
                     <Route path="my-schedule" element={<MySchedulePage />} />
