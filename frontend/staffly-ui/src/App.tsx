@@ -17,6 +17,10 @@ import MySchedulePage from "./pages/workSchedule/MySchedulePage";
 import MyTasksPage from "./pages/task/MyTasksPage.tsx";
 import CreateTaskPage from "./pages/task/CreateTaskPage.tsx";
 
+import SetPasswordPage from "./pages/auth/SetPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+
+
 function App() {
     return (
         <BrowserRouter>
@@ -24,6 +28,9 @@ function App() {
                 <Route path="/" element={<Navigate to="/login" />} />
 
                 <Route path="/login" element={<LoginPage />} />
+
+                <Route path="/set-password" element={<SetPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 <Route path="/app" element={<MainLayout />}>
                     <Route index element={<div>Dashboard</div>} />

@@ -56,18 +56,17 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // Auth public
                         .requestMatchers(
                                 "/auth/register",
                                 "/auth/login",
-                                "/auth/refresh"
+                                "/auth/refresh",
+                                "/auth/set-password",
+                                "/auth/forgot-password"
                         ).permitAll()
 
-                        // logout artık korumalı
-                        .requestMatchers("/auth/logout").authenticated()
-
-                        // preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers("/auth/logout").authenticated()
 
                         // diğerleri
                         .anyRequest().authenticated()

@@ -5,7 +5,7 @@ CREATE TABLE roles (
 );
 
 INSERT INTO roles (name, description) VALUES
-                                          ('ADMIN', 'System administrator with full access'),
-                                          ('HR', 'Human resources management role'),
-                                          ('MANAGER', 'Department manager role'),
-                                          ('USER', 'Default employee role');
+                                          ('SYSTEM_ADMIN', 'Sistem yöneticisi - tüm sisteme erişebilir'),
+                                          ('HR_MANAGER', 'İnsan kaynakları yöneticisi'),
+                                          ('DEPARTMENT_MANAGER', 'Departman yöneticisi'),
+                                          ('EMPLOYEE', 'Standart çalışan');
