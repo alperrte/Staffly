@@ -190,7 +190,9 @@ public class CalendarEventService {
                 .departmentId(event.getDepartmentId())
                 .status(event.getStatus())
                 .participants(
-                        event.getParticipants()
+                        event.getParticipants() == null
+                                ? List.of()
+                                : event.getParticipants()
                                 .stream()
                                 .map(this::toParticipantResponse)
                                 .toList()
