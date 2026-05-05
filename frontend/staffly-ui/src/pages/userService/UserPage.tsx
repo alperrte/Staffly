@@ -26,7 +26,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "PASSIVE";
 type SettingsTab = "MEMBERSHIP" | "PERMISSIONS";
 
 type ConfirmKind =
-    | { type: "CREATE_USER"; email: string; password: string; employeeId?: number }
+    | { type: "CREATE_USER"; email: string; employeeId?: number; roleNames: string[] }
     | { type: "UPDATE_ACTIVE"; email: string; active: boolean }
     | { type: "UPDATE_ROLES"; email: string; roles: string[] }
     | null;
@@ -51,14 +51,14 @@ type Employee = {
 const UserPage = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
-
+    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [roleFilter, setRoleFilter] = useState<string>("ALL");
-
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [createEmail, setCreateEmail] = useState("");
-    const [createPassword, setCreatePassword] = useState("");
+    const [createRoleNames, setCreateRoleNames] = useState<string[]>(["EMPLOYEE"]);
     const [isCreating, setIsCreating] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | "">("");
@@ -195,7 +195,7 @@ const UserPage = () => {
 
     const openCreateModal = () => {
         setCreateEmail("");
-        setCreatePassword("");
+        setCreateRoleNames(["EMPLOYEE"]);
         setSelectedEmployeeId("");
         setUseEmployeeLink(false);
         setIsCreating(false);
@@ -240,7 +240,7 @@ const UserPage = () => {
                 await createUser({
                     employeeId: confirmKind.employeeId,
                     email: confirmKind.email,
-                    password: confirmKind.password,
+                    roleNames: confirmKind.roleNames,
                 });
                 await fetchUsers();
                 setIsCreateOpen(false);
@@ -266,14 +266,12 @@ const UserPage = () => {
         e.preventDefault();
 
         const email = createEmail.trim();
-        const password = createPassword;
-
-        if (!email || !password) return;
+        if (!email || createRoleNames.length === 0) return;
 
         startConfirm({
             type: "CREATE_USER",
             email,
-            password,
+            roleNames: createRoleNames,
             employeeId: useEmployeeLink && selectedEmployeeId !== "" ? Number(selectedEmployeeId) : undefined,
         });
     };
@@ -833,18 +831,51 @@ const UserPage = () => {
                                 </label>
 
                                 {useEmployeeLink && (
-                                    <select
-                                        value={selectedEmployeeId}
-                                        onChange={(e) => onSelectEmployee(e.target.value)}
-                                        className="mt-3 bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition"
-                                    >
-                                        <option value="">Çalışan seç</option>
-                                        {employees.map((employee) => (
-                                            <option key={employee.id} value={employee.id}>
-                                                {employee.firstName} {employee.lastName} - {employee.email}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="relative mt-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEmployeeDropdownOpen(!employeeDropdownOpen)}
+                                            className="w-full rounded bg-slate-800 px-3 py-2 text-left text-sm text-white border border-white/5 hover:border-sky-400/30"
+                                        >
+                                            {selectedEmployeeId
+                                                ? (() => {
+                                                    const employee = employees.find((e) => e.id === selectedEmployeeId);
+                                                    return employee
+                                                        ? `${employee.firstName} ${employee.lastName} - ${employee.email}`
+                                                        : "Çalışan seç";
+                                                })()
+                                                : "Çalışan seç"}
+                                        </button>
+
+                                        {employeeDropdownOpen && (
+                                            <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded border border-white/10 bg-slate-900 shadow-lg staffly-scroll">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onSelectEmployee("");
+                                                        setEmployeeDropdownOpen(false);
+                                                    }}
+                                                    className="block w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-sky-500/20 hover:text-white"
+                                                >
+                                                    Çalışan seç
+                                                </button>
+
+                                                {employees.map((employee) => (
+                                                    <button
+                                                        key={employee.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            onSelectEmployee(String(employee.id));
+                                                            setEmployeeDropdownOpen(false);
+                                                        }}
+                                                        className="block w-full px-3 py-2 text-left text-sm text-white hover:bg-sky-500/20"
+                                                    >
+                                                        {employee.firstName} {employee.lastName} - {employee.email}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -859,22 +890,47 @@ const UserPage = () => {
                                     className="pl-8 bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition disabled:opacity-70 disabled:cursor-not-allowed"
                                 />
                             </div>
+                            <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
+                                <div className="text-sm text-slate-200 mb-2">Kullanıcı Rolü</div>
 
-                            <input
-                                type="password"
-                                placeholder="Şifre"
-                                value={createPassword}
-                                onChange={(e) => setCreatePassword(e.target.value)}
-                                className="bg-slate-800 px-3 py-2 rounded text-sm outline-none w-full border border-white/5 focus:border-sky-500/60 hover:border-sky-400/30 hover:bg-slate-800 transition"
-                            />
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                                        className="w-full bg-slate-800 text-white px-3 py-2 rounded text-sm border border-white/5 text-left"
+                                    >
+                                        {createRoleNames[0]}
+                                    </button>
 
+                                    {dropdownOpen && (
+                                        <div className="absolute mt-1 w-full bg-slate-900 border border-white/10 rounded shadow-lg z-50">
+                                            {["EMPLOYEE", "HR_MANAGER", "DEPARTMENT_MANAGER", "SYSTEM_ADMIN"].map((role) => (
+                                                <div
+                                                    key={role}
+                                                    onClick={() => {
+                                                        setCreateRoleNames([role]);
+                                                        setDropdownOpen(false);
+                                                    }}
+                                                    className="px-3 py-2 text-sm text-white hover:bg-sky-500/20 cursor-pointer"
+                                                >
+                                                    {role}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="mt-2 text-xs text-slate-400">
+                                    Kullanıcı oluşturulduktan sonra şifre belirleme linki e-posta adresine gönderilecektir.
+                                </p>
+                            </div>
                             <button
                                 type="submit"
                                 disabled={isCreating || isConfirmOpen}
                                 className="inline-flex items-center justify-center gap-2 bg-blue-600 px-4 py-2 rounded text-sm hover:bg-blue-500 transition w-full disabled:opacity-60 shadow-[0_10px_24px_rgba(37,99,235,0.25)]"
                             >
                                 <FaUserPlus className="text-xs" />
-                                {isCreating ? "Oluşturuluyor..." : "Kullanıcıyı Oluştur"}
+                                {isCreating ? "Oluşturuluyor..." : "Kullanıcı Oluştur ve Mail Gönder"}
                             </button>
                         </form>
                     </div>

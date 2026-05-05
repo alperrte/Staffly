@@ -4,13 +4,14 @@ import com.auth_service.auth.dto.request.LoginRequest;
 import com.auth_service.auth.dto.request.RegisterRequest;
 import com.auth_service.auth.dto.response.AuthResponse;
 import com.auth_service.auth.entity.RefreshToken;
+import com.auth_service.auth.entity.ResetToken;
 import com.auth_service.auth.entity.Role;
 import com.auth_service.auth.entity.User;
 import com.auth_service.auth.repository.RoleRepository;
 import com.auth_service.auth.repository.UserRepository;
 import com.auth_service.auth.security.JwtService;
 import com.auth_service.auth.security.RefreshTokenService;
-
+import org.springframework.beans.factory.annotation.Value;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,12 +26,16 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AuthService {
 
+    @Value("${frontend.base-url}")
+    private String frontendBaseUrl;
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
-
+    private final ResetTokenService resetTokenService;
+    private final MailService mailService;
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -42,18 +47,38 @@ public class AuthService {
             throw new RuntimeException("This employee already has a user account");
         }
 
-        Role role = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+        Set<Role> roles;
+
+        if (request.getRoleNames() == null || request.getRoleNames().isEmpty()) {
+            Role employeeRole = roleRepository.findByName("EMPLOYEE")
+                    .orElseThrow(() -> new RuntimeException("Default role EMPLOYEE not found"));
+
+            roles = Set.of(employeeRole);
+        } else {
+            roles = request.getRoleNames()
+                    .stream()
+                    .map(roleName -> roleRepository.findByName(roleName)
+                            .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                    .collect(java.util.stream.Collectors.toSet());
+        }
 
         User user = User.builder()
-                .employeeId(request.getEmployeeId()) // null olabilir
+                .employeeId(request.getEmployeeId())
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .active(true)
-                .roles(Set.of(role))
+                .password(null)
+                .active(false)
+                .roles(roles)
                 .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        ResetToken resetToken = resetTokenService.createToken(savedUser);
+
+        String setupPasswordLink =
+                frontendBaseUrl + "/set-password?token=" + resetToken.getToken();
+
+        System.out.println("PASSWORD SETUP LINK: " + setupPasswordLink);
+        mailService.sendPasswordSetupMail(user.getEmail(), setupPasswordLink);
 
         return AuthResponse.builder()
                 .accessToken("REGISTER_SUCCESS")
@@ -122,5 +147,56 @@ public class AuthService {
         User user = token.getUser();
 
         refreshTokenService.deleteByUser(user);
+    }
+
+    public AuthResponse setPassword(String token, String newPassword) {
+
+        ResetToken resetToken = resetTokenService.verifyToken(token);
+
+        User user = resetToken.getUser();
+
+        if (user.getPassword() != null &&
+                passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("SAME_PASSWORD");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setActive(true);
+
+        userRepository.save(user);
+
+        resetTokenService.markAsUsed(resetToken);
+
+        UserDetails userDetails =
+                new org.springframework.security.core.userdetails.User(
+                        user.getEmail(),
+                        user.getPassword(),
+                        user.getRoles().stream()
+                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                                .toList()
+                );
+
+        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
+                .build();
+    }
+
+    public void forgotPassword(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        ResetToken resetToken = resetTokenService.createToken(user);
+
+        String resetPasswordLink =
+                frontendBaseUrl + "/reset-password?token=" + resetToken.getToken();
+
+        System.out.println("PASSWORD RESET LINK: " + resetPasswordLink);
+
+        mailService.sendPasswordResetMail(user.getEmail(), resetPasswordLink);
     }
 }

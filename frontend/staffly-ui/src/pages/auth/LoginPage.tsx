@@ -64,7 +64,7 @@ const COUNTRY_CODES = [
 ];
 
 const emailRegex =
-    /^[^\s@]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|icloud\.com)$/i;
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 const nameRegex = /^[A-Za-zÀ-ž\s]+$/;
 const phoneRegex = /^[0-9]{7,14}$/;
@@ -899,6 +899,7 @@ export default function LoginPage() {
                                 </label>
                                 <button
                                     type="button"
+                                    onClick={() => navigate("/reset-password")}
                                     className="text-sm font-medium text-sky-300 hover:text-sky-200"
                                 >
                                     Şifremi Unuttum?
