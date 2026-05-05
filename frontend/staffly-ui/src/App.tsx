@@ -17,6 +17,7 @@ import MeetingPlanningPage from "./pages/workSchedule/MeetingPlanningPage";
 import MySchedulePage from "./pages/workSchedule/MySchedulePage";
 import MyTasksPage from "./pages/task/MyTasksPage";
 import CreateTaskPage from "./pages/task/CreateTaskPage";
+import TransportPage from "./pages/transport/TransportPage";
 
 import SetPasswordPage from "./pages/auth/SetPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
@@ -54,6 +55,8 @@ function App() {
                     <Route path="work-schedules" element={<WorkScheduleManagementPage />} />
                     <Route path="meetings" element={<MeetingPlanningPage />} />
                     <Route path="my-schedule" element={<MySchedulePage />} />
+
+                    <Route path="transport" element={<TransportPage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>

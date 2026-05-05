@@ -9,6 +9,7 @@ import {
     FaFileAlt,
     FaMoneyBillWave,
     FaClipboardList,
+    FaBus,
     FaCalendarAlt,
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
@@ -79,6 +80,15 @@ const Sidebar = () => {
                     }
                 >
                     <FaFileAlt /> İzin Talepleri
+                </NavLink>
+
+                <NavLink
+                    to="/app/transport"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaBus /> Ulaşım
                 </NavLink>
 
                 <NavLink

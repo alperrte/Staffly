@@ -7,17 +7,25 @@ html {
     scroll-behavior: smooth;
 }
 
-/* 🔥 INPUT FIX (BEYAZ PROBLEMİ BİTSİN) */
-input,
-textarea,
-select {
-    background-color: transparent !important;
-    color: white;
+/* Form controls inherit the dark theme by default, but still allow local utility classes to win. */
+:where(input, textarea, select) {
+    color: #e2e8f0;
+    background-color: rgba(15, 23, 42, 0.6);
+    color-scheme: dark;
 }
 
-input::placeholder,
-textarea::placeholder {
-    color: #64748b; /* slate-500 */
+:where(input, textarea)::placeholder {
+    color: #64748b;
+}
+
+:where(select option, select optgroup) {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+:where(input[type="date"], input[type="datetime-local"])::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.9);
+    opacity: 0.75;
 }
 
 /* Autofill fix (Chrome saçmalığını kapatır) */
