@@ -6,6 +6,7 @@ import com.staffly.work_schedule_service.dto.request.UpdateCalendarEventRequest;
 import com.staffly.work_schedule_service.dto.response.CalendarEventResponse;
 import com.staffly.work_schedule_service.service.CalendarEventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -57,8 +58,8 @@ public class CalendarEventController {
     @GetMapping("/department/{departmentId}")
     public List<CalendarEventResponse> getDepartmentEvents(
             @PathVariable Long departmentId,
-            @RequestParam LocalDateTime startDateTime,
-            @RequestParam LocalDateTime endDateTime
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDateTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDateTime
     ) {
         return calendarEventService.getDepartmentEvents(
                 departmentId,
@@ -69,8 +70,8 @@ public class CalendarEventController {
 
     @GetMapping
     public List<CalendarEventResponse> getAllEvents(
-            @RequestParam LocalDateTime startDateTime,
-            @RequestParam LocalDateTime endDateTime
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDateTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDateTime
     ) {
         return calendarEventService.getAllEventsBetween(
                 startDateTime,
