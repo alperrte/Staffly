@@ -131,3 +131,43 @@ export const getPositionsBySubDepartmentId = async (
     const payload = response.data;
     return Array.isArray(payload) ? payload : payload?.content ?? [];
 };
+
+export const getMyProfile = async () => {
+    const response = await employeeApi.get("/employees/me");
+
+    return response.data;
+};
+
+export const updateMyProfile = async (data: {
+    phone?: string;
+    email?: string;
+}) => {
+
+    const response = await employeeApi.patch(
+        "/employees/me",
+        data
+    );
+
+    return response.data;
+};
+
+export const uploadProfileImage = async (
+    file: File
+) => {
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await employeeApi.post(
+        "/employees/me/profile-image",
+        formData,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        }
+    );
+
+    return response.data;
+};

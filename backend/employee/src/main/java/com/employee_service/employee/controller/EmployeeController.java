@@ -6,17 +6,22 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.employee_service.employee.dto.request.CreateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateEmployeeRequest;
+import com.employee_service.employee.dto.request.UpdateMyProfileRequest;
 import com.employee_service.employee.dto.response.EmployeeResponse;
 import com.employee_service.employee.service.EmployeeService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/v1/employees")
@@ -28,6 +33,36 @@ public class EmployeeController {
     @PostMapping
     public EmployeeResponse createEmployee(@Valid @RequestBody CreateEmployeeRequest request) {
         return employeeService.createEmployee(request);
+    }
+
+    @GetMapping("/me")
+    public EmployeeResponse getMyProfile(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        return employeeService.getEmployeeByEmail(email);
+    }
+
+    @PatchMapping("/me")
+    public EmployeeResponse updateMyProfile(
+            Authentication authentication,
+            @RequestBody UpdateMyProfileRequest request
+    ) {
+
+        String email = authentication.getName();
+
+        return employeeService.updateMyProfile(email, request);
+    }
+
+    @PostMapping("/me/profile-image")
+    public EmployeeResponse uploadProfileImage(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) {
+
+        String email = authentication.getName();
+
+        return employeeService.uploadProfileImage(email, file);
     }
 
     @GetMapping("/{id}")
@@ -55,4 +90,5 @@ public class EmployeeController {
     public void deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
     }
+
 }

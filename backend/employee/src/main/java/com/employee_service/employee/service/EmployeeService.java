@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.employee_service.employee.client.EmployeeDepartmentClient;
 import com.employee_service.employee.dto.request.CreateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateEmployeeRequest;
+import com.employee_service.employee.dto.request.UpdateMyProfileRequest;
 import com.employee_service.employee.dto.response.EmployeeResponse;
 import com.employee_service.employee.entity.Employee;
 import com.employee_service.employee.entity.EmployeeJobInfo;
@@ -16,7 +17,9 @@ import com.employee_service.employee.repository.EmployeeJobInfoRepository;
 import com.employee_service.employee.repository.EmployeePersonalInfoRepository;
 import com.employee_service.employee.repository.EmployeeRepository;
 
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -95,6 +98,87 @@ public class EmployeeService {
                 .build();
     }
 
+    public EmployeeResponse updateMyProfile(
+            String email,
+            UpdateMyProfileRequest request
+    ) {
+
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        EmployeePersonalInfo personalInfo =
+                personalInfoRepository.findByEmployeeId(employee.getId())
+                        .orElse(EmployeePersonalInfo.builder()
+                                .employeeId(employee.getId())
+                                .build());
+
+        if (request.getEmail() != null) {
+            employee.setEmail(request.getEmail());
+        }
+
+        if (request.getPhone() != null) {
+            personalInfo.setPhone(request.getPhone());
+        }
+
+        employee.setUpdatedAt(LocalDateTime.now());
+
+        employeeRepository.save(employee);
+        personalInfoRepository.save(personalInfo);
+
+        EmployeeJobInfo jobInfo =
+                jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+        return buildEmployeeResponse(employee, personalInfo, jobInfo);
+    }
+
+    public EmployeeResponse uploadProfileImage(
+            String email,
+            MultipartFile file
+    ) {
+
+        try {
+
+            Employee employee = employeeRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+            String uploadDir = System.getProperty("user.dir")
+                    + "/uploads/profile-images";
+
+            java.io.File directory = new java.io.File(uploadDir);
+
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            String fileName =
+                    System.currentTimeMillis() + "_" + file.getOriginalFilename();
+
+            String filePath = uploadDir + "/" + fileName;
+            String dbPath = "uploads/profile-images/" + fileName;
+
+            file.transferTo(new java.io.File(filePath));
+
+            employee.setProfileImage(dbPath);
+
+            employeeRepository.save(employee);
+
+            EmployeePersonalInfo personalInfo =
+                    personalInfoRepository.findByEmployeeId(employee.getId())
+                            .orElse(null);
+
+            EmployeeJobInfo jobInfo =
+                    jobInfoRepository.findByEmployeeId(employee.getId())
+                            .orElse(null);
+
+            return buildEmployeeResponse(employee, personalInfo, jobInfo);
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     public EmployeeResponse getEmployeeByEmail(String email) {
         Employee employee = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -105,19 +189,7 @@ public class EmployeeService {
         EmployeeJobInfo jobInfo =
                 jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
 
-        return EmployeeResponse.builder()
-                .id(employee.getId())
-                .firstName(employee.getFirstName())
-                .lastName(employee.getLastName())
-                .email(employee.getEmail())
-                .hireDate(employee.getHireDate())
-                .status(employee.getStatus())
-                .phone(personalInfo != null ? personalInfo.getPhone() : null)
-                .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
-                .gender(personalInfo != null ? personalInfo.getGender() : null)
-                .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
-                .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
-                .build();
+        return buildEmployeeResponse(employee, personalInfo, jobInfo);
     }
 
     public List<EmployeeResponse> getAllEmployees() {
@@ -237,6 +309,7 @@ public class EmployeeService {
                                 ? employeeDepartmentClient.getPositionNameByDepartment(departmentId, positionId)
                                 : null
                 )
+                .profileImage(employee.getProfileImage())
                 .build();
     }
 }
