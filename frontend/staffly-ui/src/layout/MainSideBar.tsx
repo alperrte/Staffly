@@ -5,6 +5,7 @@ import {
     FaBuilding,
     FaHeadset,
     FaCog,
+    FaUser,
     FaTasks,
     FaFileAlt,
     FaMoneyBillWave,
@@ -184,6 +185,17 @@ const Sidebar = () => {
             </nav>
 
             <div className="mt-auto pt-4 border-t border-slate-800/70">
+
+            <NavLink
+                to="/app/profile"
+                className={({ isActive }) =>
+                    `${linkBase} ${isActive ? linkActive : linkInactive}`
+                }
+            >
+                <FaUser /> Profil
+            </NavLink>
+
+
                 <NavLink
                     to="/app/settings"
                     className={({ isActive }) =>

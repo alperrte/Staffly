@@ -24,4 +24,5 @@ public class EmployeeResponse {
     private String departmentName;
     private Long positionId;
     private String positionName;
+    private String profileImage;
 }

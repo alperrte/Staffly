@@ -11,6 +11,7 @@ import TaskPage from "./pages/task/TaskPage";
 import PayrollPage from "./pages/payroll/PayrollPage";
 import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
 import LeaveServicePage from "./pages/leaveService/LeaveServicePage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 import WorkScheduleManagementPage from "./pages/workSchedule/WorkScheduleManagementPage";
 import MeetingPlanningPage from "./pages/workSchedule/MeetingPlanningPage";
@@ -57,6 +58,8 @@ function App() {
                     <Route path="my-schedule" element={<MySchedulePage />} />
 
                     <Route path="transport" element={<TransportPage />} />
+
+                    <Route path="profile" element={<ProfilePage />} />
 
                     <Route path="settings" element={<div>Settings</div>} />
                 </Route>
