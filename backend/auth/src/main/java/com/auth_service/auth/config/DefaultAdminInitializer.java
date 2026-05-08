@@ -19,40 +19,92 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DefaultAdminInitializer {
 
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${DEFAULT_ADMIN_EMAIL}")
-    private String adminEmail;
+    @Value("${DEFAULT_SYSTEM_ADMIN_EMAIL}")
+    private String systemAdminEmail;
 
-    @Value("${DEFAULT_ADMIN_PASSWORD}")
-    private String adminPassword;
+    @Value("${DEFAULT_SYSTEM_ADMIN_PASSWORD}")
+    private String systemAdminPassword;
+
+    @Value("${DEFAULT_HR_MANAGER_EMAIL}")
+    private String hrManagerEmail;
+
+    @Value("${DEFAULT_HR_MANAGER_PASSWORD}")
+    private String hrManagerPassword;
+
+    @Value("${DEFAULT_DEPARTMENT_MANAGER_EMAIL}")
+    private String departmentManagerEmail;
+
+    @Value("${DEFAULT_DEPARTMENT_MANAGER_PASSWORD}")
+    private String departmentManagerPassword;
+
+    @Value("${DEFAULT_EMPLOYEE_EMAIL}")
+    private String employeeEmail;
+
+    @Value("${DEFAULT_EMPLOYEE_PASSWORD}")
+    private String employeePassword;
 
     @PostConstruct
     public void init() {
 
-        boolean adminExists = userRepository.existsByEmail(adminEmail);
+        createDefaultUser(
+                systemAdminEmail,
+                systemAdminPassword,
+                "SYSTEM_ADMIN"
+        );
 
-        if (adminExists) {
+        createDefaultUser(
+                hrManagerEmail,
+                hrManagerPassword,
+                "HR_MANAGER"
+        );
+
+        createDefaultUser(
+                departmentManagerEmail,
+                departmentManagerPassword,
+                "DEPARTMENT_MANAGER"
+        );
+
+        createDefaultUser(
+                employeeEmail,
+                employeePassword,
+                "EMPLOYEE"
+        );
+
+        System.out.println("DEFAULT USERS INITIALIZED");
+    }
+
+    private void createDefaultUser(
+            String email,
+            String password,
+            String roleName
+    ) {
+
+        boolean exists = userRepository.existsByEmail(email);
+
+        if (exists) {
+            System.out.println(email + " already exists");
             return;
         }
 
-        Role adminRole = roleRepository.findByName("SYSTEM_ADMIN")
-                .orElseThrow(() -> new RuntimeException("SYSTEM_ADMIN role not found"));
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() ->
+                        new RuntimeException(roleName + " role not found"));
 
-        User admin = User.builder()
-                .email(adminEmail)
-                .password(passwordEncoder.encode(adminPassword))
-                .employeeId(null) // önemli
+        User user = User.builder()
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .employeeId(null)
                 .active(true)
                 .createdAt(LocalDateTime.now())
-                .roles(Set.of(adminRole))
+                .roles(Set.of(role))
                 .build();
 
-        userRepository.save(admin);
+        userRepository.save(user);
 
-        System.out.println("DEFAULT ADMIN CREATED");
+        System.out.println(roleName + " DEFAULT USER CREATED");
     }
 }
