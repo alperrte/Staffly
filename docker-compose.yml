@@ -222,35 +222,6 @@ services:
 
     restart: unless-stopped
 
-  organization-service:
-    build: ./backend/organization-service
-    container_name: staffly-organization-service
-
-    env_file:
-      - .env
-
-    depends_on:
-      mssql:
-        condition: service_healthy
-      db-init:
-        condition: service_completed_successfully
-
-    environment:
-      SERVER_PORT: ${SERVER_PORT_ORGANIZATION}
-
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
-
-    ports:
-      - "${SERVER_PORT_ORGANIZATION}:${SERVER_PORT_ORGANIZATION}"
-
-    restart: unless-stopped
 
   work-schedule-service:
     build: ./backend/work-schedule-service
@@ -282,6 +253,7 @@ services:
 
     restart: unless-stopped
 
+
   transport-service:
     build: ./backend/transport-service
     container_name: staffly-transport-service
@@ -307,6 +279,36 @@ services:
 
     ports:
       - "${SERVER_PORT_TRANSPORT}:${SERVER_PORT_TRANSPORT}"
+
+    restart: unless-stopped
+  support-service:
+    build: ./backend/support-service
+    container_name: staffly-support-service
+
+    env_file:
+      - .env
+
+    depends_on:
+      mssql:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT_SUPPORT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+
+    ports:
+      - "${SERVER_PORT_SUPPORT}:${SERVER_PORT_SUPPORT}"
 
     restart: unless-stopped
 volumes:
