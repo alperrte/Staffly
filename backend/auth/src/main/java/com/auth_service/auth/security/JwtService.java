@@ -50,9 +50,14 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .claim("userId", userId)
-                .claim("roles", userDetails.getAuthorities())
+                .claim("roles",
+                        userDetails.getAuthorities()
+                                .stream()
+                                .map(authority -> authority.getAuthority())
+                                .toList()
+                )
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()+jwtExpiration))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
