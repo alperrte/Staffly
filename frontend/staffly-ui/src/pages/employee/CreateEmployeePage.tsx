@@ -6,7 +6,9 @@ import {
     getDepartments,
     getSubDepartmentsByDepartmentId,
     getPositionsBySubDepartmentId,
+    uploadEmployeeProfileImage,
 } from "../../services/employeeService";
+import { MARITAL_STATUS_OPTIONS } from "../../types/employeeTypes";
 
 import type {
     Department,
@@ -26,6 +28,9 @@ type CreateEmployeeForm = {
     positionId: number;
     departmentId: number;
     subDepartmentId: number;
+    medeniDurum?: string;
+    tc?: string;
+    profileFile?: File | null;
 };
 
 type DropdownOption = { value: string; label: string };
@@ -440,6 +445,9 @@ const CreateEmployeePage = () => {
         positionId: 0,
         departmentId: 0,
         subDepartmentId: 0,
+        medeniDurum: "",
+        tc: "",
+        profileFile: null,
     });
 
     const [loading, setLoading] = useState(false);
@@ -477,6 +485,11 @@ const CreateEmployeePage = () => {
         { value: "MALE", label: "Erkek" },
         { value: "FEMALE", label: "Kadın" },
     ];
+
+    const medeniOptions: DropdownOption[] = MARITAL_STATUS_OPTIONS.map((o) => ({
+        value: o.value,
+        label: o.label,
+    }));
 
     const isAdult = (birthDate: string) => {
         if (!birthDate) return false;
@@ -567,6 +580,8 @@ const CreateEmployeePage = () => {
         if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError("Geçerli bir e-posta girin");
         if (!form.phoneNumber.trim()) return setError("Telefon zorunludur");
         if (!form.birthDate) return setError("Doğum tarihi zorunludur");
+        if (!form.medeniDurum) return setError("Medeni durum zorunludur");
+        if (!form.tc || !/^[0-9]{11}$/.test(form.tc.trim())) return setError("TC kimlik no zorunludur (11 haneli rakam)");
         if (!isAdult(form.birthDate)) return setError("Çalışan en az 18 yaşında olmalıdır");
         if (!form.gender) return setError("Cinsiyet zorunludur");
         if (!form.departmentId) return setError("Departman zorunludur");
@@ -576,7 +591,7 @@ const CreateEmployeePage = () => {
         try {
             setLoading(true);
 
-            await createEmployee({
+            const created = await createEmployee({
                 firstName: form.firstName,
                 lastName: form.lastName,
                 email: form.email,
@@ -584,9 +599,19 @@ const CreateEmployeePage = () => {
                 birthDate: form.birthDate,
                 hireDate: form.hireDate,
                 gender: form.gender,
+                medeniDurum: form.medeniDurum,
+                tc: form.tc,
                 departmentId: form.departmentId,
                 positionId: form.positionId,
             });
+
+            if (form.profileFile && created && created.id) {
+                try {
+                    await uploadEmployeeProfileImage(created.id, form.profileFile);
+                } catch (err) {
+                    console.warn("Profil fotoğrafı yüklenemedi", err);
+                }
+            }
 
             navigate("/app/employees", {
                 state: {
@@ -754,6 +779,55 @@ const CreateEmployeePage = () => {
                                 setForm((prev) => ({ ...prev, gender: v }));
                             }}
                         />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className={labelClass}>Medeni Durum</label>
+                        <DarkDropdown
+                            name="medeniDurum"
+                            value={form.medeniDurum || ""}
+                            options={medeniOptions}
+                            placeholder="Medeni durum seçin"
+                            onChange={(v) => {
+                                setError("");
+                                setForm((prev) => ({ ...prev, medeniDurum: v }));
+                            }}
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className={labelClass}>TC Kimlik No</label>
+                        <input
+                            name="tc"
+                            placeholder="11 haneli TC"
+                            value={form.tc}
+                            maxLength={11}
+                            onChange={(e) => {
+                                setError("");
+                                const v = e.target.value.replace(/[^0-9]/g, "");
+                                setForm((prev) => ({ ...prev, tc: v.slice(0, 11) }));
+                            }}
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className={labelClass}>Profil Fotoğrafı (opsiyonel)</label>
+                        <label className="relative cursor-pointer inline-block w-full">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    setError("");
+                                    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                                    setForm((prev) => ({ ...prev, profileFile: f }));
+                                }}
+                                className="hidden"
+                            />
+                            <span className={`${inputClass} block cursor-pointer text-slate-400`}>
+                                {form.profileFile ? form.profileFile.name : "Dosya seçmek için tıklayın"}
+                            </span>
+                        </label>
                     </div>
 
                     <div className="md:col-span-2 mt-2">

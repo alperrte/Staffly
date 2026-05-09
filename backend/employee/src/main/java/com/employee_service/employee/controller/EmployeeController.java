@@ -1,9 +1,11 @@
 package com.employee_service.employee.controller;
 
+import com.employee_service.employee.client.AuthClient;
 import com.employee_service.employee.dto.request.CreateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateMyProfileRequest;
 import com.employee_service.employee.dto.response.EmployeeResponse;
+import com.employee_service.employee.security.JwtService;
 import com.employee_service.employee.service.EmployeeService;
 
 import jakarta.validation.Valid;
@@ -22,6 +24,8 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final JwtService jwtService;
+    private final AuthClient authClient;
 
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PostMapping
@@ -59,21 +63,43 @@ public class EmployeeController {
         return employeeService.uploadProfileImage(email, file);
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'MANAGER')")
     @GetMapping("/{id}")
     public EmployeeResponse getEmployeeById(@PathVariable Long id) {
         return employeeService.getEmployeeById(id);
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'MANAGER')")
     @GetMapping("/by-email/{email}")
     public EmployeeResponse getEmployeeByEmail(@PathVariable String email) {
         return employeeService.getEmployeeByEmail(email);
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'MANAGER')")
     @GetMapping
-    public List<EmployeeResponse> getAllEmployees() {
+    public List<EmployeeResponse> getAllEmployees(
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        // If caller is DEPARTMENT_MANAGER, return only their department's employees
+        if (authHeader != null && !authHeader.isBlank()) {
+            String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+            List<String> roles = jwtService.extractRoles(token);
+            boolean isDeptManager = roles.stream().anyMatch(r -> 
+                r.equalsIgnoreCase("ROLE_DEPARTMENT_MANAGER") || r.equalsIgnoreCase("DEPARTMENT_MANAGER")
+            );
+
+            if (isDeptManager) {
+                var current = authClient.getCurrentUser(authHeader);
+                if (current != null && current.getEmployeeId() != null) {
+                    var managerInfo = employeeService.getEmployeeById(current.getEmployeeId());
+                    if (managerInfo != null && managerInfo.getDepartmentId() != null) {
+                        return employeeService.getEmployeesByDepartment(managerInfo.getDepartmentId());
+                    }
+                }
+            }
+        }
+
+        // For SYSTEM_ADMIN, HR_MANAGER, or MANAGER: return all employees
         return employeeService.getAllEmployees();
     }
 

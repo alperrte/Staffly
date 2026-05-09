@@ -6,6 +6,8 @@ import {
     getEmployeeSchedule,
     getEmployees,
 } from "../../services/workScheduleService";
+import { getMyProfile } from "../../services/employeeService";
+import { ROLE_EMPLOYEE, getTokenUserId, hasAnyRole } from "../../utils/auth";
 
 import type {
     CalendarEventResponse,
@@ -69,6 +71,8 @@ const formatDate = (date: Date) => {
 };
 
 const MySchedulePage = () => {
+    const isEmployeeUser = hasAnyRole([ROLE_EMPLOYEE]);
+    const myUserId = getTokenUserId();
     const [employeeId, setEmployeeId] = useState("");
 
     const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
@@ -104,7 +108,13 @@ const MySchedulePage = () => {
                 const employeeData = await getEmployees();
                 setEmployees(employeeData || []);
 
-                if (employeeData && employeeData.length > 0) {
+                if (isEmployeeUser && myUserId) {
+                    const profile = await getMyProfile().catch(() => null);
+                    const resolvedEmployeeId = profile?.id ?? profile?.employeeId ?? myUserId;
+                    if (resolvedEmployeeId) {
+                        setEmployeeId(String(resolvedEmployeeId));
+                    }
+                } else if (employeeData && employeeData.length > 0) {
                     setEmployeeId(String(employeeData[0].id));
                 }
             } catch (err) {
@@ -200,24 +210,26 @@ const MySchedulePage = () => {
                     </p>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-3">
-                    <select
-                        className={inputClass}
-                        value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
-                    >
-                        <option value="">Çalışan seç</option>
-                        {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                                {employee.firstName} {employee.lastName}
-                            </option>
-                        ))}
-                    </select>
+                {!isEmployeeUser && (
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <select
+                            className={inputClass}
+                            value={employeeId}
+                            onChange={(e) => setEmployeeId(e.target.value)}
+                        >
+                            <option value="">Çalışan seç</option>
+                            {employees.map((employee) => (
+                                <option key={employee.id} value={employee.id}>
+                                    {employee.firstName} {employee.lastName}
+                                </option>
+                            ))}
+                        </select>
 
-                    <button onClick={loadCalendar} className={buttonClass}>
-                        Takvimi Getir
-                    </button>
-                </div>
+                        <button onClick={loadCalendar} className={buttonClass}>
+                            Takvimi Getir
+                        </button>
+                    </div>
+                )}
             </div>
 
             {selectedEmployee && (

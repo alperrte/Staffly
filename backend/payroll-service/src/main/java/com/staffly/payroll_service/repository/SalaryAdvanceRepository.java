@@ -10,6 +10,8 @@ public interface SalaryAdvanceRepository extends JpaRepository<SalaryAdvance, Lo
 
     long countByEmployeeIdAndApprovedIsFalse(Long employeeId);
 
+    long countByEmployeeIdAndApprovedIsFalseAndRejectionReasonIsNull(Long employeeId);
+
     long countByEmployeeIdAndApprovedIsTrue(Long employeeId);
 
     List<SalaryAdvance> findByEmployeeIdAndApprovedTrueAndCreatedAtBetween(
@@ -19,4 +21,6 @@ public interface SalaryAdvanceRepository extends JpaRepository<SalaryAdvance, Lo
     );
 
     List<SalaryAdvance> findByEmployeeIdOrderByCreatedAtDesc(Long employeeId);
+
+    List<SalaryAdvance> findByApprovedIsFalseAndRejectionReasonIsNullOrderByCreatedAtDesc();
 }

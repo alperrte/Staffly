@@ -2,10 +2,12 @@ export type CreateEmployeeRequest = {
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
-    birthDate: string;
+    phone?: string;
+    birthDate?: string;
     hireDate: string;
-    gender: string;
+    gender?: string;
+    medeniDurum?: string;
+    tc?: string;
     departmentId: number;
     positionId: number;
 };
@@ -18,6 +20,8 @@ export type UpdateEmployeeRequest = {
     phone?: string;
     birthDate?: string;
     gender?: string;
+    medeniDurum?: string;
+    tc?: string;
     departmentId?: number;
     positionId?: number;
 };
@@ -61,5 +65,13 @@ export type Employee = {
     gender?: string | null;
     phone?: string | null;
     birthDate?: string | null;
+    medeniDurum?: string | null;
+    tc?: string | null;
+    profileImage?: string | null;
     [key: string]: unknown;
 };
+
+export const MARITAL_STATUS_OPTIONS = [
+    { value: "SINGLE", label: "Bekâr" },
+    { value: "MARRIED", label: "Evli" },
+];

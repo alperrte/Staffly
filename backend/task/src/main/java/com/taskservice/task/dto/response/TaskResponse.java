@@ -21,4 +21,5 @@ public class TaskResponse {
     private LocalDateTime updatedAt;
     private List<Long> assigneeEmployeeIds;
     private List<String> assigneeEmails;
+    private Long departmentId;
 }

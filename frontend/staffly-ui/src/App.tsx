@@ -2,13 +2,25 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/auth/LoginPage";
 import MainLayout from "./layout/MainLayout";
 import CvServicePage from "./pages/cvService/CvServicePage";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import {
+    ROLE_DEPARTMENT_MANAGER,
+    ROLE_EMPLOYEE,
+    ROLE_HR_MANAGER,
+    ROLE_MANAGER,
+    ROLE_SYSTEM_ADMIN,
+    ROLE_ACCOUNTING,
+} from "./utils/auth";
 
 import EmployeeListPage from "./pages/employee/EmployeeListPage";
 import CreateEmployeePage from "./pages/employee/CreateEmployeePage";
 import UserPage from "./pages/userService/UserPage";
 import DepartmentsPage from "./pages/department/DepartmentsPage";
 import TaskPage from "./pages/task/TaskPage";
-import PayrollPage from "./pages/payroll/PayrollPage";
+import PayrollRedirectPage from "./pages/payroll/PayrollRedirectPage";
+import EmployeeSalaryTrackingPage from "./pages/payroll/EmployeeSalaryTrackingPage";
+import AdvanceRequestsPage from "./pages/payroll/AdvanceRequestsPage";
+import SalaryAssignmentPage from "./pages/payroll/SalaryAssignmentPage";
 import JobPostingsPage from "./pages/jobPostings/JobPostingPage";
 import LeaveServicePage from "./pages/leaveService/LeaveServicePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -41,33 +53,183 @@ function App() {
                 <Route path="/app" element={<MainLayout />}>
                     <Route index element={<div>Dashboard</div>} />
 
-                    <Route path="employees" element={<EmployeeListPage />} />
-                    <Route path="employees/create" element={<CreateEmployeePage />} />
+                    <Route
+                        path="employees"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                                <EmployeeListPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="employees/create"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
+                                <CreateEmployeePage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="departments" element={<DepartmentsPage />} />
-                    <Route path="departments/manage" element={<DepartmentManagementPage />} />
-                    <Route path="users" element={<UserPage />} />
-                    <Route path="applications" element={<CvServicePage />} />
-                    <Route path="job-postings" element={<JobPostingsPage />} />
+                    <Route
+                        path="departments"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                                <DepartmentsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="departments/manage"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN]}>
+                                <DepartmentManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="users"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN]}>
+                                <UserPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="applications"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
+                                <CvServicePage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="job-postings"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
+                                <JobPostingsPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="tasks" element={<TaskPage />} />
-                    <Route path="tasks/create" element={<CreateTaskPage />} />
-                    <Route path="tasks/mytasks" element={<MyTasksPage />} />
+                    <Route
+                        path="tasks"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <TaskPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="tasks/create"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
+                                <CreateTaskPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="tasks/mytasks"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <MyTasksPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="payroll" element={<PayrollPage />} />
-                    <Route path="leaveService" element={<LeaveServicePage />} />
+                    <Route
+                        path="payroll"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <PayrollRedirectPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="payroll/salary-tracking"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_EMPLOYEE]}>
+                                <EmployeeSalaryTrackingPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="payroll/advance-requests"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]}>
+                                <AdvanceRequestsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="payroll/salary-assignment"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]}>
+                                <SalaryAssignmentPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="leaveService"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <LeaveServicePage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="work-schedules" element={<WorkScheduleManagementPage />} />
-                    <Route path="meetings" element={<MeetingPlanningPage />} />
-                    <Route path="my-schedule" element={<MySchedulePage />} />
+                    <Route
+                        path="work-schedules"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                                <WorkScheduleManagementPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="meetings"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                                <MeetingPlanningPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="my-schedule"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <MySchedulePage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="transport" element={<TransportPage />} />
-                    <Route path="support" element={<MyTicketsPage />} />
-                    <Route path="support/all" element={<AllTicketsPage />} />
+                    <Route
+                        path="transport"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <TransportPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="support"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                                <MyTicketsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="support/all"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
+                                <AllTicketsPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
-                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-                    <Route path="settings" element={<div>Settings</div>} />
+                    <Route path="settings" element={<ProtectedRoute><div>Settings</div></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/login" />} />

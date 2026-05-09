@@ -1,11 +1,8 @@
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-    getAllEmployees,
-    getDepartments,
-    type Department,
-} from "../../services/employeeService";
+import { getAllEmployees, getDepartments } from "../../services/employeeService";
+import type { Department, SubDepartment, DepartmentPosition } from "../../types/employeeTypes";
 import {
     addBonus,
     addDeduction,
@@ -338,7 +335,7 @@ const PayrollPage = () => {
     );
 
     const subDepartmentOptions = useMemo(
-        () => selectedDepartment?.subDepartments ?? [],
+        () => selectedDepartment?.subDepartments ?? [] as SubDepartment[],
         [selectedDepartment]
     );
 
@@ -357,11 +354,11 @@ const PayrollPage = () => {
         [departments]
     );
     const subDepartmentDropdownOptions: DropdownOption[] = useMemo(
-        () => subDepartmentOptions.map((s) => ({ value: String(s.id), label: s.name })),
+        () => subDepartmentOptions.map((s: SubDepartment) => ({ value: String(s.id), label: s.name })),
         [subDepartmentOptions]
     );
     const positionDropdownOptions: DropdownOption[] = useMemo(
-        () => positionOptions.map((p) => ({ value: String(p.id), label: p.name })),
+        () => positionOptions.map((p: DepartmentPosition) => ({ value: String(p.id), label: p.name })),
         [positionOptions]
     );
 

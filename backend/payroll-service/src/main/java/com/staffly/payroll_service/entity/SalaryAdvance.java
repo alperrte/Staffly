@@ -35,5 +35,9 @@ public class SalaryAdvance {
 
     private Boolean approved;
 
+    private String rejectionReason;
+
+    private LocalDateTime reviewedAt;
+
     private LocalDateTime createdAt;
 }

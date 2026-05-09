@@ -19,6 +19,8 @@ public class EmployeeResponse {
     private String phone;
     private LocalDate birthDate;
     private String gender;
+    private String medeniDurum;
+    private String tc;
 
     private Long departmentId;
     private String departmentName;

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.taskservice.task.client.AuthClient;
 import com.taskservice.task.client.EmployeeClient;
+import com.taskservice.task.security.JwtService;
 import com.taskservice.task.dto.request.CreateTaskRequest;
 import com.taskservice.task.dto.response.CurrentUserResponse;
 import com.taskservice.task.dto.response.EmployeeLookupResponse;
@@ -31,10 +32,11 @@ public class TaskService {
     private final TaskCommentRepository commentRepository;
     private final AuthClient authClient;
     private final EmployeeClient employeeClient;
+    private final JwtService jwtService;
 
     // ✅ CREATE (EMAIL BASED)
     // ✅ CREATE (USER ID BASED)
-    public TaskResponse createTask(CreateTaskRequest request, Long userId) {
+    public TaskResponse createTask(CreateTaskRequest request, Long userId, String authHeader) {
 
         Task task = new Task();
 
@@ -48,19 +50,70 @@ public class TaskService {
 
         task.setCreatedBy(userId);
 
+        // If creator is DEPARTMENT_MANAGER, set task.departmentId automatically
+        if (authHeader != null && !authHeader.isBlank()) {
+            String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+            java.util.List<String> roles = jwtService.extractRoles(token);
+            boolean isDeptManager = roles.stream().anyMatch(r -> r.equalsIgnoreCase("ROLE_DEPARTMENT_MANAGER") || r.equalsIgnoreCase("DEPARTMENT_MANAGER"));
+
+            if (isDeptManager) {
+                var current = authClient.getCurrentUser(authHeader);
+                if (current != null && current.getEmployeeId() != null) {
+                    var managerInfo = employeeClient.getEmployeeById(authHeader, current.getEmployeeId());
+                    if (managerInfo != null && managerInfo.getDepartmentId() != null) {
+                        task.setDepartmentId(managerInfo.getDepartmentId());
+                    }
+                }
+            } else if (request.getDepartmentId() != null) {
+                task.setDepartmentId(request.getDepartmentId());
+            }
+        } else if (request.getDepartmentId() != null) {
+            task.setDepartmentId(request.getDepartmentId());
+        }
+
         task = taskRepository.save(task); //
 
         return mapToResponse(task);
     }
 
     // ✅ ASSIGN
-    public void assignTask(Long taskId, Long employeeId) {
+    public void assignTask(Long taskId, Long employeeId, String authHeader) {
 
         boolean exists = assignmentRepository
-                .existsByTaskIdAndEmployeeId(taskId, employeeId);
+            .existsByTaskIdAndEmployeeId(taskId, employeeId);
 
         if (exists) {
             throw new RuntimeException("Task already assigned to this employee");
+        }
+
+        // If caller is DEPARTMENT_MANAGER, ensure assignee is in same department
+        if (authHeader != null && !authHeader.isBlank()) {
+            String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+            java.util.List<String> roles = jwtService.extractRoles(token);
+            boolean isDeptManager = roles.stream().anyMatch(r -> r.equalsIgnoreCase("ROLE_DEPARTMENT_MANAGER") || r.equalsIgnoreCase("DEPARTMENT_MANAGER"));
+
+            if (isDeptManager) {
+                // get current user's employee id
+                var current = authClient.getCurrentUser(authHeader);
+                if (current == null || current.getEmployeeId() == null) {
+                    throw new RuntimeException("Current manager employee info not found");
+                }
+
+                var managerInfo = employeeClient.getEmployeeById(authHeader, current.getEmployeeId());
+                var assigneeInfo = employeeClient.getEmployeeById(authHeader, employeeId);
+
+                if (managerInfo == null || managerInfo.getDepartmentId() == null) {
+                    throw new RuntimeException("Manager department information missing");
+                }
+
+                if (assigneeInfo == null || assigneeInfo.getDepartmentId() == null) {
+                    throw new RuntimeException("Assignee employee department information missing");
+                }
+
+                if (!managerInfo.getDepartmentId().equals(assigneeInfo.getDepartmentId())) {
+                    throw new RuntimeException("You can only assign tasks to employees within your department");
+                }
+            }
         }
 
         TaskAssignment assignment = new TaskAssignment();
@@ -179,6 +232,7 @@ public class TaskService {
             .collect(Collectors.toList());
 
         res.setAssigneeEmployeeIds(assigneeEmployeeIds);
+        res.setDepartmentId(task.getDepartmentId());
         if (authHeader != null && !authHeader.isBlank()) {
             res.setAssigneeEmails(
                 assigneeEmployeeIds.stream()

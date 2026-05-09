@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { UpdateEmployeeRequest, Department, SubDepartment, DepartmentPosition } from "../types/employeeTypes";
 
 const employeeApi = axios.create({
     baseURL: "http://localhost:8082/api/v1",
@@ -36,6 +37,8 @@ export type CreateEmployeeRequest = {
     birthDate: string;
     hireDate: string;
     gender: string;
+    medeniDurum?: string;
+    tc?: string;
     departmentId: number;
     positionId: number;
 };
@@ -126,6 +129,28 @@ export const uploadProfileImage = async (
 
     const response = await employeeApi.post(
         "/employees/me/profile-image",
+        formData,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        }
+    );
+
+    return response.data;
+};
+
+export const uploadEmployeeProfileImage = async (
+    id: number,
+    file: File
+) => {
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await employeeApi.post(
+        `/employees/${id}/profile-image`,
         formData,
         {
             headers: {

@@ -58,4 +58,26 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    @SuppressWarnings("unchecked")
+    public java.util.List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        Object rolesObject = claims.get("roles");
+
+        if (rolesObject instanceof java.util.List) {
+            return ((java.util.List<?>) rolesObject).stream()
+                    .map(Object::toString)
+                    .toList();
+        }
+
+        if (rolesObject instanceof String) {
+            String rolesStr = (String) rolesObject;
+            return java.util.Arrays.stream(rolesStr.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+        }
+
+        return java.util.List.of();
+    }
 }

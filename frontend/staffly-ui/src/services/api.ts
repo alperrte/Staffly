@@ -27,7 +27,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (res) => res,
     (error) => {
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        // Only treat 401 (unauthenticated) as a signal to clear tokens and redirect.
+        // 403 (forbidden) means the token is valid but access is denied — do not log out.
+        if (error.response?.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("refreshToken");
             window.location.href = "/";

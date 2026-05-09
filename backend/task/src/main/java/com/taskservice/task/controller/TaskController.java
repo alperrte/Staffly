@@ -26,6 +26,7 @@ import com.taskservice.task.security.JwtService;
 import com.taskservice.task.service.TaskService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/tasks")
@@ -37,32 +38,36 @@ public class TaskController {
 
     // ✅ CREATE
     @PostMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','DEPARTMENT_MANAGER')")
     public ResponseEntity<TaskResponse> createTask(
             @RequestBody CreateTaskRequest request,
-            @RequestHeader("Authorization") String authHeader
+            @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
 
-        String token = authHeader.substring(7);
+        String token = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
 
-        Long userId = jwtService.extractUserId(token);
+        Long userId = token != null ? jwtService.extractUserId(token) : null;
 
         return ResponseEntity.ok(
-                taskService.createTask(request, userId)
+                taskService.createTask(request, userId, authHeader)
         );
     }
 
     // ✅ ASSIGN
-    @PostMapping("/{taskId}/assign")
-    public ResponseEntity<String> assignTask(
-            @PathVariable Long taskId,
-            @RequestBody AssignTaskRequest request
-    ) {
-        taskService.assignTask(taskId, request.getEmployeeId());
-        return ResponseEntity.ok("Task assigned");
-    }
+        @PostMapping("/{taskId}/assign")
+        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','DEPARTMENT_MANAGER')")
+        public ResponseEntity<String> assignTask(
+                        @PathVariable Long taskId,
+                        @RequestHeader(value = "Authorization", required = false) String authHeader,
+                        @RequestBody AssignTaskRequest request
+        ) {
+                taskService.assignTask(taskId, request.getEmployeeId(), authHeader);
+                return ResponseEntity.ok("Task assigned");
+        }
 
     // ✅ STATUS UPDATE
     @PutMapping("/{taskId}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','EMPLOYEE')")
     public ResponseEntity<String> updateStatus(
             @PathVariable Long taskId,
             @RequestBody UpdateTaskStatusRequest request
@@ -73,6 +78,7 @@ public class TaskController {
 
     // ✅ COMMENT
     @PostMapping("/{taskId}/comments")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','EMPLOYEE')")
     public ResponseEntity<String> addComment(
             @PathVariable Long taskId,
             @RequestBody CommentRequest request,
@@ -87,6 +93,7 @@ public class TaskController {
 
     // ✅ GET COMMENTS
     @GetMapping("/{taskId}/comments")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER','EMPLOYEE')")
     public ResponseEntity<List<TaskComment>> getComments(
             @PathVariable Long taskId
     ) {
@@ -95,6 +102,7 @@ public class TaskController {
 
     // 🔥 MY TASKS (JWT BASED)
     @GetMapping("/my-tasks")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER','EMPLOYEE')")
     public ResponseEntity<Page<TaskResponse>> getMyTasks(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) Integer statusId,
@@ -117,6 +125,7 @@ public class TaskController {
     }
 
         @GetMapping
+        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER','EMPLOYEE')")
         public ResponseEntity<Page<TaskResponse>> getAllTasks(
                 @RequestHeader("Authorization") String authHeader,
                 Pageable pageable
