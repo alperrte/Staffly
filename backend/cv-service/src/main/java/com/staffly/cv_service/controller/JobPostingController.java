@@ -6,6 +6,7 @@ import com.staffly.cv_service.service.JobPostingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public class JobPostingController {
 
     private final JobPostingService jobPostingService;
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PostMapping
     public ResponseEntity<JobPostingResponseDto> createJobPosting(
             @Valid @RequestBody JobPostingCreateRequestDto request
@@ -24,6 +26,7 @@ public class JobPostingController {
         return ResponseEntity.ok(jobPostingService.createJobPosting(request));
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @GetMapping
     public ResponseEntity<List<JobPostingResponseDto>> getAllJobPostings() {
         return ResponseEntity.ok(jobPostingService.getAllJobPostings());
@@ -34,21 +37,25 @@ public class JobPostingController {
         return ResponseEntity.ok(jobPostingService.getActiveJobPostings());
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @GetMapping("/{id}")
     public ResponseEntity<JobPostingResponseDto> getJobPostingById(@PathVariable Long id) {
         return ResponseEntity.ok(jobPostingService.getJobPostingById(id));
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PatchMapping("/{id}/close")
     public ResponseEntity<JobPostingResponseDto> closeJobPosting(@PathVariable Long id) {
         return ResponseEntity.ok(jobPostingService.closeJobPosting(id));
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PatchMapping("/{id}/activate")
     public ResponseEntity<JobPostingResponseDto> activateJobPosting(@PathVariable Long id) {
         return ResponseEntity.ok(jobPostingService.activateJobPosting(id));
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteJobPosting(@PathVariable Long id) {
         jobPostingService.deleteJobPosting(id);

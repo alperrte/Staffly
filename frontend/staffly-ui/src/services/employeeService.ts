@@ -40,41 +40,6 @@ export type CreateEmployeeRequest = {
     positionId: number;
 };
 
-export type UpdateEmployeeRequest = {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    status?: string;
-    phone?: string;
-    birthDate?: string;
-    gender?: string;
-    departmentId?: number;
-    positionId?: number;
-};
-
-export type DepartmentPosition = {
-    id: number;
-    name: string;
-    description?: string;
-};
-
-export type SubDepartment = {
-    id: number;
-    name: string;
-    description?: string;
-    managerId?: number | null;
-    positions?: DepartmentPosition[];
-};
-
-export type Department = {
-    id: number;
-    name: string;
-    description?: string;
-    managerId?: number | null;
-    subDepartments?: SubDepartment[];
-    deleted?: boolean;
-};
-
 export const getAllEmployees = async () => {
     const response = await employeeApi.get("/employees");
     const payload = response.data;

@@ -18,37 +18,13 @@ import {
     Filter,
 } from "lucide-react";
 
-interface Application {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-
-    jobPostingId?: number;
-    jobPostingTitle?: string | null;
-
-    departmentId: number;
-    subDepartmentId: number;
-    positionId: number;
-
-    departmentName: string;
-    subDepartmentName: string;
-    positionName: string;
-
-    status: string;
-    appliedAt?: string;
-    reviewedAt?: string;
-    createdAt?: string;
-    updatedAt?: string;
-
-    countryCode?: string;
-}
-
-type TabType = "PENDING" | "ACCEPTED" | "REJECTED";
-type SortField = "firstName" | "lastName" | "departmentName" | "positionName";
-type SortDirection = "asc" | "desc";
-type ActionType = "ACCEPTED" | "REJECTED" | null;
+import type {
+    Application,
+    ApplicationTabType,
+    ApplicationSortField,
+    SortDirection,
+    ApplicationActionType,
+} from "../../types/cvServiceTypes";
 
 const statusMap: Record<string, string> = {
     PENDING: "Beklemede",
@@ -56,7 +32,7 @@ const statusMap: Record<string, string> = {
     REJECTED: "Reddedildi",
 };
 
-const tabTitles: Record<TabType, string> = {
+const tabTitles: Record<ApplicationTabType, string> = {
     PENDING: "Aktif Başvurular",
     ACCEPTED: "Onaylanan Başvurular",
     REJECTED: "Reddedilen Başvurular",
@@ -148,10 +124,10 @@ function ConfirmModal({
 
 const CvServicePage = () => {
     const [applications, setApplications] = useState<Application[]>([]);
-    const [activeTab, setActiveTab] = useState<TabType>("PENDING");
+    const [activeTab, setActiveTab] = useState<ApplicationTabType>("PENDING");
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [sortField, setSortField] = useState<SortField>("firstName");
+    const [sortField, setSortField] = useState<ApplicationSortField>("firstName");
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
     const [loading, setLoading] = useState(false);
     const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
@@ -165,7 +141,7 @@ const CvServicePage = () => {
     const [confirmModal, setConfirmModal] = useState<{
         open: boolean;
         applicationId: number | null;
-        action: ActionType;
+        action: ApplicationActionType;
     }>({
         open: false,
         applicationId: null,
@@ -269,7 +245,7 @@ const CvServicePage = () => {
         fetchApplications();
     }, []);
 
-    const handleSort = (field: SortField) => {
+    const handleSort = (field: ApplicationSortField) => {
         if (sortField === field) {
             setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
             return;

@@ -10,9 +10,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.List;
 import java.io.IOException;
-import java.util.Collections;
+
 
 @Component
 @RequiredArgsConstructor
@@ -41,27 +42,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String jwt = authHeader.substring(7);
 
-        System.out.println("EMPLOYEE JWT FILTER CALLED");
-        System.out.println("AUTH HEADER EXISTS = " + (authHeader != null));
-
-        try {
-            System.out.println("TOKEN VALID = " + jwtService.isTokenValid(jwt));
-            System.out.println("USERNAME = " + jwtService.extractUsername(jwt));
-        } catch (Exception e) {
-            System.out.println("JWT ERROR = " + e.getMessage());
-        }
-
         try {
             if (jwtService.isTokenValid(jwt)
                     && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 String userEmail = jwtService.extractUsername(jwt);
 
+                List<SimpleGrantedAuthority> authorities =
+                        jwtService.extractRoles(jwt)
+                                .stream()
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userEmail,
                                 null,
-                                Collections.emptyList()
+                                authorities
                         );
 
                 authToken.setDetails(

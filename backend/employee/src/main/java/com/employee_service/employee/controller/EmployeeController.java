@@ -1,15 +1,4 @@
 package com.employee_service.employee.controller;
-import java.util.List;
-
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.employee_service.employee.dto.request.CreateEmployeeRequest;
 import com.employee_service.employee.dto.request.UpdateEmployeeRequest;
@@ -19,9 +8,13 @@ import com.employee_service.employee.service.EmployeeService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/employees")
@@ -30,6 +23,7 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PostMapping
     public EmployeeResponse createEmployee(@Valid @RequestBody CreateEmployeeRequest request) {
         return employeeService.createEmployee(request);
@@ -65,30 +59,36 @@ public class EmployeeController {
         return employeeService.uploadProfileImage(email, file);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @GetMapping("/{id}")
     public EmployeeResponse getEmployeeById(@PathVariable Long id) {
         return employeeService.getEmployeeById(id);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @GetMapping("/by-email/{email}")
     public EmployeeResponse getEmployeeByEmail(@PathVariable String email) {
         return employeeService.getEmployeeByEmail(email);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @GetMapping
     public List<EmployeeResponse> getAllEmployees() {
         return employeeService.getAllEmployees();
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @PutMapping("/{id}")
-    public EmployeeResponse updateEmployee(@PathVariable Long id,
-                                           @RequestBody UpdateEmployeeRequest request) {
+    public EmployeeResponse updateEmployee(
+            @PathVariable Long id,
+            @RequestBody UpdateEmployeeRequest request
+    ) {
         return employeeService.updateEmployee(id, request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
     }
-
 }

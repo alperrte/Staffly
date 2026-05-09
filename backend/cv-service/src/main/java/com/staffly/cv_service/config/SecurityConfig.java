@@ -13,11 +13,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -45,9 +46,6 @@ public class SecurityConfig {
 
                         // Preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // Aday başvuru oluşturabilir, token gerekmez
-                        .requestMatchers(HttpMethod.POST, "/applications").permitAll()
 
                         // Aday tarafı public
                         .requestMatchers(HttpMethod.POST, "/applications").permitAll()

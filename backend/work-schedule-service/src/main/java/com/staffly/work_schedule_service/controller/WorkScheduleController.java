@@ -6,6 +6,7 @@ import com.staffly.work_schedule_service.dto.request.UpdateWorkScheduleRequest;
 import com.staffly.work_schedule_service.dto.response.WorkScheduleResponse;
 import com.staffly.work_schedule_service.service.WorkScheduleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ public class WorkScheduleController {
 
     private final WorkScheduleService workScheduleService;
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PostMapping
     public WorkScheduleResponse createWorkSchedule(
             @RequestBody CreateWorkScheduleRequest request
@@ -25,6 +27,7 @@ public class WorkScheduleController {
         return workScheduleService.createWorkSchedule(request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PostMapping("/bulk")
     public List<WorkScheduleResponse> createBulkWorkSchedule(
             @RequestBody CreateBulkWorkScheduleRequest request
@@ -32,6 +35,7 @@ public class WorkScheduleController {
         return workScheduleService.createBulkWorkSchedule(request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
     @GetMapping("/employee/{employeeId}")
     public List<WorkScheduleResponse> getEmployeeWeeklySchedule(
             @PathVariable Long employeeId,
@@ -45,6 +49,7 @@ public class WorkScheduleController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
     @GetMapping("/employee/{employeeId}/monthly")
     public List<WorkScheduleResponse> getEmployeeMonthlySchedule(
             @PathVariable Long employeeId,
@@ -58,6 +63,7 @@ public class WorkScheduleController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @GetMapping("/department/{departmentId}")
     public List<WorkScheduleResponse> getDepartmentSchedule(
             @PathVariable Long departmentId,
@@ -71,6 +77,7 @@ public class WorkScheduleController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
     @GetMapping("/daily")
     public WorkScheduleResponse getDailySchedule(
             @RequestParam Long employeeId,
@@ -79,11 +86,13 @@ public class WorkScheduleController {
         return workScheduleService.getDailySchedule(employeeId, workDate);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PatchMapping("/{id}/cancel")
     public WorkScheduleResponse cancelWorkSchedule(@PathVariable Long id) {
         return workScheduleService.cancelWorkSchedule(id);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PutMapping("/{id}")
     public WorkScheduleResponse updateWorkSchedule(
             @PathVariable Long id,

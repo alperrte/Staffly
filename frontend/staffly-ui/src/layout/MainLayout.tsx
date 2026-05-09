@@ -1,11 +1,9 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./MainSideBar";
-import stafflyLogo from "../assets/logo.png";
 import { Bell, ChevronDown, Search } from "lucide-react";
-import { Power } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const decodeJwtPayload = (token: string) => {
+const decodeJwtPayload = (token) => {
     const payload = token.split(".")[1];
 
     if (!payload) {
@@ -18,17 +16,31 @@ const decodeJwtPayload = (token: string) => {
     return JSON.parse(atob(padded));
 };
 
+const searchablePages = [
+    { label: "Çalışanlar", path: "/app/employees", keywords: ["çalışan", "personel", "employee"] },
+    { label: "Kullanıcılar", path: "/app/users", keywords: ["kullanıcı", "user", "hesap"] },
+    { label: "Başvurular", path: "/app/applications", keywords: ["başvuru", "cv", "aday"] },
+    { label: "İş İlanları", path: "/app/job-postings", keywords: ["ilan", "iş ilanı"] },
+    { label: "Görevler", path: "/app/tasks", keywords: ["görev", "task"] },
+    { label: "Görevlerim", path: "/app/tasks/mytasks", keywords: ["görevlerim", "my task"] },
+    { label: "Maaş & Bordro", path: "/app/payroll", keywords: ["maaş", "bordro", "payroll"] },
+    { label: "İzin Talepleri", path: "/app/leaveService", keywords: ["izin", "leave"] },
+    { label: "Çalışma Takvimi", path: "/app/work-schedules", keywords: ["çalışma", "takvim", "mesai"] },
+    { label: "Toplantı Planlama", path: "/app/meetings", keywords: ["toplantı", "meeting"] },
+    { label: "Takvimim", path: "/app/my-schedule", keywords: ["takvimim", "programım"] },
+    { label: "Ulaşım", path: "/app/transport", keywords: ["ulaşım", "servis"] },
+    { label: "Profil", path: "/app/profile", keywords: ["profil", "profile"] },
+    { label: "Ayarlar", path: "/app/settings", keywords: ["ayar", "settings"] },
+];
+
 const MainLayout = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        sessionStorage.clear();
-        navigate("/", { replace: true });
-    };
     const [email, setEmail] = useState("");
+    const [search, setSearch] = useState("");
+
+    const isDashboard = location.pathname === "/app";
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -40,101 +52,98 @@ const MainLayout = () => {
 
         try {
             const payload = decodeJwtPayload(token);
-            setEmail(payload.sub || payload.email);
+            setEmail(payload.sub || payload.email || "User");
         } catch (e) {
-            navigate("/login"); // 🔥 token bozuksa da at
+            navigate("/login");
         }
-    }, []);
-//Push
+    }, [navigate]);
+
+    const filteredPages = useMemo(() => {
+        const value = search.trim().toLowerCase();
+
+        if (!value) return [];
+
+        return searchablePages.filter((page) => {
+            const labelMatch = page.label.toLowerCase().includes(value);
+            const keywordMatch = page.keywords.some((keyword) =>
+                keyword.toLowerCase().includes(value)
+            );
+
+            return labelMatch || keywordMatch;
+        });
+    }, [search]);
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === "Enter" && filteredPages.length > 0) {
+            navigate(filteredPages[0].path);
+            setSearch("");
+        }
+    };
 
     return (
-        <div className="flex h-screen bg-[#020617] text-white overflow-hidden">
-            {/* SOL SİDEBAR */}
+        <div className="flex h-screen overflow-hidden bg-[#020617] text-white">
             <Sidebar />
 
-            {/* ARKA PLAN */}
             <div className="relative min-w-0 flex h-full flex-1 flex-col">
-                <div className="pointer-events-none absolute inset-0 opacity-60">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(56,189,248,0.4),transparent_55%),radial-gradient(circle_at_100%_100%,rgba(59,130,246,0.45),transparent_55%)]" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900/95 to-slate-950" />
+                <div className="pointer-events-none absolute inset-0 opacity-70">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(14,165,233,0.22),transparent_38%),radial-gradient(circle_at_100%_100%,rgba(37,99,235,0.24),transparent_42%)]" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900" />
                 </div>
 
-                {/* İÇERİK ALANI */}
                 <div className="relative z-10 flex min-h-0 flex-1 flex-col px-8 py-6">
-                    {/* HEADER */}
-                    <header className="mb-6 flex shrink-0 items-center justify-between">
-                        {/* Sol: Logo + Başlık */}
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-[2px] shadow-[0_0_18px_rgba(59,130,246,0.7)]">
-                                <div className="h-full w-full overflow-hidden rounded-2xl bg-slate-950">
-                                    <img
-                                        src={stafflyLogo}
-                                        alt="Staffly Logo"
-                                        className="h-full w-full object-cover"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-semibold tracking-[0.35em] text-white/95">
-                                    STAFFLY
-                                </h1>
-                                <p className="text-[0.6rem] font-light tracking-[0.35em] text-sky-300/90 uppercase">
-                                    HR MANAGEMENT SYSTEM
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Ortadaki Search */}
-                        <div className="mx-8 flex-1 max-w-xl hidden md:flex">
-                            <div className="relative w-full">
+                    {isDashboard && (
+                        <header className="relative z-50 mb-6 flex shrink-0 items-center justify-between gap-6 rounded-3xl border border-white/10 bg-slate-950/55 px-5 py-4 shadow-[0_0_35px_rgba(15,23,42,0.75)] backdrop-blur-2xl">
+                            <div className="relative hidden w-full max-w-2xl md:block">
                                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
                                 <input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
                                     type="text"
-                                    placeholder=" "
-                                    className="w-full rounded-full border border-white/10 bg-slate-900/50 py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500/60"
+                                    placeholder="Panel ara... Örn: çalışan, izin, görev"
+                                    className="w-full rounded-2xl border border-white/10 bg-slate-900/70 py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-400/70 focus:ring-2 focus:ring-sky-500/20"
                                 />
+
+                                {filteredPages.length > 0 && (
+                                    <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-[9999] max-h-[360px] overflow-y-auto rounded-2xl border border-sky-400/20 bg-slate-950 shadow-[0_25px_80px_rgba(0,0,0,0.65)] backdrop-blur-xl">
+                                        {filteredPages.map((page) => (
+                                            <button
+                                                key={page.path}
+                                                onClick={() => {
+                                                    navigate(page.path);
+                                                    setSearch("");
+                                                }}
+                                                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-sky-500/10 hover:text-white"
+                                            >
+                                                <span>{page.label}</span>
+                                                <span className="text-xs text-sky-300">Git</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Sağ: Bildirim + Kullanıcı */}
-                        <div className="flex items-center gap-5">
-                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/70 border border-white/10 hover:border-sky-400/60 hover:bg-slate-900">
-                                <Bell className="h-4 w-4 text-slate-200" />
-                                <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.6rem] font-semibold">
-                                    1
-                                </span>
-                            </button>
+                            <div className="ml-auto flex items-center gap-4">
+                                <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-slate-900/80 transition hover:border-sky-400/60 hover:bg-slate-900">
+                                    <Bell className="h-4 w-4 text-slate-200" />
+                                    <span className="absolute -right-1 -top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.6rem] font-bold">
+                                        1
+                                    </span>
+                                </button>
 
-                            <button className="flex items-center gap-2 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs border border-white/10 hover:border-sky-400/60 hover:bg-slate-900">
-                               <span className="truncate max-w-[130px] text-slate-100">
-                                  {email || "User"}
-                                </span>
-                                <ChevronDown className="h-4 w-4 text-slate-300" />
-                            </button>
+                                <button className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs transition hover:border-sky-400/60 hover:bg-slate-900">
+                                    <span className="max-w-[170px] truncate text-slate-100">
+                                        {email || "User"}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 text-slate-300" />
+                                </button>
+                            </div>
+                        </header>
+                    )}
 
-                            <button
-                                onClick={handleLogout}
-                                className="
-    flex items-center gap-2
-    rounded-full
-    bg-red-600/90 hover:bg-red-500
-    px-4 py-2
-    text-sm font-medium text-white
-    border border-red-400/60
-    shadow-[0_0_20px_rgba(239,68,68,0.6)]
-    transition-all duration-300
-    hover:scale-105 hover:shadow-[0_0_25px_rgba(239,68,68,0.9)]
-  "
-                            >
-                                <Power size={18} />
-                                Çıkış Yap
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* CAM PANEL + SAYFA İÇERİĞİ */}
-                    <main className="staffly-scroll flex-1 min-h-0 overflow-y-auto pr-2">
-                        <div className="w-full rounded-3xl border border-white/10 bg-slate-900/40 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl p-6">
+                    <main className="staffly-scroll relative z-10 min-h-0 flex-1 overflow-y-auto pr-2">
+                        <div className="min-h-full w-full rounded-3xl border border-white/10 bg-slate-900/35 p-6 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl">
                             <Outlet />
                         </div>
                     </main>

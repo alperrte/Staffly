@@ -27,20 +27,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 🔹 OPTIONS request (CORS için)
+
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 🔹 Swagger izin
+
         String path = request.getRequestURI();
         if (path.contains("swagger") || path.contains("api-docs")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 🔹 Authorization header al
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -50,17 +50,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
-        // 🔹 Token valid mi?
+
         if (!jwtService.isTokenValid(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        // 🔥 CLAIMS OKU
+
         Claims claims = jwtService.extractAllClaims(token);
         String email = claims.getSubject();
 
-        // 🔥 ROLES GÜVENLİ PARSE
+
         Object rolesObject = claims.get("roles");
 
         List<String> roles;
@@ -73,12 +73,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             roles = List.of();
         }
 
-        // 🔥 AUTHORITIES OLUŞTUR
+
         var authorities = roles.stream()
-                .map(role -> (org.springframework.security.core.GrantedAuthority) () -> "ROLE_" + role)
+                .map(role -> (org.springframework.security.core.GrantedAuthority) () -> role)
                 .toList();
 
-        // 🔥 AUTHENTICATION SET ET
+
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         email,

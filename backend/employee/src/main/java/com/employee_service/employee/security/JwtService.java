@@ -5,7 +5,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import java.util.Collections;
+import java.util.List;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -52,5 +53,18 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        Object rolesObject = claims.get("roles");
+
+        if (rolesObject instanceof List<?> roleList) {
+            return roleList.stream()
+                    .map(Object::toString)
+                    .toList();
+        }
+
+        return Collections.emptyList();
     }
 }

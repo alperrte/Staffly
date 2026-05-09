@@ -6,10 +6,13 @@ import {
     getDepartments,
     getSubDepartmentsByDepartmentId,
     getPositionsBySubDepartmentId,
-    type Department,
-    type SubDepartment,
-    type DepartmentPosition,
 } from "../../services/employeeService";
+
+import type {
+    Department,
+    SubDepartment,
+    DepartmentPosition,
+} from "../../types/employeeTypes";
 
 type CreateEmployeeForm = {
     firstName: string;

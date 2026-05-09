@@ -5,31 +5,15 @@ import {
     getDepartments,
     getSubDepartmentsByDepartmentId,
     getPositionsBySubDepartmentId,
-    type Department,
-    type SubDepartment,
-    type DepartmentPosition,
 } from "../../services/employeeService";
-import { useLocation, useNavigate } from "react-router-dom";
 
-/* ══ Types ══════════════════════════════════════════════════════════════ */
-type Employee = {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    status: string;
-    positionId?: number | null;
-    positionName?: string | null;
-    departmentId?: number | null;
-    departmentName?: string | null;
-    subDepartmentId?: number | null;
-    subDepartmentName?: string | null;
-    hireDate?: string | null;
-    gender?: string | null;
-    phone?: string | null;
-    birthDate?: string | null;
-    [key: string]: unknown;
-};
+import type {
+    Employee,
+    Department,
+    SubDepartment,
+    DepartmentPosition,
+} from "../../types/employeeTypes";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type SortDir = "asc" | "desc";
 type SortKey = keyof Employee | null;

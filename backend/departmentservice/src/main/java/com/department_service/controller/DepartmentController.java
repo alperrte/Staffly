@@ -9,7 +9,7 @@ import com.department_service.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
@@ -19,22 +19,20 @@ public class DepartmentController {
 
     private final DepartmentService departmentService;
 
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @PostMapping
     public DepartmentResponse createDepartment(@RequestBody CreateDepartmentRequest request) {
         return departmentService.createDepartment(request);
     }
 
-    @GetMapping
-    public List<DepartmentResponse> getAllDepartments() {
-        return departmentService.getAllDepartments();
-    }
-
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @PutMapping("/{id}")
     public Department updateDepartment(@PathVariable Long id,
                                        @RequestBody Department department) {
         return departmentService.updateDepartment(id, department);
     }
 
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);
@@ -73,5 +71,10 @@ public class DepartmentController {
     @GetMapping("/{id}")
     public ResponseEntity<DepartmentResponse> getDepartmentById(@PathVariable Long id) {
         return ResponseEntity.ok(departmentService.getDepartmentById(id));
+    }
+
+    @GetMapping
+    public List<DepartmentResponse> getAllDepartments() {
+        return departmentService.getAllDepartments();
     }
 }
