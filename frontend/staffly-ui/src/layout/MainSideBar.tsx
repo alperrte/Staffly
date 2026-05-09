@@ -163,6 +163,15 @@ const Sidebar = () => {
                     <FaHeadset /> Destek
                 </NavLink>
                 </div>
+
+                <NavLink
+                    to="/app/support/all"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaHeadset /> Destek Yönetimi
+                </NavLink>
             </nav>
 
             <div className="shrink-0 border-t border-white/10 pt-4">
