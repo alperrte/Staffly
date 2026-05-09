@@ -1,4 +1,4 @@
-package com.taskservice.task.security;
+package com.staffly.transport_service.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -46,7 +46,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    public <T> T extractClaim(String token, Function<Claims,T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
@@ -80,4 +80,5 @@ public class JwtService {
 
         return java.util.List.of();
     }
+
 }

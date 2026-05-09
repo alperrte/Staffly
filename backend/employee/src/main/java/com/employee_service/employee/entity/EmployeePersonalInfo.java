@@ -28,4 +28,10 @@ public class EmployeePersonalInfo {
     private LocalDate birthDate;
 
     private String gender;
+
+    @Column(name = "medeni_durum")
+    private String medeniDurum;
+
+    @Column(name = "tc")
+    private String tc;
 }

@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { jwtDecode } from "jwt-decode";
 import {
     FaHome,
     FaUsers,
@@ -17,6 +16,15 @@ import {
     FaPowerOff,
 } from "react-icons/fa";
 import stafflyLogo from "../assets/logo.png";
+import {
+    ROLE_DEPARTMENT_MANAGER,
+    ROLE_EMPLOYEE,
+    ROLE_HR_MANAGER,
+    ROLE_MANAGER,
+    ROLE_SYSTEM_ADMIN,
+    ROLE_ACCOUNTING,
+    hasAnyRole,
+} from "../utils/auth";
 
 const linkBase =
     "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-all duration-200";
@@ -29,22 +37,7 @@ const linkActive =
 
 const Sidebar = () => {
     const navigate = useNavigate();
-    const token = localStorage.getItem("token");
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    let roles = [];
-
-    if (token) {
-        try {
-            const decoded = jwtDecode(token);
-            roles = decoded.roles || [];
-        } catch (e) {
-            roles = [];
-        }
-    }
-
-    const hasRole = (allowedRoles) => {
-        return roles.some((role) => allowedRoles.includes(role));
-    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -85,75 +78,101 @@ const Sidebar = () => {
                     <FaHome /> Ana Sayfa
                 </NavLink>
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER", "ROLE_DEPARTMENT_MANAGER"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/employees" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaUsers /> Çalışanlar
                     </NavLink>
                 )}
 
-                <NavLink to="/app/payroll" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaMoneyBillWave /> Maaş & Bordro
-                </NavLink>
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
+                    <>
+                        {hasAnyRole([ROLE_EMPLOYEE]) && (
+                            <NavLink to="/app/payroll/salary-tracking" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                                <FaMoneyBillWave /> Maaş Takibi
+                            </NavLink>
+                        )}
+
+                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]) && (
+                            <NavLink to="/app/payroll/advance-requests" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                                <FaMoneyBillWave /> Avans Talepleri
+                            </NavLink>
+                        )}
+
+                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]) && (
+                            <NavLink to="/app/payroll/salary-assignment" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                                <FaMoneyBillWave /> Maaş Ataması
+                            </NavLink>
+                        )}
+                    </>
+                )}
 
                 <NavLink to="/app/leaveService" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                     <FaFileAlt /> İzin Talepleri
                 </NavLink>
 
-                <NavLink to="/app/transport" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaBus /> Ulaşım
-                </NavLink>
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
+                    <NavLink to="/app/transport" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                        <FaBus /> Ulaşım
+                    </NavLink>
+                )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
                     <NavLink to="/app/applications" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaFileAlt /> Başvurular
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN]) && (
                     <NavLink to="/app/departments/manage" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaBuilding /> Departman Yönetimi
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_HR_MANAGER", "ROLE_DEPARTMENT_MANAGER"]) && (
+                {hasAnyRole([ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/departments" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaBuilding /> Departmanlar
                     </NavLink>
                 )}
 
-                <NavLink to="/app/tasks" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaTasks /> Görevler
-                </NavLink>
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
+                    <>
+                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]) && (
+                            <NavLink to="/app/tasks" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                                <FaTasks /> Görevler
+                            </NavLink>
+                        )}
 
-                <NavLink to="/app/tasks/mytasks" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaClipboardList /> Görevlerim
-                </NavLink>
+                    <NavLink to="/app/tasks/mytasks" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                        <FaClipboardList /> Görevlerim
+                    </NavLink>
+                    </>
+                )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN]) && (
                     <NavLink to="/app/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaUsers /> Kullanıcılar
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
                     <NavLink to="/app/job-postings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaFileAlt /> İş İlanları
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER", "ROLE_DEPARTMENT_MANAGER"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/work-schedules" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaCalendarAlt /> Çalışma Takvimi
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER", "ROLE_DEPARTMENT_MANAGER"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/meetings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaCalendarAlt /> Toplantı Planlama
                     </NavLink>
                 )}
 
-                {hasRole(["ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER", "ROLE_DEPARTMENT_MANAGER", "ROLE_EMPLOYEE"]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]) && (
                     <NavLink to="/app/my-schedule" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaCalendarAlt /> Takvimim
                     </NavLink>
@@ -164,14 +183,16 @@ const Sidebar = () => {
                 </NavLink>
                 </div>
 
-                <NavLink
-                    to="/app/support/all"
-                    className={({ isActive }) =>
-                        `${linkBase} ${isActive ? linkActive : linkInactive}`
-                    }
-                >
-                    <FaHeadset /> Destek Yönetimi
-                </NavLink>
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]) && (
+                    <NavLink
+                        to="/app/support/all"
+                        className={({ isActive }) =>
+                            `${linkBase} ${isActive ? linkActive : linkInactive}`
+                        }
+                    >
+                        <FaHeadset /> Destek Yönetimi
+                    </NavLink>
+                )}
             </nav>
 
             <div className="shrink-0 border-t border-white/10 pt-4">

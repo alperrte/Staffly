@@ -104,7 +104,13 @@ export type AdvanceRecord = {
     amount: number | string;
     requestDate?: string;
     approved?: boolean;
+    rejectionReason?: string | null;
+    reviewedAt?: string | null;
     createdAt?: string;
+};
+
+export type RejectAdvancePayload = {
+    reason: string;
 };
 
 export const getEmployeePayrollOverview = async (employeeId: number) => {
@@ -112,6 +118,31 @@ export const getEmployeePayrollOverview = async (employeeId: number) => {
         `/payrolls/employees/${employeeId}/overview`
     );
     return res.data;
+};
+
+export const getMyPayrollOverview = async () => {
+    const res = await payrollApi.get<EmployeePayrollOverview>("/payrolls/me/overview");
+    return res.data;
+};
+
+export const getMyBonuses = async () => {
+    const res = await payrollApi.get<BonusRecord[]>("/payrolls/me/bonuses");
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getMyDeductions = async () => {
+    const res = await payrollApi.get<DeductionRecord[]>("/payrolls/me/deductions");
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getMyAdvances = async () => {
+    const res = await payrollApi.get<AdvanceRecord[]>("/payrolls/me/advances");
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getMyPayrolls = async () => {
+    const res = await payrollApi.get<PayrollResponse[]>("/payrolls/me/payrolls");
+    return Array.isArray(res.data) ? res.data : [];
 };
 
 export const getEmployeeBonuses = async (employeeId: number) => {
@@ -159,6 +190,16 @@ export const requestAdvance = async (payload: AdvancePayload) => {
 export const approveAdvance = async (advanceId: number) => {
     const res = await payrollApi.put(`/payrolls/advance/${advanceId}/approve`);
     return res.data;
+};
+
+export const rejectAdvance = async (advanceId: number, payload: RejectAdvancePayload) => {
+    const res = await payrollApi.put(`/payrolls/advance/${advanceId}/reject`, payload);
+    return res.data;
+};
+
+export const getPendingAdvanceRequests = async () => {
+    const res = await payrollApi.get<AdvanceRecord[]>("/payrolls/advances/pending");
+    return Array.isArray(res.data) ? res.data : [];
 };
 
 export const generatePayroll = async (payload: PayrollGeneratePayload) => {

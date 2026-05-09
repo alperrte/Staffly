@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
     getAllEmployees,
     updateEmployee,
+    deleteEmployee,
     getDepartments,
     getSubDepartmentsByDepartmentId,
     getPositionsBySubDepartmentId,
@@ -14,6 +15,8 @@ import type {
     DepartmentPosition,
 } from "../../types/employeeTypes";
 import { useLocation, useNavigate } from "react-router-dom";
+import { hasAnyRole, ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER } from "../../utils/auth";
+import { EmployeeActionsModal } from "../../components/employee/EmployeeActionsModal";
 
 type SortDir = "asc" | "desc";
 type SortKey = keyof Employee | null;
@@ -189,6 +192,11 @@ const EmployeeListPage = () => {
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [savingId, setSavingId] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+
+    /* Modal */
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalEmployee, setModalEmployee] = useState<Employee | null>(null);
 
     const [editForm, setEditForm] = useState({
         firstName: "",
@@ -199,6 +207,10 @@ const EmployeeListPage = () => {
         positionId: "",
         status: "ACTIVE",
         gender: "",
+        phone: "",
+        birthDate: "",
+        medeniDurum: "",
+        tc: "",
     });
 
     /* ── Fetches ── */
@@ -395,6 +407,14 @@ const EmployeeListPage = () => {
         { value: "FEMALE", label: "Kadın" },
     ];
 
+    const maritalStatusOpts: DropdownOption[] = [
+        { value: "", label: "Belirtilmedi" },
+        { value: "SINGLE", label: "Bekâr" },
+        { value: "MARRIED", label: "Evli" },
+        { value: "DIVORCED", label: "Boşanmış" },
+        { value: "WIDOWED", label: "Dul" },
+    ];
+
     /* ── Edit actions ── */
     const handleEditDepartmentChange = async (departmentId: string) => {
         setEditForm((p) => ({
@@ -508,6 +528,10 @@ const EmployeeListPage = () => {
             positionId,
             status: statusForForm,
             gender: String(enriched.gender ?? ""),
+            phone: String(enriched.phone ?? ""),
+            birthDate: enriched.birthDate ? String(enriched.birthDate) : "",
+            medeniDurum: String(enriched.medeniDurum ?? ""),
+            tc: String(enriched.tc ?? ""),
         });
     };
 
@@ -516,6 +540,20 @@ const EmployeeListPage = () => {
         setSavingId(null);
         setEditSubDepartments([]);
         setEditPositions([]);
+        setEditForm({
+            firstName: "",
+            lastName: "",
+            email: "",
+            departmentId: "",
+            subDepartmentId: "",
+            positionId: "",
+            status: "ACTIVE",
+            gender: "",
+            phone: "",
+            birthDate: "",
+            medeniDurum: "",
+            tc: "",
+        });
     };
 
     const saveEdit = async (empId: number) => {
@@ -531,6 +569,10 @@ const EmployeeListPage = () => {
                 positionId: editForm.positionId ? Number(editForm.positionId) : undefined,
                 status: editForm.status,
                 gender: editForm.gender || undefined,
+                phone: editForm.phone || undefined,
+                birthDate: editForm.birthDate || undefined,
+                medeniDurum: editForm.medeniDurum || undefined,
+                tc: editForm.tc || undefined,
             };
 
             const updated = await updateEmployee(empId, payload);
@@ -558,6 +600,36 @@ const EmployeeListPage = () => {
             setSavingId(null);
         }
     };
+
+    const handleDeleteEmployee = async (empId: number) => {
+        try {
+            setDeletingId(empId);
+            setError("");
+            await deleteEmployee(empId);
+
+            setEmployees((prev) => prev.filter((emp) => emp.id !== empId));
+            setSuccessMessage("Çalışan silindi.");
+            setModalOpen(false);
+            setModalEmployee(null);
+        } catch (err) {
+            console.error(err);
+            setError("Çalışan silinemedi");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const handleOpenModal = (emp: Employee) => {
+        setModalEmployee(emp);
+        setModalOpen(true);
+    };
+
+    const handleEditFromModal = (emp: Employee) => {
+        startEdit(emp);
+    };
+
+    const canEdit = hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]);
+    const canDelete = hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]);
 
     /* ── Labels / exclusions ── */
     const labelTR: Record<string, string> = useMemo(
@@ -634,12 +706,14 @@ const EmployeeListPage = () => {
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h1 className="text-2xl font-semibold">Çalışanlar</h1>
                 <div className="flex gap-3 items-center">
-                    <button
-                        onClick={() => navigate("/app/employees/create")}
-                        className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-                    >
-                        + Çalışan Ekle
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={() => navigate("/app/employees/create")}
+                            className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+                        >
+                            + Çalışan Ekle
+                        </button>
+                    )}
                     <input
                         type="text"
                         placeholder="Ara..."
@@ -723,50 +797,29 @@ const EmployeeListPage = () => {
                                                 </span>
                                             </td>
                                             <td className="p-3 text-right">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        isEditing ? cancelEdit() : startEdit(emp);
-                                                    }}
-                                                    title={isEditing ? "İptal" : "Güncelle"}
-                                                    className={`inline-flex items-center justify-center rounded-lg border p-2 transition
-                                                        ${
-                                                            isEditing
-                                                                ? "border-red-500/40 bg-red-500/10 text-red-400 hover:border-red-400 hover:text-red-300"
-                                                                : "border-slate-700 bg-slate-900/40 text-slate-400 hover:border-sky-400/60 hover:text-sky-300"
-                                                        }`}
-                                                >
-                                                    {isEditing ? (
+                                                {canEdit || canDelete ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenModal(emp);
+                                                        }}
+                                                        title="İşlemler"
+                                                        className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/40 text-slate-400 hover:border-sky-400/60 hover:text-sky-300 p-2 transition"
+                                                    >
                                                         <svg
                                                             className="w-4 h-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth={2}
+                                                            fill="currentColor"
                                                             viewBox="0 0 24 24"
                                                         >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M6 18L18 6M6 6l12 12"
-                                                            />
+                                                            <circle cx="12" cy="5" r="2" />
+                                                            <circle cx="12" cy="12" r="2" />
+                                                            <circle cx="12" cy="19" r="2" />
                                                         </svg>
-                                                    ) : (
-                                                        <svg
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth={1.8}
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                            />
-                                                        </svg>
-                                                    )}
-                                                </button>
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-xs text-slate-600">-</span>
+                                                )}
                                             </td>
                                         </tr>
 
@@ -1060,6 +1113,88 @@ const EmployeeListPage = () => {
                                                                         </div>
                                                                     </div>
                                                                 </div>
+
+                                                                {/* ── Kişisel Bilgiler ── */}
+                                                                <div>
+                                                                    <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                                                                        <span className="h-px flex-1 bg-slate-700/60" />
+                                                                        Kişisel Bilgiler
+                                                                        <span className="h-px flex-1 bg-slate-700/60" />
+                                                                    </p>
+                                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                        <div className="flex flex-col gap-2">
+                                                                            <label className="text-xs font-medium text-slate-400">
+                                                                                Telefon
+                                                                            </label>
+                                                                            <input
+                                                                                type="tel"
+                                                                                value={editForm.phone}
+                                                                                placeholder="Telefon numarası"
+                                                                                onChange={(e) =>
+                                                                                    setEditForm((p) => ({
+                                                                                        ...p,
+                                                                                        phone: e.target.value,
+                                                                                    }))
+                                                                                }
+                                                                                className="rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-400/70 focus:outline-none transition"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="flex flex-col gap-2">
+                                                                            <label className="text-xs font-medium text-slate-400">
+                                                                                Doğum Tarihi
+                                                                            </label>
+                                                                            <input
+                                                                                type="date"
+                                                                                value={editForm.birthDate}
+                                                                                onChange={(e) =>
+                                                                                    setEditForm((p) => ({
+                                                                                        ...p,
+                                                                                        birthDate: e.target.value,
+                                                                                    }))
+                                                                                }
+                                                                                className="rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2.5 text-sm text-white focus:border-sky-400/70 focus:outline-none transition"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="flex flex-col gap-2">
+                                                                            <label className="text-xs font-medium text-slate-400">
+                                                                                Medeni Durum
+                                                                            </label>
+                                                                            <MiniDropdown
+                                                                                value={editForm.medeniDurum}
+                                                                                options={maritalStatusOpts}
+                                                                                placeholder="Medeni durum seçin"
+                                                                                openDirection="up"
+                                                                                onChange={(v) =>
+                                                                                    setEditForm((p) => ({
+                                                                                        ...p,
+                                                                                        medeniDurum: v,
+                                                                                    }))
+                                                                                }
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="flex flex-col gap-2">
+                                                                            <label className="text-xs font-medium text-slate-400">
+                                                                                TC Kimlik No
+                                                                            </label>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={editForm.tc}
+                                                                                placeholder="11 haneli TC kimlik numarası"
+                                                                                maxLength={11}
+                                                                                onChange={(e) =>
+                                                                                    setEditForm((p) => ({
+                                                                                        ...p,
+                                                                                        tc: e.target.value,
+                                                                                    }))
+                                                                                }
+                                                                                className="rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-sky-400/70 focus:outline-none transition"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1160,6 +1295,18 @@ const EmployeeListPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Actions Modal */}
+            <EmployeeActionsModal
+                employee={modalEmployee}
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                onEdit={handleEditFromModal}
+                onDelete={handleDeleteEmployee}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                isDeletingId={deletingId}
+            />
         </div>
     );
 };

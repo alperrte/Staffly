@@ -10,4 +10,5 @@ public class CreateTaskRequest {
     private String priority;
     private LocalDateTime startDate;
     private LocalDateTime dueDate;
+    private Long departmentId;
 }

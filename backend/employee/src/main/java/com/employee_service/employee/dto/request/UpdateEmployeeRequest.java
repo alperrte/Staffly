@@ -15,6 +15,8 @@ public class UpdateEmployeeRequest {
     private String phone;
     private LocalDate birthDate;
     private String gender;
+    private String medeniDurum;
+    private String tc;
 
     private Long departmentId;
     private Long positionId;

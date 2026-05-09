@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createTask, assignTask } from "../../services/taskService";
 import { getDepartments } from "../../services/departmentService";
-import { getAllEmployees } from "../../services/employeeService";
+import { getAllEmployees, getMyProfile } from "../../services/employeeService";
+import { hasAnyRole, ROLE_DEPARTMENT_MANAGER } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
@@ -38,6 +39,7 @@ type CreateTaskForm = {
   priority: string;
   startDate: string;
   dueDate: string;
+  departmentId: string;
 };
 
 /* ══ MiniDropdown ══════════════════════════════════════════════════════ */
@@ -207,6 +209,7 @@ const CreateTaskPage = () => {
     priority: "LOW",
     startDate: "",
     dueDate: "",
+    departmentId: "",
   });
 
   const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
@@ -220,9 +223,13 @@ const CreateTaskPage = () => {
   const [selectedSubDeptId, setSelectedSubDeptId] = useState("");
   const [selectedPositionIds, setSelectedPositionIds] = useState<string[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [isDeptManager, setIsDeptManager] = useState(false);
 
   /* ── Loads ── */
   useEffect(() => {
+    const deptManager = hasAnyRole([ROLE_DEPARTMENT_MANAGER]);
+    setIsDeptManager(deptManager);
+
     Promise.all([getDepartments(), getAllEmployees()])
         .then(([departmentData, employeeData]: [unknown, unknown]) => {
           const list: DepartmentResponse[] = Array.isArray(departmentData)
@@ -233,6 +240,21 @@ const CreateTaskPage = () => {
               ? employeeData
               : (employeeData as any)?.content ?? [];
           setEmployees(empList);
+
+          // If current user is department manager, auto-fill their department
+          if (deptManager) {
+            getMyProfile()
+                .then((profile: any) => {
+                  const deptId = profile?.departmentId ?? profile?.department?.id ?? null;
+                  if (deptId != null) {
+                    setSelectedDeptId(String(deptId));
+                    setForm((prev) => ({ ...prev, departmentId: String(deptId) }));
+                  }
+                })
+                .catch((e) => {
+                  console.error("Failed to load my profile for dept manager", e);
+                });
+          }
         })
         .catch(console.error);
   }, []);
@@ -306,6 +328,7 @@ const CreateTaskPage = () => {
   /* ── Handlers ── */
   const handleDeptChange = (v: string) => {
     setSelectedDeptId(v);
+    setForm((prev) => ({ ...prev, departmentId: v }));
     setSelectedSubDeptId("");
     setSelectedPositionIds([]);
     setSelectedEmployeeIds([]);
@@ -346,6 +369,7 @@ const CreateTaskPage = () => {
 
       const payload = {
         ...form,
+        departmentId: form.departmentId ? Number(form.departmentId) : undefined,
         title,
         description,
         startDate: form.startDate,
@@ -530,12 +554,13 @@ const CreateTaskPage = () => {
 
             <div className="flex flex-col gap-2">
               <label className={labelClass}>Departman</label>
-              <MiniDropdown
+                <MiniDropdown
                   value={selectedDeptId}
                   options={deptOptions}
                   placeholder="Departman seçin"
                   onChange={handleDeptChange}
-              />
+                  disabled={isDeptManager}
+                />
             </div>
 
             <div className="flex flex-col gap-2">

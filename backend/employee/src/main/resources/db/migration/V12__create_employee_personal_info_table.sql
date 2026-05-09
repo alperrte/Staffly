@@ -4,6 +4,8 @@ CREATE TABLE employee_personal_info (
     phone NVARCHAR(20),
     birth_date DATE,
     gender NVARCHAR(20),
+    medeni_durum NVARCHAR(50),
+    tc NVARCHAR(20),
     CONSTRAINT fk_employee_personal_info_employee
         FOREIGN KEY (employee_id) REFERENCES employees(id),
     CONSTRAINT uq_employee_personal_info_employee_id UNIQUE (employee_id)

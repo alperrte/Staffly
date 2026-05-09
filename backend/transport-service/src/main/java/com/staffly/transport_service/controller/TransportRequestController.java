@@ -17,6 +17,7 @@ import com.staffly.transport_service.service.TransportRequestService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/transport-requests")
@@ -36,11 +37,13 @@ public class TransportRequestController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER','SYSTEM_ADMIN')")
     public TransportRequestResponse createRequest(@Valid @RequestBody CreateTransportRequest request) {
         return transportRequestService.createRequest(request);
     }
 
     @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRequestResponse approveRequest(
             @PathVariable Long id,
             @RequestBody(required = false) ReviewTransportRequest request
@@ -49,6 +52,7 @@ public class TransportRequestController {
     }
 
     @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRequestResponse rejectRequest(
             @PathVariable Long id,
             @RequestBody(required = false) ReviewTransportRequest request

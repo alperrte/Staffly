@@ -25,6 +25,8 @@ public class CreateEmployeeRequest {
     private String phone;
     private LocalDate birthDate;
     private String gender;
+    private String medeniDurum;
+    private String tc;
 
     @NotNull
     private Long departmentId;

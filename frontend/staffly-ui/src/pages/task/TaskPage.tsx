@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getAllTasks, updateStatus } from "../../services/taskService";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, hasAnyRole } from "../../utils/auth";
 
 type TaskResponse = {
   id: number;
@@ -121,6 +122,7 @@ const TaskPage = () => {
   /* Expand */
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const canCreateTask = hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]);
 
   /* ── Loads ── */
   const loadTasks = () => {
@@ -249,12 +251,14 @@ const TaskPage = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl font-semibold">Görevler</h1>
           <div className="flex gap-3 items-center">
-            <button
-                onClick={() => navigate("/app/tasks/create")}
-                className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-            >
-              + Görev Ekle
-            </button>
+            {canCreateTask && (
+              <button
+                  onClick={() => navigate("/app/tasks/create")}
+                  className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+              >
+                + Görev Ekle
+              </button>
+            )}
             <input
                 type="text"
                 placeholder="Ara..."

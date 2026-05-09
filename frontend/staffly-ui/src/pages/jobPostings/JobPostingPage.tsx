@@ -56,7 +56,7 @@ const workModelMap: Record<string, string> = {
     HYBRID: "Hibrit",
 };
 
-type StatusFilter = "ACTIVE" | "DRAFT" | "CLOSED";
+// status filter type is provided by shared types as `JobPostingStatusFilter`
 
 /** Son başvuru: geçmiş takvim yılları seçilemesin (min = yılın 1 Ocak'ı, bugünkü yıl). */
 function minApplicationDeadlineDate(): string {

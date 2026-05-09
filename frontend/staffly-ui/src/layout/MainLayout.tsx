@@ -1,9 +1,18 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./MainSideBar";
 import { Bell, ChevronDown, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import {
+    ROLE_DEPARTMENT_MANAGER,
+    ROLE_EMPLOYEE,
+    ROLE_HR_MANAGER,
+    ROLE_MANAGER,
+    ROLE_SYSTEM_ADMIN,
+    ROLE_ACCOUNTING,
+    hasAnyRole,
+} from "../utils/auth";
 
-const decodeJwtPayload = (token) => {
+const decodeJwtPayload = (token: string) => {
     const payload = token.split(".")[1];
 
     if (!payload) {
@@ -17,20 +26,22 @@ const decodeJwtPayload = (token) => {
 };
 
 const searchablePages = [
-    { label: "Çalışanlar", path: "/app/employees", keywords: ["çalışan", "personel", "employee"] },
-    { label: "Kullanıcılar", path: "/app/users", keywords: ["kullanıcı", "user", "hesap"] },
-    { label: "Başvurular", path: "/app/applications", keywords: ["başvuru", "cv", "aday"] },
-    { label: "İş İlanları", path: "/app/job-postings", keywords: ["ilan", "iş ilanı"] },
-    { label: "Görevler", path: "/app/tasks", keywords: ["görev", "task"] },
-    { label: "Görevlerim", path: "/app/tasks/mytasks", keywords: ["görevlerim", "my task"] },
-    { label: "Maaş & Bordro", path: "/app/payroll", keywords: ["maaş", "bordro", "payroll"] },
-    { label: "İzin Talepleri", path: "/app/leaveService", keywords: ["izin", "leave"] },
-    { label: "Çalışma Takvimi", path: "/app/work-schedules", keywords: ["çalışma", "takvim", "mesai"] },
-    { label: "Toplantı Planlama", path: "/app/meetings", keywords: ["toplantı", "meeting"] },
-    { label: "Takvimim", path: "/app/my-schedule", keywords: ["takvimim", "programım"] },
-    { label: "Ulaşım", path: "/app/transport", keywords: ["ulaşım", "servis"] },
-    { label: "Profil", path: "/app/profile", keywords: ["profil", "profile"] },
-    { label: "Ayarlar", path: "/app/settings", keywords: ["ayar", "settings"] },
+    { label: "Çalışanlar", path: "/app/employees", keywords: ["çalışan", "personel", "employee"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
+    { label: "Kullanıcılar", path: "/app/users", keywords: ["kullanıcı", "user", "hesap"], roles: [ROLE_SYSTEM_ADMIN] },
+    { label: "Başvurular", path: "/app/applications", keywords: ["başvuru", "cv", "aday"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER] },
+    { label: "İş İlanları", path: "/app/job-postings", keywords: ["ilan", "iş ilanı"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER] },
+    { label: "Görevler", path: "/app/tasks", keywords: ["görev", "task"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER] },
+    { label: "Görevlerim", path: "/app/tasks/mytasks", keywords: ["görevlerim", "my task"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    { label: "Maaş Takibi", path: "/app/payroll/salary-tracking", keywords: ["maaş", "bordro", "payroll", "avans"], roles: [ROLE_EMPLOYEE] },
+    { label: "Avans Talepleri", path: "/app/payroll/advance-requests", keywords: ["avans", "talep", "onay", "red"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING] },
+    { label: "Maaş Ataması", path: "/app/payroll/salary-assignment", keywords: ["maaş", "atama", "bonus", "kesinti"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING] },
+    { label: "İzin Talepleri", path: "/app/leaveService", keywords: ["izin", "leave"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    { label: "Çalışma Takvimi", path: "/app/work-schedules", keywords: ["çalışma", "takvim", "mesai"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
+    { label: "Toplantı Planlama", path: "/app/meetings", keywords: ["toplantı", "meeting"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
+    { label: "Takvimim", path: "/app/my-schedule", keywords: ["takvimim", "programım"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    { label: "Ulaşım", path: "/app/transport", keywords: ["ulaşım", "servis"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    { label: "Profil", path: "/app/profile", keywords: ["profil", "profile"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    { label: "Ayarlar", path: "/app/settings", keywords: ["ayar", "settings"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
 ];
 
 const MainLayout = () => {
@@ -64,6 +75,10 @@ const MainLayout = () => {
         if (!value) return [];
 
         return searchablePages.filter((page) => {
+            if (page.roles && !hasAnyRole(page.roles)) {
+                return false;
+            }
+
             const labelMatch = page.label.toLowerCase().includes(value);
             const keywordMatch = page.keywords.some((keyword) =>
                 keyword.toLowerCase().includes(value)
@@ -73,7 +88,7 @@ const MainLayout = () => {
         });
     }, [search]);
 
-    const handleSearchKeyDown = (e) => {
+    const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && filteredPages.length > 0) {
             navigate(filteredPages[0].path);
             setSearch("");

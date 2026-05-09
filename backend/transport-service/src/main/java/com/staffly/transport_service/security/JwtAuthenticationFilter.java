@@ -1,4 +1,4 @@
-package com.taskservice.task.security;
+package com.staffly.transport_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -6,14 +6,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -49,29 +48,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userEmail = jwtService.extractUsername(jwt);
 
                 java.util.List<SimpleGrantedAuthority> authorities =
-                    jwtService.extractRoles(jwt)
-                        .stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .toList();
+                        jwtService.extractRoles(jwt)
+                                .stream()
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
 
                 UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                        userEmail,
-                        null,
-                        authorities
-                    );
+                        new UsernamePasswordAuthenticationToken(
+                                userEmail,
+                                null,
+                                authorities
+                        );
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-
-        } catch (Exception e) {
-            SecurityContextHolder.clearContext();
+        } catch (Exception ignored) {
         }
 
         filterChain.doFilter(request, response);
     }
+
 }

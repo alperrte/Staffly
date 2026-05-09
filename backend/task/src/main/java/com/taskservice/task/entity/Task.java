@@ -21,6 +21,9 @@ public class Task {
 
     private String priority;
 
+    @Column(name = "department_id")
+    private Long departmentId;
+
     @Column(name = "start_date")
     private LocalDateTime startDate;
 

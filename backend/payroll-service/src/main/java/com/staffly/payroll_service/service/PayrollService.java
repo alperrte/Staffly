@@ -34,7 +34,8 @@ public class PayrollService {
         long payrollCount = payrollRepository.countByEmployeeId(employeeId);
         long bonusCount = bonusRepository.countByEmployeeId(employeeId);
         long deductionCount = deductionRepository.countByEmployeeId(employeeId);
-        long pendingAdv = salaryAdvanceRepository.countByEmployeeIdAndApprovedIsFalse(employeeId);
+        long pendingAdv = salaryAdvanceRepository
+            .countByEmployeeIdAndApprovedIsFalseAndRejectionReasonIsNull(employeeId);
         long approvedAdv = salaryAdvanceRepository.countByEmployeeIdAndApprovedIsTrue(employeeId);
 
         return EmployeePayrollOverviewResponse.from(
@@ -156,6 +157,8 @@ public class PayrollService {
     // 🔥 AVANS TALEP
     public SalaryAdvance requestAdvance(SalaryAdvance advance) {
         advance.setApproved(false);
+        advance.setRejectionReason(null);
+        advance.setReviewedAt(null);
         advance.setCreatedAt(LocalDateTime.now());
         return salaryAdvanceRepository.save(advance);
     }
@@ -167,7 +170,30 @@ public class PayrollService {
                 .orElseThrow(() -> new RuntimeException("Advance not found"));
 
         advance.setApproved(true);
+        advance.setRejectionReason(null);
+        advance.setReviewedAt(LocalDateTime.now());
 
         return salaryAdvanceRepository.save(advance);
+    }
+
+    public SalaryAdvance rejectAdvance(Long id, String reason) {
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new RuntimeException("Rejection reason is required");
+        }
+
+        SalaryAdvance advance = salaryAdvanceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Advance not found"));
+
+        advance.setApproved(false);
+        advance.setRejectionReason(reason.trim());
+        advance.setReviewedAt(LocalDateTime.now());
+
+        return salaryAdvanceRepository.save(advance);
+    }
+
+    public java.util.List<SalaryAdvance> getPendingAdvances() {
+        return salaryAdvanceRepository
+                .findByApprovedIsFalseAndRejectionReasonIsNullOrderByCreatedAtDesc();
     }
 }

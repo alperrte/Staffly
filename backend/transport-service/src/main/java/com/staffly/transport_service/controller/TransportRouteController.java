@@ -19,6 +19,7 @@ import com.staffly.transport_service.service.TransportRouteService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/transport-routes")
@@ -43,11 +44,13 @@ public class TransportRouteController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRouteResponse createRoute(@Valid @RequestBody CreateTransportRouteRequest request) {
         return transportRouteService.createRoute(request);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRouteResponse updateRoute(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTransportRouteRequest request
@@ -56,11 +59,13 @@ public class TransportRouteController {
     }
 
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRouteResponse activateRoute(@PathVariable Long id) {
         return transportRouteService.setActive(id, true);
     }
 
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
     public TransportRouteResponse deactivateRoute(@PathVariable Long id) {
         return transportRouteService.setActive(id, false);
     }

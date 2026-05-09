@@ -324,7 +324,7 @@ const CvServicePage = () => {
         };
     }, [applications]);
 
-    const renderSortIcon = (field: SortField) => {
+    const renderSortIcon = (field: ApplicationSortField) => {
         if (sortField !== field) {
             return <ChevronDown className="h-4 w-4 text-slate-500" />;
         }
@@ -348,7 +348,7 @@ const CvServicePage = () => {
         return "Bu başvuru için işlem yapılabilir.";
     };
 
-    const getTabIcon = (tab: TabType) => {
+    const getTabIcon = (tab: ApplicationTabType) => {
         if (tab === "PENDING") {
             return <Clock3 className="h-4 w-4 text-amber-300" />;
         }
@@ -515,7 +515,7 @@ const CvServicePage = () => {
                 </div>
 
                 <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    {(["PENDING", "ACCEPTED", "REJECTED"] as TabType[]).map((tab) => {
+                    {(["PENDING", "ACCEPTED", "REJECTED"] as ApplicationTabType[]).map((tab) => {
                         const isActive = activeTab === tab;
 
                         return (

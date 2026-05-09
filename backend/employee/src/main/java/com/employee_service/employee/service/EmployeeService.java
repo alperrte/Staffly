@@ -58,6 +58,8 @@ public class EmployeeService {
                 .phone(request.getPhone())
                 .birthDate(request.getBirthDate())
                 .gender(request.getGender())
+                .medeniDurum(request.getMedeniDurum())
+                .tc(request.getTc())
                 .build();
 
         personalInfoRepository.save(personalInfo);
@@ -221,6 +223,46 @@ public class EmployeeService {
                 .toList();
     }
 
+    public List<EmployeeResponse> getEmployeesByDepartment(Long departmentId) {
+
+        return employeeRepository.findByIsDeletedFalse()
+                .stream()
+                .filter(employee -> {
+                    EmployeeJobInfo jobInfo = jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+                    return jobInfo != null && jobInfo.getDepartmentId() != null && jobInfo.getDepartmentId().equals(departmentId);
+                })
+                .map(employee -> {
+                    EmployeePersonalInfo personalInfo =
+                            personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+                    EmployeeJobInfo jobInfo =
+                            jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
+
+                    return EmployeeResponse.builder()
+                            .id(employee.getId())
+                            .firstName(employee.getFirstName())
+                            .lastName(employee.getLastName())
+                            .email(employee.getEmail())
+                            .hireDate(employee.getHireDate())
+                            .status(employee.getStatus())
+                            .phone(personalInfo != null ? personalInfo.getPhone() : null)
+                            .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
+                            .gender(personalInfo != null ? personalInfo.getGender() : null)
+                            .medeniDurum(personalInfo != null ? personalInfo.getMedeniDurum() : null)
+                            .tc(personalInfo != null ? personalInfo.getTc() : null)
+                            .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
+                            .departmentName(jobInfo != null && jobInfo.getDepartmentId() != null ? employeeDepartmentClient.getDepartmentName(jobInfo.getDepartmentId()) : null)
+                            .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
+                            .positionName(
+                                    jobInfo != null && jobInfo.getDepartmentId() != null && jobInfo.getPositionId() != null
+                                            ? employeeDepartmentClient.getPositionNameByDepartment(jobInfo.getDepartmentId(), jobInfo.getPositionId())
+                                            : null
+                            )
+                            .build();
+                })
+                .toList();
+    }
+
     public EmployeeResponse updateEmployee(Long id, UpdateEmployeeRequest request) {
 
         Employee employee = employeeRepository.findById(id).orElseThrow();
@@ -241,6 +283,8 @@ public class EmployeeService {
         if (request.getPhone() != null) personalInfo.setPhone(request.getPhone());
         if (request.getBirthDate() != null) personalInfo.setBirthDate(request.getBirthDate());
         if (request.getGender() != null) personalInfo.setGender(request.getGender());
+        if (request.getMedeniDurum() != null) personalInfo.setMedeniDurum(request.getMedeniDurum());
+        if (request.getTc() != null) personalInfo.setTc(request.getTc());
 
         if (request.getDepartmentId() != null) {
             if (!employeeDepartmentClient.isDepartmentExists(request.getDepartmentId())) {
@@ -301,6 +345,8 @@ public class EmployeeService {
                 .phone(personalInfo != null ? personalInfo.getPhone() : null)
                 .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
                 .gender(personalInfo != null ? personalInfo.getGender() : null)
+                .medeniDurum(personalInfo != null ? personalInfo.getMedeniDurum() : null)
+                .tc(personalInfo != null ? personalInfo.getTc() : null)
                 .departmentId(departmentId)
                 .departmentName(departmentId != null ? employeeDepartmentClient.getDepartmentName(departmentId) : null)
                 .positionId(positionId)
