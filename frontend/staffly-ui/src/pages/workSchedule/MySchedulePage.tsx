@@ -5,13 +5,16 @@ import {
     getEmployeeOvertimes,
     getEmployeeSchedule,
     getEmployees,
-    type CalendarEventResponse,
-    type CompanyHolidayResponse,
-    type EmployeeResponse,
-    type OvertimeResponse,
-    type WorkModel,
-    type WorkScheduleResponse,
 } from "../../services/workScheduleService";
+
+import type {
+    CalendarEventResponse,
+    CompanyHolidayResponse,
+    EmployeeResponse,
+    OvertimeResponse,
+    WorkModel,
+    WorkScheduleResponse,
+} from "../../types/workScheduleTypes";
 
 const cardClass =
     "rounded-3xl border border-slate-800/80 bg-slate-950/70 shadow-[0_0_35px_rgba(15,23,42,0.75)] p-5";

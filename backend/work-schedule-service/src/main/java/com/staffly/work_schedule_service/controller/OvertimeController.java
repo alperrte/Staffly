@@ -6,6 +6,7 @@ import com.staffly.work_schedule_service.dto.request.UpdateOvertimeRequest;
 import com.staffly.work_schedule_service.dto.response.OvertimeResponse;
 import com.staffly.work_schedule_service.service.OvertimeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ public class OvertimeController {
 
     private final OvertimeService overtimeService;
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PostMapping
     public OvertimeResponse createOvertime(
             @RequestBody CreateOvertimeRequest request
@@ -25,6 +27,7 @@ public class OvertimeController {
         return overtimeService.createOvertime(request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PostMapping("/bulk")
     public List<OvertimeResponse> createBulkOvertime(
             @RequestBody CreateBulkOvertimeRequest request
@@ -32,6 +35,7 @@ public class OvertimeController {
         return overtimeService.createBulkOvertime(request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
     @GetMapping("/employee/{employeeId}")
     public List<OvertimeResponse> getEmployeeOvertimes(
             @PathVariable Long employeeId,
@@ -41,6 +45,7 @@ public class OvertimeController {
         return overtimeService.getEmployeeOvertimes(employeeId, startDate, endDate);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @GetMapping("/department/{departmentId}")
     public List<OvertimeResponse> getDepartmentOvertimes(
             @PathVariable Long departmentId,
@@ -50,6 +55,7 @@ public class OvertimeController {
         return overtimeService.getDepartmentOvertimes(departmentId, startDate, endDate);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PutMapping("/{id}")
     public OvertimeResponse updateOvertime(
             @PathVariable Long id,
@@ -58,6 +64,7 @@ public class OvertimeController {
         return overtimeService.updateOvertime(id, request);
     }
 
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PatchMapping("/{id}/cancel")
     public OvertimeResponse cancelOvertime(@PathVariable Long id) {
         return overtimeService.cancelOvertime(id);

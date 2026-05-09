@@ -1,40 +1,23 @@
-export type DepartmentPosition = {
-    name: string;
-    description: string;
-};
-
-export type SubDepartment = {
-    name: string;
-    description: string;
-    managerId?: number | null;
-    positions: DepartmentPosition[];
-};
-
-export type Department = {
-    id?: number;
-    name: string;
-    description: string;
-    managerId?: number | null;
-    subDepartments: SubDepartment[];
-    deleted?: boolean;
-};
+import type { Department } from "../types/departmentTypes";
 
 const BASE_URL = "http://localhost:8083/departments";
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
+const getToken = () => {
+    return localStorage.getItem("token");
+};
 
+const getAuthHeaders = () => {
     return {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
+        Authorization: "Bearer " + getToken(),
     };
 };
 
 export const getDepartments = async (): Promise<Department[]> => {
     const response = await fetch(BASE_URL, {
         headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
-        }
+            Authorization: "Bearer " + getToken(),
+        },
     });
 
     if (!response.ok) {
@@ -48,7 +31,7 @@ export const createDepartment = async (data: Department): Promise<Department> =>
     const response = await fetch(BASE_URL, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
     });
 
     if (!response.ok) {
@@ -58,11 +41,14 @@ export const createDepartment = async (data: Department): Promise<Department> =>
     return response.json();
 };
 
-export const updateDepartment = async (id: number, data: Department): Promise<Department> => {
+export const updateDepartment = async (
+    id: number,
+    data: Department
+): Promise<Department> => {
     const response = await fetch(`${BASE_URL}/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
     });
 
     if (!response.ok) {
@@ -76,8 +62,8 @@ export const deleteDepartment = async (id: number): Promise<void> => {
     const response = await fetch(`${BASE_URL}/${id}`, {
         method: "DELETE",
         headers: {
-            "Authorization": "Bearer " + localStorage.getItem("token")
-        }
+            Authorization: "Bearer " + getToken(),
+        },
     });
 
     if (!response.ok) {

@@ -19,34 +19,13 @@ import {
     getJobPostings,
 } from "../../services/applicationService";
 
-type Position = {
-    id: number;
-    name?: string;
-    positionName?: string;
-    subDepartmentId?: number;
-};
+import type {
+    Position,
+    JobPosting,
+    JobPostingStatusFilter,
+} from "../../types/cvServiceTypes";
 
-type JobPosting = {
-    id: number;
-    title: string;
-    description: string;
-    departmentName: string;
-    subDepartmentName: string;
-    positionName: string;
-    positionId: number;
-    experienceLevel?: string;
-    employmentType?: string;
-    workModel?: string;
-    location?: string;
-    requirements?: string;
-    responsibilities?: string;
-    benefits?: string;
-    teamInfo?: string;
-    status: "ACTIVE" | "CLOSED" | "DRAFT";
-    applicationDeadline?: string;
-    createdAt?: string;
-    closedAt?: string;
-};
+
 
 const emptyForm = {
     title: "",
@@ -94,7 +73,7 @@ export default function JobPostingsPage() {
     const [saving, setSaving] = useState(false);
     const [pageError, setPageError] = useState("");
     const [form, setForm] = useState(emptyForm);
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>("ACTIVE");
+    const [statusFilter, setStatusFilter] = useState<JobPostingStatusFilter>("ACTIVE");
     const [viewJob, setViewJob] = useState<JobPosting | null>(null);
 
     const fetchData = async () => {

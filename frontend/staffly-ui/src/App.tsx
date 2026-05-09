@@ -25,6 +25,7 @@ import AllTicketsPage from "./pages/support/AllTicketsPage";
 import SetPasswordPage from "./pages/auth/SetPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
+import DepartmentManagementPage from "./pages/department/DepartmentManagementPage";
 
 function App() {
     return (
@@ -44,6 +45,7 @@ function App() {
                     <Route path="employees/create" element={<CreateEmployeePage />} />
 
                     <Route path="departments" element={<DepartmentsPage />} />
+                    <Route path="departments/manage" element={<DepartmentManagementPage />} />
                     <Route path="users" element={<UserPage />} />
                     <Route path="applications" element={<CvServicePage />} />
                     <Route path="job-postings" element={<JobPostingsPage />} />

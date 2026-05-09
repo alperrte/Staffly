@@ -8,11 +8,14 @@ import {
     getEmployees,
     removeParticipant,
     updateCalendarEvent,
-    type CalendarEventResponse,
-    type DepartmentResponse,
-    type EmployeeResponse,
-    type EventType,
 } from "../../services/workScheduleService";
+
+import type {
+    CalendarEventResponse,
+    DepartmentResponse,
+    EmployeeResponse,
+    EventType,
+} from "../../types/workScheduleTypes";
 
 const inputClass =
     "w-full rounded-xl bg-slate-950/80 border border-slate-700/80 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 transition [&>option]:bg-slate-950 [&>option]:text-slate-100";

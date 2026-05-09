@@ -13,12 +13,15 @@ import {
     getEmployees,
     updateDepartmentWorkSchedule,
     updateOvertime,
-    type DepartmentResponse,
-    type DepartmentWorkScheduleResponse,
-    type EmployeeResponse,
-    type OvertimeResponse,
-    type WorkModel,
 } from "../../services/workScheduleService";
+
+import type {
+    DepartmentResponse,
+    DepartmentWorkScheduleResponse,
+    EmployeeResponse,
+    OvertimeResponse,
+    WorkModel,
+} from "../../types/workScheduleTypes";
 
 const inputClass =
     "w-full rounded-xl bg-slate-950/80 border border-slate-700/80 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 transition disabled:opacity-60 disabled:cursor-not-allowed [&>option]:bg-slate-950 [&>option]:text-slate-100";
