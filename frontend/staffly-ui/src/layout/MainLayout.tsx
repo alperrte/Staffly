@@ -52,7 +52,7 @@ const MainLayout = () => {
     const [search, setSearch] = useState("");
 
     const isDashboard = location.pathname === "/app";
-
+    const isApplicationsPage = location.pathname === "/app/applications";
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -105,7 +105,11 @@ const MainLayout = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900" />
                 </div>
 
-                <div className="relative z-10 flex min-h-0 flex-1 flex-col px-8 py-6">
+                <div
+                    className={`relative z-10 flex min-h-0 flex-1 flex-col ${
+                        isApplicationsPage ? "px-3 py-3" : "px-8 py-6"
+                    }`}
+                >
                     {isDashboard && (
                         <header className="relative z-50 mb-6 flex shrink-0 items-center justify-between gap-6 rounded-3xl border border-white/10 bg-slate-950/55 px-5 py-4 shadow-[0_0_35px_rgba(15,23,42,0.75)] backdrop-blur-2xl">
                             <div className="relative hidden w-full max-w-2xl md:block">
@@ -157,8 +161,18 @@ const MainLayout = () => {
                         </header>
                     )}
 
-                    <main className="staffly-scroll relative z-10 min-h-0 flex-1 overflow-y-auto pr-2">
-                        <div className="min-h-full w-full rounded-3xl border border-white/10 bg-slate-900/35 p-6 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl">
+                    <main
+                        className={`staffly-scroll relative z-10 min-h-0 flex-1 overflow-y-auto ${
+                            isApplicationsPage ? "pr-0" : "pr-2"
+                        }`}
+                    >
+                        <div
+                            className={
+                                isApplicationsPage
+                                    ? "min-h-full w-full"
+                                    : "min-h-full w-full rounded-3xl border border-white/10 bg-slate-900/35 p-6 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl"
+                            }
+                        >
                             <Outlet />
                         </div>
                     </main>
