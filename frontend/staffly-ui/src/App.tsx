@@ -39,6 +39,8 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import DepartmentManagementPage from "./pages/department/DepartmentManagementPage";
 
+import ApplicationPage from "./pages/application/ApplicationPage";
+
 function App() {
     return (
         <BrowserRouter>
@@ -98,7 +100,7 @@ function App() {
                         path="applications"
                         element={
                             <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
-                                <CvServicePage />
+                                <ApplicationPage />
                             </ProtectedRoute>
                         }
                     />
@@ -223,6 +225,15 @@ function App() {
                         element={
                             <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
                                 <AllTicketsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="applications"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
+                                <ApplicationPage />
                             </ProtectedRoute>
                         }
                     />
