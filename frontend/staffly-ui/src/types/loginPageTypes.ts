@@ -1,0 +1,20 @@
+export type JobPosting = {
+    id: number;
+    title: string;
+    description: string;
+    departmentName: string;
+    subDepartmentName: string;
+    positionName: string;
+    positionId: number;
+    experienceLevel?: string;
+    employmentType?: string;
+    workModel?: string;
+    location?: string;
+    requirements?: string;
+    responsibilities?: string;
+    benefits?: string;
+    teamInfo?: string;
+    status?: string;
+    applicationDeadline?: string;
+    createdAt?: string;
+};
