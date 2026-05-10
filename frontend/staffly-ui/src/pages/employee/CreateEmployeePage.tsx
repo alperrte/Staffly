@@ -35,93 +35,31 @@ type CreateEmployeeForm = {
 
 type DropdownOption = { value: string; label: string };
 
-/* ══════════════════════════════════════════════════════════
-   Phone Codes
-══════════════════════════════════════════════════════════ */
-const PHONE_CODES = [
-    { code: "+90", label: "TR (+90)"},
-    { code: "+1", label: "US (+1)"},
-    { code: "+44", label: "UK (+44)"},
-    { code: "+49", label: "DE (+49)"},
-    { code: "+33", label: "FR (+33)"},
-    { code: "+39", label: "IT (+39)"},
-    { code: "+31", label: "NL (+31)"},
-    { code: "+34", label: "ES (+34)"},
-    { code: "+7", label: "RU (+7)" },
-    { code: "+971", label: "AE (+971)"},
-];
+const PHONE_NUMBER_LENGTH = 10;
 
-/* ══════════════════════════════════════════════════════════
-   PhoneInput
-══════════════════════════════════════════════════════════ */
-function PhoneInput(props: {
-    code: string;
+function PhoneInput({
+    number,
+    onNumberChange,
+}: {
     number: string;
-    onCodeChange: (v: string) => void;
     onNumberChange: (v: string) => void;
 }) {
-    const { code, number, onCodeChange, onNumberChange } = props;
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const h = (e: MouseEvent) => {
-            if (!ref.current?.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener("mousedown", h);
-        return () => document.removeEventListener("mousedown", h);
-    }, [open]);
-
-    const selected = PHONE_CODES.find((c) => c.code === code) ?? PHONE_CODES[0];
-
     return (
         <div
-            ref={ref}
-            className="relative flex rounded-xl border border-white/10 bg-slate-900/45 overflow-visible focus-within:border-sky-400/70 focus-within:ring-1 focus-within:ring-sky-500/30 transition"
+            className="flex overflow-hidden rounded-xl border border-white/10 bg-slate-900/45 transition focus-within:border-sky-400/70 focus-within:ring-1 focus-within:ring-sky-500/30"
         >
-            <button
-                type="button"
-                onClick={() => setOpen((v) => !v)}
-                className="flex items-center gap-2 px-3 py-2.5 border-r border-white/10 text-sm text-white hover:bg-white/5 transition shrink-0 rounded-l-xl"
-            >
-                <span className="text-base leading-none">{selected.code}</span>
-                <span className="text-slate-200 whitespace-nowrap">{selected.label}</span>
-                <span className="text-slate-500 text-xs ml-0.5">{open ? "▴" : "▾"}</span>
-            </button>
-
-            {open && (
-                <div className="absolute left-0 top-full mt-1.5 z-50 w-44 rounded-xl border border-white/10 bg-slate-950 shadow-[0_8px_48px_rgba(0,0,0,0.8)]">
-                    <div className="p-1.5 max-h-56 overflow-y-auto">
-                        {PHONE_CODES.map((c) => (
-                            <button
-                                key={c.code}
-                                type="button"
-                                onClick={() => {
-                                    onCodeChange(c.code);
-                                    setOpen(false);
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2.5 transition
-                                    ${
-                                        c.code === code
-                                            ? "bg-sky-500/20 text-sky-100 font-medium"
-                                            : "text-slate-200 hover:bg-sky-500/10"
-                                    }`}
-                            >
-                                <span className="text-base">{c.code}</span>
-                                <span>{c.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <div className="flex shrink-0 items-center border-r border-white/10 px-3 py-2.5 text-sm font-semibold text-white">
+                +90
+            </div>
 
             <input
                 type="tel"
                 value={number}
-                onChange={(e) => onNumberChange(e.target.value.replace(/[^\d\s\-]/g, ""))}
+                onChange={(e) => onNumberChange(e.target.value.replace(/\D/g, "").slice(0, PHONE_NUMBER_LENGTH))}
                 placeholder="5xx xxx xx xx"
-                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none rounded-r-xl"
+                inputMode="numeric"
+                maxLength={PHONE_NUMBER_LENGTH}
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none"
                 autoComplete="tel-national"
             />
         </div>
@@ -739,12 +677,7 @@ const CreateEmployeePage = () => {
                     <div className="flex flex-col gap-2">
                         <label className={labelClass}>Telefon</label>
                         <PhoneInput
-                            code={form.phoneCode}
                             number={form.phoneNumber}
-                            onCodeChange={(v) => {
-                                setError("");
-                                setForm((p) => ({ ...p, phoneCode: v }));
-                            }}
                             onNumberChange={(v) => {
                                 setError("");
                                 setForm((p) => ({ ...p, phoneNumber: v }));

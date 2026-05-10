@@ -98,8 +98,8 @@ export default function TransportPage() {
                           firstName: employee.firstName,
                           lastName: employee.lastName,
                           email: employee.email,
-                          departmentName: employee.departmentName,
-                          positionName: employee.positionName,
+                                                    departmentName: employee.departmentName ?? undefined,
+                                                    positionName: employee.positionName ?? undefined,
                           status: employee.status,
                       }
                     : { id: user.employeeId }

@@ -26,6 +26,14 @@ public class EmployeeDepartmentClient {
         return restTemplate.getForObject(baseUrl + "/departments/" + departmentId, Map.class);
     }
 
+    public Map<String, Object> getSubDepartmentById(Long subDepartmentId) {
+        return restTemplate.getForObject(baseUrl + "/departments/sub-departments/" + subDepartmentId, Map.class);
+    }
+
+    public Map<String, Object> getPositionById(Long positionId) {
+        return restTemplate.getForObject(baseUrl + "/departments/positions/" + positionId, Map.class);
+    }
+
     public List<Map<String, Object>> getSubDepartments(Long departmentId) {
         ResponseEntity<List> response =
                 restTemplate.getForEntity(
@@ -86,6 +94,15 @@ public class EmployeeDepartmentClient {
         try {
             Map<String, Object> department = getDepartmentById(departmentId);
             return department != null ? String.valueOf(department.get("name")) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String getSubDepartmentName(Long subDepartmentId) {
+        try {
+            Map<String, Object> subDepartment = getSubDepartmentById(subDepartmentId);
+            return subDepartment != null ? String.valueOf(subDepartment.get("name")) : null;
         } catch (Exception e) {
             return null;
         }

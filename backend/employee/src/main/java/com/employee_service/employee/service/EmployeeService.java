@@ -16,6 +16,10 @@ import com.employee_service.employee.entity.EmployeePersonalInfo;
 import com.employee_service.employee.repository.EmployeeJobInfoRepository;
 import com.employee_service.employee.repository.EmployeePersonalInfoRepository;
 import com.employee_service.employee.repository.EmployeeRepository;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 
 import lombok.RequiredArgsConstructor;
@@ -85,19 +89,7 @@ public class EmployeeService {
         EmployeeJobInfo jobInfo =
                 jobInfoRepository.findByEmployeeId(id).orElse(null);
 
-        return EmployeeResponse.builder()
-                .id(employee.getId())
-                .firstName(employee.getFirstName())
-                .lastName(employee.getLastName())
-                .email(employee.getEmail())
-                .hireDate(employee.getHireDate())
-                .status(employee.getStatus())
-                .phone(personalInfo != null ? personalInfo.getPhone() : null)
-                .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
-                .gender(personalInfo != null ? personalInfo.getGender() : null)
-                .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
-                .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
-                .build();
+        return buildEmployeeResponse(employee, personalInfo, jobInfo);
     }
 
     public EmployeeResponse updateMyProfile(
@@ -198,28 +190,11 @@ public class EmployeeService {
 
         return employeeRepository.findByIsDeletedFalse()
                 .stream()
-                .map(employee -> {
-
-                    EmployeePersonalInfo personalInfo =
-                            personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
-
-                    EmployeeJobInfo jobInfo =
-                            jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
-
-                    return EmployeeResponse.builder()
-                            .id(employee.getId())
-                            .firstName(employee.getFirstName())
-                            .lastName(employee.getLastName())
-                            .email(employee.getEmail())
-                            .hireDate(employee.getHireDate())
-                            .status(employee.getStatus())
-                            .phone(personalInfo != null ? personalInfo.getPhone() : null)
-                            .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
-                            .gender(personalInfo != null ? personalInfo.getGender() : null)
-                            .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
-                            .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
-                            .build();
-                })
+                .map(employee -> buildEmployeeResponse(
+                        employee,
+                        personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null),
+                        jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null)
+                ))
                 .toList();
     }
 
@@ -231,35 +206,11 @@ public class EmployeeService {
                     EmployeeJobInfo jobInfo = jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
                     return jobInfo != null && jobInfo.getDepartmentId() != null && jobInfo.getDepartmentId().equals(departmentId);
                 })
-                .map(employee -> {
-                    EmployeePersonalInfo personalInfo =
-                            personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
-
-                    EmployeeJobInfo jobInfo =
-                            jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null);
-
-                    return EmployeeResponse.builder()
-                            .id(employee.getId())
-                            .firstName(employee.getFirstName())
-                            .lastName(employee.getLastName())
-                            .email(employee.getEmail())
-                            .hireDate(employee.getHireDate())
-                            .status(employee.getStatus())
-                            .phone(personalInfo != null ? personalInfo.getPhone() : null)
-                            .birthDate(personalInfo != null ? personalInfo.getBirthDate() : null)
-                            .gender(personalInfo != null ? personalInfo.getGender() : null)
-                            .medeniDurum(personalInfo != null ? personalInfo.getMedeniDurum() : null)
-                            .tc(personalInfo != null ? personalInfo.getTc() : null)
-                            .departmentId(jobInfo != null ? jobInfo.getDepartmentId() : null)
-                            .departmentName(jobInfo != null && jobInfo.getDepartmentId() != null ? employeeDepartmentClient.getDepartmentName(jobInfo.getDepartmentId()) : null)
-                            .positionId(jobInfo != null ? jobInfo.getPositionId() : null)
-                            .positionName(
-                                    jobInfo != null && jobInfo.getDepartmentId() != null && jobInfo.getPositionId() != null
-                                            ? employeeDepartmentClient.getPositionNameByDepartment(jobInfo.getDepartmentId(), jobInfo.getPositionId())
-                                            : null
-                            )
-                            .build();
-                })
+                .map(employee -> buildEmployeeResponse(
+                        employee,
+                        personalInfoRepository.findByEmployeeId(employee.getId()).orElse(null),
+                        jobInfoRepository.findByEmployeeId(employee.getId()).orElse(null)
+                ))
                 .toList();
     }
 
@@ -335,6 +286,50 @@ public class EmployeeService {
         Long departmentId = jobInfo != null ? jobInfo.getDepartmentId() : null;
         Long positionId = jobInfo != null ? jobInfo.getPositionId() : null;
 
+                Long subDepartmentId = null;
+                Long managerId = null;
+                String departmentName = null;
+                String subDepartmentName = null;
+                String positionName = null;
+
+                if (departmentId != null) {
+                        departmentName = employeeDepartmentClient.getDepartmentName(departmentId);
+                }
+
+                if (positionId != null) {
+                        var position = employeeDepartmentClient.getPositionById(positionId);
+                        if (position != null) {
+                                Object rawSubDepartmentId = position.get("subDepartmentId");
+                                if (rawSubDepartmentId instanceof Number number) {
+                                        subDepartmentId = number.longValue();
+                                }
+
+                                Object rawPositionName = position.get("name");
+                                if (rawPositionName != null) {
+                                        positionName = String.valueOf(rawPositionName);
+                                }
+                        }
+                }
+
+                if (subDepartmentId != null) {
+                        subDepartmentName = employeeDepartmentClient.getSubDepartmentName(subDepartmentId);
+                        var subDepartment = employeeDepartmentClient.getSubDepartmentById(subDepartmentId);
+                        if (subDepartment != null) {
+                                Object rawManagerId = subDepartment.get("managerId");
+                                if (rawManagerId instanceof Number number) {
+                                        managerId = number.longValue();
+                                }
+                        }
+                } else if (departmentId != null) {
+                        var department = employeeDepartmentClient.getDepartmentById(departmentId);
+                        if (department != null) {
+                                Object rawManagerId = department.get("managerId");
+                                if (rawManagerId instanceof Number number) {
+                                        managerId = number.longValue();
+                                }
+                        }
+                }
+
         return EmployeeResponse.builder()
                 .id(employee.getId())
                 .firstName(employee.getFirstName())
@@ -348,14 +343,60 @@ public class EmployeeService {
                 .medeniDurum(personalInfo != null ? personalInfo.getMedeniDurum() : null)
                 .tc(personalInfo != null ? personalInfo.getTc() : null)
                 .departmentId(departmentId)
-                .departmentName(departmentId != null ? employeeDepartmentClient.getDepartmentName(departmentId) : null)
+                .departmentName(departmentName)
+                .subDepartmentId(subDepartmentId)
+                .subDepartmentName(subDepartmentName)
                 .positionId(positionId)
-                .positionName(
-                        departmentId != null && positionId != null
-                                ? employeeDepartmentClient.getPositionNameByDepartment(departmentId, positionId)
-                                : null
-                )
+                .positionName(positionName)
+                .titleName(positionName)
+                .managerId(managerId)
+                .managerName(null)
                 .profileImage(employee.getProfileImage())
+                .profilePhotoUrl(employee.getProfileImage())
+                .createdAt(employee.getCreatedAt())
+                .updatedAt(employee.getUpdatedAt())
                 .build();
+    }
+    public EmployeeResponse uploadEmployeeProfileImage(
+
+            Long id,
+            MultipartFile file
+    ) {
+        System.out.println("UPLOAD WORKING");
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        String uploadDir = "uploads/profile-images/";
+
+        File dir = new File(uploadDir);
+
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String fileName =
+                System.currentTimeMillis() + "_" + file.getOriginalFilename();
+
+        Path path = Paths.get(uploadDir + fileName);
+
+        try {
+            Files.write(path, file.getBytes());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        employee.setProfileImage(uploadDir + fileName);
+        System.out.println("FILE SAVED = " + uploadDir + fileName);
+        employeeRepository.save(employee);
+
+        EmployeePersonalInfo personalInfo =
+                personalInfoRepository.findByEmployeeId(employee.getId())
+                        .orElse(null);
+
+        EmployeeJobInfo jobInfo =
+                jobInfoRepository.findByEmployeeId(employee.getId())
+                        .orElse(null);
+
+        return buildEmployeeResponse(employee, personalInfo, jobInfo);
     }
 }
