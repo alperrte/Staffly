@@ -21,39 +21,19 @@ public class JobPostingService {
 
     public JobPostingResponseDto createJobPosting(JobPostingCreateRequestDto request) {
 
-        Map<String, Object> position = departmentClient.getPosition(request.getPositionId());
-
-        if (position == null) {
-            throw new RuntimeException("Position not found");
-        }
-
-        Long subDepartmentId = Long.valueOf(position.get("subDepartmentId").toString());
-
-        Map<String, Object> subDepartment = departmentClient.getSubDepartment(subDepartmentId);
-
-        if (subDepartment == null) {
-            throw new RuntimeException("Sub department not found");
-        }
-
-        Long departmentId = Long.valueOf(subDepartment.get("departmentId").toString());
-
-        Map<String, Object> department = departmentClient.getDepartment(departmentId);
-
-        if (department == null) {
-            throw new RuntimeException("Department not found");
-        }
+        PositionSnapshot snapshot = resolvePositionSnapshot(request.getPositionId());
 
         JobPosting jobPosting = JobPosting.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
 
-                .positionId(request.getPositionId())
-                .subDepartmentId(subDepartmentId)
-                .departmentId(departmentId)
+                .positionId(snapshot.positionId())
+                .subDepartmentId(snapshot.subDepartmentId())
+                .departmentId(snapshot.departmentId())
 
-                .positionName(String.valueOf(position.get("name")))
-                .subDepartmentName(String.valueOf(subDepartment.get("name")))
-                .departmentName(String.valueOf(department.get("name")))
+                .positionName(snapshot.positionName())
+                .subDepartmentName(snapshot.subDepartmentName())
+                .departmentName(snapshot.departmentName())
 
                 .experienceLevel(request.getExperienceLevel())
                 .employmentType(request.getEmploymentType())
@@ -73,6 +53,57 @@ public class JobPostingService {
         JobPosting saved = jobPostingRepository.save(jobPosting);
 
         return mapToResponse(saved);
+    }
+
+    public JobPostingResponseDto updateJobPosting(Long id, JobPostingCreateRequestDto request) {
+
+        JobPosting jobPosting = jobPostingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job posting not found with id: " + id));
+
+        if (Boolean.TRUE.equals(jobPosting.getIsDeleted())) {
+            throw new RuntimeException("Job posting is deleted");
+        }
+
+        PositionSnapshot snapshot = resolvePositionSnapshot(request.getPositionId());
+
+        jobPosting.setTitle(request.getTitle());
+        jobPosting.setDescription(request.getDescription());
+
+        jobPosting.setPositionId(snapshot.positionId());
+        jobPosting.setSubDepartmentId(snapshot.subDepartmentId());
+        jobPosting.setDepartmentId(snapshot.departmentId());
+
+        jobPosting.setPositionName(snapshot.positionName());
+        jobPosting.setSubDepartmentName(snapshot.subDepartmentName());
+        jobPosting.setDepartmentName(snapshot.departmentName());
+
+        jobPosting.setExperienceLevel(request.getExperienceLevel());
+        jobPosting.setEmploymentType(request.getEmploymentType());
+        jobPosting.setWorkModel(request.getWorkModel());
+        jobPosting.setLocation(request.getLocation());
+
+        jobPosting.setRequirements(request.getRequirements());
+        jobPosting.setResponsibilities(request.getResponsibilities());
+        jobPosting.setBenefits(request.getBenefits());
+        jobPosting.setTeamInfo(request.getTeamInfo());
+
+        if (request.getStatus() != null) {
+            jobPosting.setStatus(request.getStatus());
+
+            if ("CLOSED".equals(request.getStatus())) {
+                jobPosting.setClosedAt(LocalDateTime.now());
+            }
+
+            if ("ACTIVE".equals(request.getStatus()) || "DRAFT".equals(request.getStatus())) {
+                jobPosting.setClosedAt(null);
+            }
+        }
+
+        jobPosting.setApplicationDeadline(request.getApplicationDeadline());
+
+        JobPosting updated = jobPostingRepository.save(jobPosting);
+
+        return mapToResponse(updated);
     }
 
     public List<JobPostingResponseDto> getAllJobPostings() {
@@ -105,6 +136,10 @@ public class JobPostingService {
         JobPosting jobPosting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Job posting not found with id: " + id));
 
+        if (Boolean.TRUE.equals(jobPosting.getIsDeleted())) {
+            throw new RuntimeException("Job posting is deleted");
+        }
+
         jobPosting.setStatus("CLOSED");
         jobPosting.setClosedAt(LocalDateTime.now());
 
@@ -116,6 +151,10 @@ public class JobPostingService {
     public JobPostingResponseDto activateJobPosting(Long id) {
         JobPosting jobPosting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Job posting not found with id: " + id));
+
+        if (Boolean.TRUE.equals(jobPosting.getIsDeleted())) {
+            throw new RuntimeException("Job posting is deleted");
+        }
 
         jobPosting.setStatus("ACTIVE");
         jobPosting.setClosedAt(null);
@@ -129,8 +168,46 @@ public class JobPostingService {
         JobPosting jobPosting = jobPostingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Job posting not found with id: " + id));
 
+        if (Boolean.TRUE.equals(jobPosting.getIsDeleted())) {
+            throw new RuntimeException("Job posting is already deleted");
+        }
+
         jobPosting.setIsDeleted(true);
         jobPostingRepository.save(jobPosting);
+    }
+
+    private PositionSnapshot resolvePositionSnapshot(Long positionId) {
+
+        Map<String, Object> position = departmentClient.getPosition(positionId);
+
+        if (position == null) {
+            throw new RuntimeException("Position not found");
+        }
+
+        Long subDepartmentId = Long.valueOf(position.get("subDepartmentId").toString());
+
+        Map<String, Object> subDepartment = departmentClient.getSubDepartment(subDepartmentId);
+
+        if (subDepartment == null) {
+            throw new RuntimeException("Sub department not found");
+        }
+
+        Long departmentId = Long.valueOf(subDepartment.get("departmentId").toString());
+
+        Map<String, Object> department = departmentClient.getDepartment(departmentId);
+
+        if (department == null) {
+            throw new RuntimeException("Department not found");
+        }
+
+        return new PositionSnapshot(
+                departmentId,
+                subDepartmentId,
+                positionId,
+                String.valueOf(department.get("name")),
+                String.valueOf(subDepartment.get("name")),
+                String.valueOf(position.get("name"))
+        );
     }
 
     private JobPostingResponseDto mapToResponse(JobPosting jobPosting) {
@@ -167,5 +244,15 @@ public class JobPostingService {
                 .updatedAt(jobPosting.getUpdatedAt())
                 .closedAt(jobPosting.getClosedAt())
                 .build();
+    }
+
+    private record PositionSnapshot(
+            Long departmentId,
+            Long subDepartmentId,
+            Long positionId,
+            String departmentName,
+            String subDepartmentName,
+            String positionName
+    ) {
     }
 }

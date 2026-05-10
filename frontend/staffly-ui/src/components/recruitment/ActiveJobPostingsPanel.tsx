@@ -6,6 +6,17 @@ import JobPostingCard from "./JobPostingCard";
 import JobDetailModal from "./JobDetailModal";
 import JobApplicationModal from "./JobApplicationModal";
 
+const isJobPostingStillOpen = (deadline?: string | null) => {
+    if (!deadline) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const deadlineDate = new Date(deadline);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    return deadlineDate >= today;
+};
 const ActiveJobPostingsPanel = () => {
     const [jobs, setJobs] = useState<JobPosting[]>([]);
     const [loading, setLoading] = useState(true);
@@ -23,7 +34,12 @@ const ActiveJobPostingsPanel = () => {
                 setError("");
 
                 const data = await getActiveJobPostings();
-                setJobs(Array.isArray(data) ? data : []);
+
+                const activeAndOpenJobs = Array.isArray(data)
+                    ? data.filter((job) => isJobPostingStillOpen(job.applicationDeadline))
+                    : [];
+
+                setJobs(activeAndOpenJobs);
             } catch {
                 setError("İlanlar yüklenirken bir sorun oluştu.");
                 setJobs([]);

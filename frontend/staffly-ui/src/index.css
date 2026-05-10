@@ -121,3 +121,19 @@ input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
     transition: background-color 9999s ease-in-out 0s !important;
 }
+.staffly-job-input {
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(15,23,42,0.78);
+    padding: 0.85rem 1rem;
+    color: white;
+    font-size: 0.875rem;
+    outline: none;
+    min-height: 46px;
+}
+
+.staffly-date-input {
+    padding-left: 2.75rem !important;
+    padding-right: 2.5rem !important;
+}

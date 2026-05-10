@@ -347,13 +347,14 @@ const ApplicationPage = () => {
     };
 
     return (
-        <div className="min-h-full bg-[#030712] px-4 py-5 text-slate-100 sm:px-5 lg:px-6">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-white">Başvurular</h1>
-                <p className="mt-1 text-sm text-slate-400">
-                    Başvuruları durumlarına göre yönetin, arayın ve detaylarını inceleyin.
-                </p>
-            </div>
+        <div className="min-h-full w-full bg-[#020617] p-0 text-slate-100">
+            <div className="flex min-h-screen w-full flex-col bg-slate-950/55 p-5 shadow-[0_0_55px_rgba(15,23,42,0.75)]">
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-white">Başvurular</h1>
+                    <p className="mt-1 text-sm text-slate-400">
+                        Başvuruları durumlarına göre yönetin, arayın ve detaylarını inceleyin.
+                    </p>
+                </div>
 
             <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <StatCard
@@ -381,8 +382,8 @@ const ApplicationPage = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1fr_430px]">
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/75 shadow-[0_0_40px_rgba(15,23,42,0.45)]">
+                <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1fr)_430px]">
+                    <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/75 shadow-[0_0_40px_rgba(15,23,42,0.45)]">
                     <div className="border-b border-white/10 bg-slate-900/40 p-4">
                         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.3fr_0.9fr_0.75fr_0.75fr_auto]">
                             <div className="flex h-[46px] items-center gap-3 rounded-xl border border-white/10 bg-slate-900/80 px-4 shadow-inner shadow-black/20 transition focus-within:border-blue-400/50">
@@ -471,7 +472,7 @@ const ApplicationPage = () => {
                         />
                     </div>
 
-                    <div className="overflow-x-auto">
+                        <div className="min-h-0 flex-1 overflow-x-auto">
                         <table className="w-full min-w-[950px]">
                             <thead>
                             <tr className="border-b border-white/10 text-left text-sm font-semibold text-slate-400">
@@ -662,6 +663,7 @@ const ApplicationPage = () => {
                     })
                 }
             />
+        </div>
         </div>
     );
 };
@@ -1102,7 +1104,7 @@ const ApplicationDetailPanel = ({
 }) => {
     if (!application) {
         return (
-            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-6 text-center text-slate-400">
+            <div className="h-full rounded-2xl border border-white/10 bg-slate-950/70 p-6 text-center text-slate-400">
                 Detay görmek için bir başvuru seç.
             </div>
         );
@@ -1111,7 +1113,7 @@ const ApplicationDetailPanel = ({
     const isPending = application.status === "PENDING";
 
     return (
-        <aside className="rounded-2xl border border-white/10 bg-slate-950/75 p-5 shadow-[0_0_40px_rgba(15,23,42,0.45)]">
+        <aside className="h-full rounded-2xl border border-white/10 bg-slate-950/75 p-5 shadow-[0_0_40px_rgba(15,23,42,0.45)]">
             <div className="mb-5 flex items-start justify-between">
                 <div className="flex items-center gap-4">
                     <Avatar

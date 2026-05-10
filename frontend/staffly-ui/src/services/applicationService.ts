@@ -88,3 +88,8 @@ export const activateJobPosting = async (id: number) => {
     const response = await cvApi.patch(`/job-postings/${id}/activate`);
     return response.data;
 };
+
+export const updateJobPosting = async (id: number, data: unknown) => {
+    const response = await cvApi.put(`/job-postings/${id}`, data);
+    return response.data;
+};
