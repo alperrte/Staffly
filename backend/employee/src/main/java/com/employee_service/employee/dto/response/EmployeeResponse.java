@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -24,7 +25,15 @@ public class EmployeeResponse {
 
     private Long departmentId;
     private String departmentName;
+    private Long subDepartmentId;
+    private String subDepartmentName;
     private Long positionId;
     private String positionName;
+    private String titleName;
+    private Long managerId;
+    private String managerName;
     private String profileImage;
+    private String profilePhotoUrl;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
