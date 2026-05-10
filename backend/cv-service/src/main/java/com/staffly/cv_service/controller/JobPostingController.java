@@ -61,4 +61,13 @@ public class JobPostingController {
         jobPostingService.deleteJobPosting(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
+    @PutMapping("/{id}")
+    public ResponseEntity<JobPostingResponseDto> updateJobPosting(
+            @PathVariable Long id,
+            @Valid @RequestBody JobPostingCreateRequestDto request
+    ) {
+        return ResponseEntity.ok(jobPostingService.updateJobPosting(id, request));
+    }
 }

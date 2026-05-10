@@ -26,22 +26,138 @@ const decodeJwtPayload = (token: string) => {
 };
 
 const searchablePages = [
-    { label: "Çalışanlar", path: "/app/employees", keywords: ["çalışan", "personel", "employee"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
-    { label: "Kullanıcılar", path: "/app/users", keywords: ["kullanıcı", "user", "hesap"], roles: [ROLE_SYSTEM_ADMIN] },
-    { label: "Başvurular", path: "/app/applications", keywords: ["başvuru", "cv", "aday"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER] },
-    { label: "İş İlanları", path: "/app/job-postings", keywords: ["ilan", "iş ilanı"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER] },
-    { label: "Görevler", path: "/app/tasks", keywords: ["görev", "task"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER] },
-    { label: "Görevlerim", path: "/app/tasks/mytasks", keywords: ["görevlerim", "my task"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
-    { label: "Maaş Takibi", path: "/app/payroll/salary-tracking", keywords: ["maaş", "bordro", "payroll", "avans"], roles: [ROLE_EMPLOYEE] },
-    { label: "Avans Talepleri", path: "/app/payroll/advance-requests", keywords: ["avans", "talep", "onay", "red"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING] },
-    { label: "Maaş Ataması", path: "/app/payroll/salary-assignment", keywords: ["maaş", "atama", "bonus", "kesinti"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING] },
-    { label: "İzin Talepleri", path: "/app/leaveService", keywords: ["izin", "leave"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
-    { label: "Çalışma Takvimi", path: "/app/work-schedules", keywords: ["çalışma", "takvim", "mesai"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
-    { label: "Toplantı Planlama", path: "/app/meetings", keywords: ["toplantı", "meeting"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER] },
-    { label: "Takvimim", path: "/app/my-schedule", keywords: ["takvimim", "programım"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
-    { label: "Ulaşım", path: "/app/transport", keywords: ["ulaşım", "servis"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
-    { label: "Profil", path: "/app/profile", keywords: ["profil", "profile"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
-    { label: "Ayarlar", path: "/app/settings", keywords: ["ayar", "settings"], roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE] },
+    {
+        label: "Çalışanlar",
+        path: "/app/employees",
+        keywords: ["çalışan", "personel", "employee"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER],
+    },
+    {
+        label: "Kullanıcılar",
+        path: "/app/users",
+        keywords: ["kullanıcı", "user", "hesap"],
+        roles: [ROLE_SYSTEM_ADMIN],
+    },
+    {
+        label: "Başvurular",
+        path: "/app/applications",
+        keywords: ["başvuru", "cv", "aday"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER],
+    },
+    {
+        label: "İş İlanları",
+        path: "/app/job-postings",
+        keywords: ["ilan", "iş ilanı"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER],
+    },
+    {
+        label: "Görevler",
+        path: "/app/tasks",
+        keywords: ["görev", "task"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER],
+    },
+    {
+        label: "Görevlerim",
+        path: "/app/tasks/mytasks",
+        keywords: ["görevlerim", "my task"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Maaş Takibi",
+        path: "/app/payroll/salary-tracking",
+        keywords: ["maaş", "bordro", "payroll", "avans"],
+        roles: [ROLE_EMPLOYEE],
+    },
+    {
+        label: "Avans Talepleri",
+        path: "/app/payroll/advance-requests",
+        keywords: ["avans", "talep", "onay", "red"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING],
+    },
+    {
+        label: "Maaş Ataması",
+        path: "/app/payroll/salary-assignment",
+        keywords: ["maaş", "atama", "bonus", "kesinti"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING],
+    },
+    {
+        label: "İzin Talepleri",
+        path: "/app/leaveService",
+        keywords: ["izin", "leave"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Çalışma Takvimi",
+        path: "/app/work-schedules",
+        keywords: ["çalışma", "takvim", "mesai"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER],
+    },
+    {
+        label: "Toplantı Planlama",
+        path: "/app/meetings",
+        keywords: ["toplantı", "meeting"],
+        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER],
+    },
+    {
+        label: "Takvimim",
+        path: "/app/my-schedule",
+        keywords: ["takvimim", "programım"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Ulaşım",
+        path: "/app/transport",
+        keywords: ["ulaşım", "servis"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Profil",
+        path: "/app/profile",
+        keywords: ["profil", "profile"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Ayarlar",
+        path: "/app/settings",
+        keywords: ["ayar", "settings"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
 ];
 
 const MainLayout = () => {
@@ -52,7 +168,7 @@ const MainLayout = () => {
     const [search, setSearch] = useState("");
 
     const isDashboard = location.pathname === "/app";
-    const isApplicationsPage = location.pathname === "/app/applications";
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -64,7 +180,7 @@ const MainLayout = () => {
         try {
             const payload = decodeJwtPayload(token);
             setEmail(payload.sub || payload.email || "User");
-        } catch (e) {
+        } catch {
             navigate("/login");
         }
     }, [navigate]);
@@ -99,19 +215,15 @@ const MainLayout = () => {
         <div className="flex h-screen overflow-hidden bg-[#020617] text-white">
             <Sidebar />
 
-            <div className="relative min-w-0 flex h-full flex-1 flex-col">
+            <div className="relative min-w-0 flex h-full flex-1 flex-col overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 opacity-70">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(14,165,233,0.22),transparent_38%),radial-gradient(circle_at_100%_100%,rgba(37,99,235,0.24),transparent_42%)]" />
                     <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900" />
                 </div>
 
-                <div
-                    className={`relative z-10 flex min-h-0 flex-1 flex-col ${
-                        isApplicationsPage ? "px-3 py-3" : "px-8 py-6"
-                    }`}
-                >
+                <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {isDashboard && (
-                        <header className="relative z-50 mb-6 flex shrink-0 items-center justify-between gap-6 rounded-3xl border border-white/10 bg-slate-950/55 px-5 py-4 shadow-[0_0_35px_rgba(15,23,42,0.75)] backdrop-blur-2xl">
+                        <header className="relative z-50 mb-4 flex shrink-0 items-center justify-between gap-6 rounded-3xl border border-white/10 bg-slate-950/55 px-5 py-4 shadow-[0_0_35px_rgba(15,23,42,0.75)] backdrop-blur-2xl">
                             <div className="relative hidden w-full max-w-2xl md:block">
                                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -129,6 +241,7 @@ const MainLayout = () => {
                                         {filteredPages.map((page) => (
                                             <button
                                                 key={page.path}
+                                                type="button"
                                                 onClick={() => {
                                                     navigate(page.path);
                                                     setSearch("");
@@ -136,7 +249,9 @@ const MainLayout = () => {
                                                 className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-sky-500/10 hover:text-white"
                                             >
                                                 <span>{page.label}</span>
-                                                <span className="text-xs text-sky-300">Git</span>
+                                                <span className="text-xs text-sky-300">
+                                                    Git
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
@@ -144,14 +259,20 @@ const MainLayout = () => {
                             </div>
 
                             <div className="ml-auto flex items-center gap-4">
-                                <button className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-slate-900/80 transition hover:border-sky-400/60 hover:bg-slate-900">
+                                <button
+                                    type="button"
+                                    className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-slate-900/80 transition hover:border-sky-400/60 hover:bg-slate-900"
+                                >
                                     <Bell className="h-4 w-4 text-slate-200" />
                                     <span className="absolute -right-1 -top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.6rem] font-bold">
                                         1
                                     </span>
                                 </button>
 
-                                <button className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs transition hover:border-sky-400/60 hover:bg-slate-900">
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs transition hover:border-sky-400/60 hover:bg-slate-900"
+                                >
                                     <span className="max-w-[170px] truncate text-slate-100">
                                         {email || "User"}
                                     </span>
@@ -161,18 +282,8 @@ const MainLayout = () => {
                         </header>
                     )}
 
-                    <main
-                        className={`staffly-scroll relative z-10 min-h-0 flex-1 overflow-y-auto ${
-                            isApplicationsPage ? "pr-0" : "pr-2"
-                        }`}
-                    >
-                        <div
-                            className={
-                                isApplicationsPage
-                                    ? "min-h-full w-full"
-                                    : "min-h-full w-full rounded-3xl border border-white/10 bg-slate-900/35 p-6 shadow-[0_0_45px_rgba(15,23,42,0.9)] backdrop-blur-2xl"
-                            }
-                        >
+                    <main className="staffly-scroll relative z-10 min-h-0 flex-1 overflow-y-auto">
+                        <div className="min-h-full w-full">
                             <Outlet />
                         </div>
                     </main>
