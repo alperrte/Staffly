@@ -124,10 +124,12 @@ public class TaskService {
     }
 
     // ✅ STATUS UPDATE
-    public void updateStatus(Long taskId, Integer statusId) {
+    public void updateStatus(Long taskId, Integer statusId, String authHeader) {
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        assertCanAccessTask(task, authHeader);
 
         // 🔥 KURAL
         if (task.getStatusId() == 4) {
@@ -204,8 +206,110 @@ public class TaskService {
     }
 
     public Page<TaskResponse> getAllTasks(String authHeader, Pageable pageable) {
-        Page<Task> tasks = taskRepository.findAll(pageable);
+        Page<Task> tasks;
+
+        if (isEmployeeOnly(authHeader)) {
+            Long employeeId = resolveCurrentEmployeeId(authHeader);
+            if (employeeId == null) {
+                return new PageImpl<>(java.util.List.of(), pageable, 0);
+            }
+            tasks = taskRepository.findTasksByEmployeeId(employeeId, pageable);
+        } else if (isDepartmentManager(authHeader)) {
+            Long departmentId = resolveCurrentDepartmentId(authHeader);
+            if (departmentId == null) {
+                return new PageImpl<>(java.util.List.of(), pageable, 0);
+            }
+            tasks = taskRepository.findByDepartmentIdAndIsDeletedFalse(departmentId, pageable);
+        } else {
+            tasks = taskRepository.findByIsDeletedFalse(pageable);
+        }
+
         return tasks.map(task -> mapToResponse(task, authHeader));
+    }
+
+    private void assertCanAccessTask(Task task, String authHeader) {
+        if (isEmployeeOnly(authHeader)) {
+            Long employeeId = resolveCurrentEmployeeId(authHeader);
+            if (employeeId == null || !assignmentRepository.existsByTaskIdAndEmployeeId(task.getId(), employeeId)) {
+                throw new RuntimeException("You can only update tasks assigned to you");
+            }
+            return;
+        }
+
+        if (isDepartmentManager(authHeader)) {
+            Long departmentId = resolveCurrentDepartmentId(authHeader);
+            if (departmentId == null || task.getDepartmentId() == null || !departmentId.equals(task.getDepartmentId())) {
+                throw new RuntimeException("You can only manage tasks in your department");
+            }
+        }
+    }
+
+    private boolean isDepartmentManager(String authHeader) {
+        return roles(authHeader).stream().anyMatch(r ->
+                r.equalsIgnoreCase("ROLE_DEPARTMENT_MANAGER")
+                        || r.equalsIgnoreCase("DEPARTMENT_MANAGER")
+        );
+    }
+
+    private boolean isEmployeeOnly(String authHeader) {
+        java.util.List<String> roles = roles(authHeader);
+        boolean employee = roles.stream().anyMatch(r ->
+                r.equalsIgnoreCase("ROLE_EMPLOYEE") || r.equalsIgnoreCase("EMPLOYEE")
+        );
+        boolean elevated = roles.stream().anyMatch(r ->
+                r.equalsIgnoreCase("ROLE_SYSTEM_ADMIN")
+                        || r.equalsIgnoreCase("SYSTEM_ADMIN")
+                        || r.equalsIgnoreCase("ROLE_HR_MANAGER")
+                        || r.equalsIgnoreCase("HR_MANAGER")
+                        || r.equalsIgnoreCase("ROLE_MANAGER")
+                        || r.equalsIgnoreCase("MANAGER")
+                        || r.equalsIgnoreCase("ROLE_DEPARTMENT_MANAGER")
+                        || r.equalsIgnoreCase("DEPARTMENT_MANAGER")
+        );
+
+        return employee && !elevated;
+    }
+
+    private java.util.List<String> roles(String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) {
+            return java.util.List.of();
+        }
+
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        return jwtService.extractRoles(token);
+    }
+
+    private Long resolveCurrentEmployeeId(String authHeader) {
+        CurrentUserResponse currentUser = authClient.getCurrentUser(authHeader);
+        if (currentUser == null) {
+            return null;
+        }
+
+        Long employeeId = currentUser.getEmployeeId();
+        boolean validEmployeeId = employeeId != null
+                && employeeId > 0
+                && employeeClient.isEmployeeExists(authHeader, employeeId);
+
+        if (validEmployeeId) {
+            return employeeId;
+        }
+
+        if (currentUser.getEmail() == null) {
+            return null;
+        }
+
+        EmployeeLookupResponse employee = employeeClient.getEmployeeByEmail(authHeader, currentUser.getEmail());
+        return employee != null ? employee.getId() : null;
+    }
+
+    private Long resolveCurrentDepartmentId(String authHeader) {
+        Long employeeId = resolveCurrentEmployeeId(authHeader);
+        if (employeeId == null) {
+            return null;
+        }
+
+        EmployeeLookupResponse employee = employeeClient.getEmployeeById(authHeader, employeeId);
+        return employee != null ? employee.getDepartmentId() : null;
     }
 
     private TaskResponse mapToResponse(Task task) {

@@ -91,6 +91,8 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
     ports:
       - "${SERVER_PORT_EMPLOYEE}:${SERVER_PORT_EMPLOYEE}"
+    volumes:
+      - ./backend/employee/uploads:/app/uploads
     restart: unless-stopped
 
   department-service:

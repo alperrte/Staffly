@@ -38,7 +38,7 @@ public class TaskController {
 
     // ✅ CREATE
     @PostMapping
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','DEPARTMENT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER')")
     public ResponseEntity<TaskResponse> createTask(
             @RequestBody CreateTaskRequest request,
             @RequestHeader(value = "Authorization", required = false) String authHeader
@@ -55,7 +55,7 @@ public class TaskController {
 
     // ✅ ASSIGN
         @PostMapping("/{taskId}/assign")
-        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','DEPARTMENT_MANAGER')")
+        @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER')")
         public ResponseEntity<String> assignTask(
                         @PathVariable Long taskId,
                         @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -67,18 +67,19 @@ public class TaskController {
 
     // ✅ STATUS UPDATE
     @PutMapping("/{taskId}/status")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER','EMPLOYEE')")
     public ResponseEntity<String> updateStatus(
             @PathVariable Long taskId,
-            @RequestBody UpdateTaskStatusRequest request
+            @RequestBody UpdateTaskStatusRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
-        taskService.updateStatus(taskId, request.getStatusId());
+        taskService.updateStatus(taskId, request.getStatusId(), authHeader);
         return ResponseEntity.ok("Status updated");
     }
 
     // ✅ COMMENT
     @PostMapping("/{taskId}/comments")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER','EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER','DEPARTMENT_MANAGER','EMPLOYEE')")
     public ResponseEntity<String> addComment(
             @PathVariable Long taskId,
             @RequestBody CommentRequest request,
