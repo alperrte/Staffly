@@ -9,6 +9,10 @@ import com.taskservice.task.entity.Task;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    Page<Task> findByIsDeletedFalse(Pageable pageable);
+
+    Page<Task> findByDepartmentIdAndIsDeletedFalse(Long departmentId, Pageable pageable);
+
     // 🔥 EMPLOYEE TASKS (BASIC)
     @Query("""
         SELECT t FROM Task t

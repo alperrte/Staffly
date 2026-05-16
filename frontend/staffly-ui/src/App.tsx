@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/auth/LoginPage";
 import MainLayout from "./layout/MainLayout";
-import CvServicePage from "./pages/cvService/CvServicePage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import {
     ROLE_DEPARTMENT_MANAGER,
@@ -116,7 +115,7 @@ function App() {
                     <Route
                         path="tasks"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
                                 <TaskPage />
                             </ProtectedRoute>
                         }
