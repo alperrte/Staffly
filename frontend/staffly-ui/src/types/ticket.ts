@@ -10,7 +10,9 @@ export interface Ticket {
     status: TicketStatus;
     createdAt: string;
     employeeId: number;
+    departmentId: number;
     assignedTo?: number | null;
+    resolution?: string | null;
 }
 
 export interface TicketComment {
@@ -18,17 +20,20 @@ export interface TicketComment {
     message: string;
     createdAt: string;
     authorName?: string | null;
+    departmentName?: string | null;
 }
 
 export interface CreateTicketPayload {
     title: string;
     description: string;
     categoryId: number;
+    departmentId: number;
     priority: TicketPriority;
 }
 
 export interface UpdateTicketStatusPayload {
     statusId: number;
+    resolution?: string;
 }
 
 export interface UpdateTicketAssignPayload {

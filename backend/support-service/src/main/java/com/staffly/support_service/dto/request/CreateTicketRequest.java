@@ -13,5 +13,7 @@ public class CreateTicketRequest {
 
     private Long categoryId;
 
+    private Long departmentId;
+
     private String priority;
 }

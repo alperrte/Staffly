@@ -8,4 +8,6 @@ import lombok.Setter;
 public class UpdateTicketStatusRequest {
 
     private Long statusId;
+
+    private String resolution;
 }

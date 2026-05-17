@@ -23,7 +23,11 @@ public class TicketResponse {
 
     private Long employeeId;
 
+    private Long departmentId;
+
     private Long assignedTo;
+
+    private String resolution;
 
     private LocalDateTime createdAt;
 }

@@ -13,6 +13,10 @@ public class TicketCommentResponse {
 
     private Long employeeId;
 
+    private String employeeName;
+
+    private String departmentName;
+
     private String comment;
 
     private LocalDateTime createdAt;

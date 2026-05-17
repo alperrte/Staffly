@@ -19,9 +19,10 @@ public class TicketCommentController {
 
     @GetMapping
     public ResponseEntity<List<TicketCommentResponse>> getComments(
-            @PathVariable Long ticketId
+            @PathVariable Long ticketId,
+            @RequestHeader("Authorization") String authHeader
     ) {
-        return ResponseEntity.ok(ticketService.getComments(ticketId));
+        return ResponseEntity.ok(ticketService.getComments(ticketId, authHeader));
     }
 
     @PostMapping

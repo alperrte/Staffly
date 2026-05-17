@@ -11,6 +11,8 @@ import type {
 type TicketCommentApiResponse = {
     id: number;
     employeeId: number;
+    employeeName?: string | null;
+    departmentName?: string | null;
     comment: string;
     createdAt: string;
 };
@@ -58,6 +60,11 @@ export const supportService = {
         return response.data;
     },
 
+    claimTicket: async (id: number): Promise<Ticket> => {
+        const response = await supportApi.put(`/tickets/${id}/claim`);
+        return response.data;
+    },
+
     getTicketComments: async (id: number): Promise<TicketComment[]> => {
         const response = await supportApi.get(`/tickets/${id}/comments`);
         const rows: TicketCommentApiResponse[] = response.data ?? [];
@@ -65,7 +72,8 @@ export const supportService = {
             id: c.id,
             message: c.comment,
             createdAt: c.createdAt,
-            authorName: `Employee #${c.employeeId}`,
+            authorName: c.employeeName || `Employee #${c.employeeId}`,
+            departmentName: c.departmentName,
         }));
     },
 
@@ -76,7 +84,8 @@ export const supportService = {
             id: c.id,
             message: c.comment,
             createdAt: c.createdAt,
-            authorName: `Employee #${c.employeeId}`,
+            authorName: c.employeeName || `Employee #${c.employeeId}`,
+            departmentName: c.departmentName,
         };
     },
 };

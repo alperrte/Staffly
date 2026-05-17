@@ -12,4 +12,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     );
 
     List<Ticket> findByIsDeletedFalseOrderByCreatedAtDesc();
+
+    List<Ticket> findByDepartmentIdAndIsDeletedFalseOrderByCreatedAtDesc(Long departmentId);
 }

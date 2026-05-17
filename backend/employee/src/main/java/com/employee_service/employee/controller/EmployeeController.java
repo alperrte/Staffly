@@ -79,7 +79,8 @@ public class EmployeeController {
             'ROLE_HR_MANAGER',
             'ROLE_ACCOUNTING',
             'ROLE_DEPARTMENT_MANAGER',
-            'ROLE_MANAGER'
+            'ROLE_MANAGER',
+            'ROLE_EMPLOYEE'
         )
     """)
     @GetMapping("/{id}")
@@ -98,7 +99,8 @@ public class EmployeeController {
             'ROLE_HR_MANAGER',
             'ROLE_ACCOUNTING',
             'ROLE_DEPARTMENT_MANAGER',
-            'ROLE_MANAGER'
+            'ROLE_MANAGER',
+            'ROLE_EMPLOYEE'
         )
     """)
     @GetMapping("/by-email/{email}")

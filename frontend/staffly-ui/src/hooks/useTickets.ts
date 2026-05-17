@@ -81,6 +81,17 @@ export function useAssignTicketMutation() {
     });
 }
 
+export function useClaimTicketMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => supportService.claimTicket(id),
+        onSuccess: (ticket) => {
+            void queryClient.invalidateQueries({ queryKey: ticketKeys.list });
+            void queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticket.id) });
+        },
+    });
+}
+
 export function useAddCommentMutation() {
     const queryClient = useQueryClient();
     return useMutation({

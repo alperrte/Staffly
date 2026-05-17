@@ -115,7 +115,7 @@ function App() {
                     <Route
                         path="tasks"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
                                 <TaskPage />
                             </ProtectedRoute>
                         }
@@ -222,7 +222,7 @@ function App() {
                     <Route
                         path="support/all"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
                                 <AllTicketsPage />
                             </ProtectedRoute>
                         }
