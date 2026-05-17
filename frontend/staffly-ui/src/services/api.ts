@@ -9,7 +9,6 @@ api.interceptors.request.use((config) => {
 
     const publicEndpoints = [
         "/auth/login",
-        "/auth/register",
         "/auth/refresh",
     ];
 

@@ -59,6 +59,7 @@ public class Overtime {
         if (this.status == null) {
             this.status = OvertimeStatus.PLANNED;
         }
+
     }
 
     @PreUpdate

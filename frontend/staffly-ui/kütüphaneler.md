@@ -11,3 +11,5 @@ npm install file-saver
 npm install react-datepicker
 
 npm install --save-dev @types/react-datepicker
+
+npm install framer-motion

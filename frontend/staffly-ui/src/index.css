@@ -137,3 +137,96 @@ input:-webkit-autofill:active {
     padding-left: 2.75rem !important;
     padding-right: 2.5rem !important;
 }
+
+
+/* React Datepicker - Staffly Dark Theme */
+.react-datepicker {
+    border: 1px solid rgba(51, 65, 85, 0.9) !important;
+    background: #020617 !important;
+    color: #e2e8f0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    font-family: inherit !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45) !important;
+}
+
+.react-datepicker__header {
+    background: #0f172a !important;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.9) !important;
+    padding-top: 12px !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+    color: #cbd5e1 !important;
+}
+
+.react-datepicker__day {
+    border-radius: 10px !important;
+    transition: 0.2s ease !important;
+}
+
+.react-datepicker__day:hover {
+    background: rgba(14, 165, 233, 0.16) !important;
+    color: #ffffff !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.react-datepicker__day--today {
+    color: #38bdf8 !important;
+    font-weight: 800 !important;
+}
+
+.react-datepicker__day--disabled {
+    color: #475569 !important;
+    cursor: not-allowed !important;
+}
+
+.react-datepicker__day--outside-month {
+    color: #64748b !important;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: #94a3b8 !important;
+}
+
+.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+    border-color: #38bdf8 !important;
+}
+
+.react-datepicker__month-container {
+    background: #020617 !important;
+}
+
+.react-datepicker-popper {
+    z-index: 12000 !important;
+}
+
+/* Inline datepicker genişliği */
+.react-datepicker-wrapper {
+    width: 100%;
+}
+
+.react-datepicker__input-container {
+    width: 100%;
+}
+
+/* Sağ paneldeki inline takvim kutusu */
+.react-datepicker.inline-dark,
+.react-datepicker--inline {
+    width: 100% !important;
+}

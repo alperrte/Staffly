@@ -197,7 +197,7 @@ function App() {
                     <Route
                         path="my-schedule"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                            <ProtectedRoute allowedRoles={[ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]}>
                                 <MySchedulePage />
                             </ProtectedRoute>
                         }

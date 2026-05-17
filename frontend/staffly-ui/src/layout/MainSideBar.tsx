@@ -172,7 +172,7 @@ const Sidebar = () => {
                     </NavLink>
                 )}
 
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]) && (
+                {hasAnyRole([ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]) && (
                     <NavLink to="/app/my-schedule" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaCalendarAlt /> Takvimim
                     </NavLink>

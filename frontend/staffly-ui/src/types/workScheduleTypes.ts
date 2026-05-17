@@ -96,15 +96,6 @@ export interface CreateOvertimeRequest {
     reason?: string;
 }
 
-export interface CreateBulkOvertimeRequest {
-    departmentId?: number | null;
-    employeeIds?: number[];
-    overtimeDate: string;
-    startTime: string;
-    endTime: string;
-    reason?: string;
-}
-
 export interface UpdateOvertimeRequest {
     employeeId: number;
     departmentId?: number | null;
