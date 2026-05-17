@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.leave_service.client.EmployeeClient;
 
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class LeaveService {
+    private static final int DAILY_WORK_HOURS = 8;
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final LeaveTypeRepository leaveTypeRepository;
@@ -52,6 +54,8 @@ public class LeaveService {
                 .leaveType(leaveType)
                 .startDatetime(request.getStartDatetime())
                 .endDatetime(request.getEndDatetime())
+                .totalDays(calculateLeaveDays(request, leaveType))
+                .totalHours(calculateLeaveHours(request, leaveType))
                 .status("PENDING")
                 .reason(request.getReason())
                 .build();
@@ -85,14 +89,7 @@ public class LeaveService {
                 .findByEmployeeIdAndLeaveType_Id(employeeId, annualLeaveType.getId())
                 .orElse(null);
 
-        return LeaveBalanceResponse.builder()
-                .employeeId(employeeId)
-                .leaveTypeId(annualLeaveType.getId())
-                .leaveTypeName(annualLeaveType.getName())
-                .quotaDays(balance != null ? balance.getRemainingDays() : null)
-                .remainingDays(balance != null ? balance.getRemainingDays() : null)
-                .remainingHours(balance != null ? balance.getRemainingHours() : 0)
-                .build();
+        return mapToBalanceResponse(employeeId, annualLeaveType, balance);
     }
 
     public LeaveBalanceResponse updateAnnualLeaveQuota(Long employeeId, LeaveBalanceUpsertRequest request) {
@@ -110,16 +107,10 @@ public class LeaveService {
                         .build());
 
         balance.setRemainingDays(quotaDays);
+        balance.setRemainingHours(quotaDays * DAILY_WORK_HOURS);
         LeaveBalance saved = leaveBalanceRepository.save(balance);
 
-        return LeaveBalanceResponse.builder()
-                .employeeId(saved.getEmployeeId())
-                .leaveTypeId(saved.getLeaveType().getId())
-                .leaveTypeName(saved.getLeaveType().getName())
-                .quotaDays(saved.getRemainingDays())
-                .remainingDays(saved.getRemainingDays())
-                .remainingHours(saved.getRemainingHours())
-                .build();
+        return mapToBalanceResponse(saved.getEmployeeId(), saved.getLeaveType(), saved);
     }
 
     // 🔥 3️⃣ ONAY / RED
@@ -130,8 +121,10 @@ public class LeaveService {
 
         assertCanManageEmployee(leaveRequest.getEmployeeId());
 
+        String previousStatus = leaveRequest.getStatus();
         leaveRequest.setStatus(request.getAction());
         leaveRequestRepository.save(leaveRequest);
+        updateAnnualBalanceAfterReview(leaveRequest, previousStatus, request.getAction());
 
         LeaveApproval approval = LeaveApproval.builder()
                 .leaveRequest(leaveRequest)
@@ -185,6 +178,115 @@ public class LeaveService {
                 .filter(type -> type.getName() != null && type.getName().toUpperCase().contains("YILLIK"))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Annual leave type not found"));
+    }
+
+    private Integer calculateLeaveDays(LeaveRequestCreateRequest request, LeaveType leaveType) {
+        if (Boolean.TRUE.equals(leaveType.getIsHourly())) {
+            return null;
+        }
+
+        long days = ChronoUnit.DAYS.between(request.getStartDatetime().toLocalDate(), request.getEndDatetime().toLocalDate()) + 1;
+        return Math.toIntExact(Math.max(days, 1));
+    }
+
+    private Integer calculateLeaveHours(LeaveRequestCreateRequest request, LeaveType leaveType) {
+        if (Boolean.TRUE.equals(leaveType.getIsHourly())) {
+            long hours = ChronoUnit.HOURS.between(request.getStartDatetime(), request.getEndDatetime());
+            return Math.toIntExact(Math.max(hours, 0));
+        }
+
+        return calculateLeaveDays(request, leaveType) * DAILY_WORK_HOURS;
+    }
+
+    private void updateAnnualBalanceAfterReview(LeaveRequest leaveRequest, String previousStatus, String nextStatus) {
+        if (!usesAnnualQuota(leaveRequest.getLeaveType())) {
+            return;
+        }
+
+        boolean wasApproved = "APPROVED".equalsIgnoreCase(previousStatus);
+        boolean isApproved = "APPROVED".equalsIgnoreCase(nextStatus);
+
+        if (wasApproved == isApproved) {
+            return;
+        }
+
+        LeaveType annualLeaveType = getAnnualLeaveType();
+        LeaveBalance balance = leaveBalanceRepository
+                .findByEmployeeIdAndLeaveType_Id(leaveRequest.getEmployeeId(), annualLeaveType.getId())
+                .orElse(null);
+
+        if (balance == null) {
+            return;
+        }
+
+        int totalRemainingHours = getStoredRemainingHours(balance);
+        int leaveHours = getLeaveHours(leaveRequest);
+        int updatedHours = isApproved
+                ? Math.max(totalRemainingHours - leaveHours, 0)
+                : totalRemainingHours + leaveHours;
+
+        balance.setRemainingHours(updatedHours);
+        leaveBalanceRepository.save(balance);
+    }
+
+    private boolean usesAnnualQuota(LeaveType leaveType) {
+        String name = leaveType.getName() == null ? "" : leaveType.getName().toUpperCase();
+        return !name.contains("UCRETSIZ");
+    }
+
+    private int getLeaveHours(LeaveRequest leaveRequest) {
+        if (leaveRequest.getTotalHours() != null && leaveRequest.getTotalHours() > 0) {
+            return leaveRequest.getTotalHours();
+        }
+
+        if (leaveRequest.getTotalDays() != null && leaveRequest.getTotalDays() > 0) {
+            return leaveRequest.getTotalDays() * DAILY_WORK_HOURS;
+        }
+
+        if (Boolean.TRUE.equals(leaveRequest.getLeaveType().getIsHourly())) {
+            long hours = ChronoUnit.HOURS.between(leaveRequest.getStartDatetime(), leaveRequest.getEndDatetime());
+            return Math.toIntExact(Math.max(hours, 0));
+        }
+
+        long days = ChronoUnit.DAYS.between(leaveRequest.getStartDatetime().toLocalDate(), leaveRequest.getEndDatetime().toLocalDate()) + 1;
+        return Math.toIntExact(Math.max(days, 1)) * DAILY_WORK_HOURS;
+    }
+
+    private LeaveBalanceResponse mapToBalanceResponse(Long employeeId, LeaveType leaveType, LeaveBalance balance) {
+        Integer quotaDays = balance != null ? balance.getRemainingDays() : null;
+        int totalRemainingHours = quotaDays != null
+                ? Math.max(quotaDays * DAILY_WORK_HOURS - getApprovedAnnualLeaveHours(employeeId), 0)
+                : 0;
+
+        return LeaveBalanceResponse.builder()
+                .employeeId(employeeId)
+                .leaveTypeId(leaveType.getId())
+                .leaveTypeName(leaveType.getName())
+                .quotaDays(quotaDays)
+                .remainingDays(balance != null ? totalRemainingHours / DAILY_WORK_HOURS : null)
+                .remainingHours(totalRemainingHours % DAILY_WORK_HOURS)
+                .build();
+    }
+
+    private int getApprovedAnnualLeaveHours(Long employeeId) {
+        return leaveRequestRepository.findByEmployeeId(employeeId)
+                .stream()
+                .filter(leave -> "APPROVED".equalsIgnoreCase(leave.getStatus()))
+                .filter(leave -> usesAnnualQuota(leave.getLeaveType()))
+                .mapToInt(this::getLeaveHours)
+                .sum();
+    }
+
+    private int getStoredRemainingHours(LeaveBalance balance) {
+        if (balance.getRemainingHours() != null && balance.getRemainingHours() > 0) {
+            return balance.getRemainingHours();
+        }
+
+        if (balance.getRemainingDays() != null && balance.getRemainingDays() > 0) {
+            return balance.getRemainingDays() * DAILY_WORK_HOURS;
+        }
+
+        return 0;
     }
 
     private void assertCanManageEmployee(Long employeeId) {

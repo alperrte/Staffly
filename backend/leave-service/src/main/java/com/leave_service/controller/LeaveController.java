@@ -43,7 +43,7 @@ public class LeaveController {
         return leaveService.getAnnualLeaveBalance(employeeId);
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
     @PutMapping("/employee/{employeeId}/annual-quota")
     public LeaveBalanceResponse updateAnnualLeaveQuota(
             @PathVariable Long employeeId,

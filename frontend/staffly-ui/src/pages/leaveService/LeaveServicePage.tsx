@@ -5,6 +5,8 @@ import {
     CalendarDays,
     Check,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     Clock3,
     Eye,
     Filter,
@@ -42,6 +44,7 @@ import {
 type ViewMode = "create" | "mine" | "approval" | "quota";
 type ReviewAction = "APPROVED" | "REJECTED";
 type EmployeeRoleGroup = "HR" | "DEPARTMENT_MANAGER" | "OTHER";
+type DateField = "start" | "end";
 
 const DAILY_WORK_HOURS = 8;
 
@@ -141,6 +144,15 @@ const formatDateTime = (value?: string | null) => {
 const toInputDate = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
+const parseInputDate = (value?: string | null) => {
+    if (!value) return null;
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return null;
+
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const calculateHours = (start?: string | null, end?: string | null) => {
     const startDate = toDate(start);
     const endDate = toDate(end);
@@ -163,11 +175,6 @@ const calculateDays = (leave: Pick<Leave, "startDatetime" | "endDatetime" | "tot
 
     const diff = end.getTime() - start.getTime();
     return Math.max(1, Math.floor(diff / 86_400_000) + 1);
-};
-
-const calculateQuotaHours = (leave: Pick<Leave, "startDatetime" | "endDatetime" | "totalDays" | "totalHours">) => {
-    if (leave.totalHours && leave.totalHours > 0) return leave.totalHours;
-    return calculateDays(leave) * DAILY_WORK_HOURS;
 };
 
 const formatRemainingQuota = (hours: number) => {
@@ -313,6 +320,11 @@ const LeaveServicePage = () => {
         endTime: "13:00",
         reason: "",
     });
+    const [activeDateField, setActiveDateField] = useState<DateField>("start");
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), 1);
+    });
     const [quotaForm, setQuotaForm] = useState({
         employeeId: String(employeeId),
         quotaDays: "",
@@ -350,6 +362,7 @@ const LeaveServicePage = () => {
     const isHalfDayLeave = Boolean(
         selectedLeaveType?.isHourly || selectedLeaveType?.name?.toUpperCase().includes("YARIM")
     );
+    const today = toInputDate(new Date());
     const userByEmployeeId = useMemo(() => {
         const map = new Map<number, User>();
 
@@ -465,7 +478,10 @@ const LeaveServicePage = () => {
         if (isHalfDayLeave && formData.startDate && formData.endDate !== formData.startDate) {
             setFormData((current) => ({ ...current, endDate: current.startDate }));
         }
-    }, [formData.endDate, formData.startDate, isHalfDayLeave]);
+        if (isHalfDayLeave && activeDateField === "end") {
+            setActiveDateField("start");
+        }
+    }, [activeDateField, formData.endDate, formData.startDate, isHalfDayLeave]);
 
     useEffect(() => {
         if (timeValue(formData.endTime) <= timeValue(formData.startTime)) {
@@ -491,6 +507,72 @@ const LeaveServicePage = () => {
             totalHours: null,
         });
     }, [formData.endDate, formData.startDate, isHalfDayLeave, selectedHours]);
+
+    const calendarDays = useMemo(() => {
+        const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+        const startOffset = (firstDay.getDay() + 6) % 7;
+        const startDate = new Date(firstDay);
+        startDate.setDate(firstDay.getDate() - startOffset);
+
+        return Array.from({ length: 42 }, (_, index) => {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + index);
+            return {
+                date,
+                value: toInputDate(date),
+                isCurrentMonth: date.getMonth() === calendarMonth.getMonth(),
+                isWeekend: date.getDay() === 0 || date.getDay() === 6,
+            };
+        });
+    }, [calendarMonth]);
+
+    const calendarTitle = useMemo(
+        () =>
+            new Intl.DateTimeFormat("tr-TR", {
+                month: "long",
+                year: "numeric",
+            }).format(calendarMonth),
+        [calendarMonth]
+    );
+
+    const showDateOnCalendar = (field: DateField) => {
+        const date = parseInputDate(field === "start" ? formData.startDate : formData.endDate) ?? parseInputDate(formData.startDate) ?? new Date();
+        setActiveDateField(field);
+        setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    };
+
+    const selectCalendarDate = (dateValue: string) => {
+        if (dateValue < today) return;
+
+        setFormData((current) => {
+            if (activeDateField === "start") {
+                return {
+                    ...current,
+                    startDate: dateValue,
+                    endDate: isHalfDayLeave || !current.endDate || current.endDate < dateValue ? dateValue : current.endDate,
+                };
+            }
+
+            if (!current.startDate) {
+                return {
+                    ...current,
+                    startDate: dateValue,
+                    endDate: dateValue,
+                };
+            }
+
+            if (dateValue < current.startDate) return current;
+
+            return {
+                ...current,
+                endDate: isHalfDayLeave ? current.startDate : dateValue,
+            };
+        });
+
+        if (activeDateField === "start" && !isHalfDayLeave) {
+            setActiveDateField("end");
+        }
+    };
 
     const loadData = useCallback(async () => {
         setError("");
@@ -530,12 +612,11 @@ const LeaveServicePage = () => {
     }, [loadData]);
 
     const myStats = useMemo(() => {
-        const approvedLeaveDays = myLeaves
-            .filter((leave) => normalizeStatus(leave.status) === "APPROVED")
-            .reduce((total, leave) => total + calculateDays(leave), 0);
         const quota = annualBalance?.quotaDays;
+        const remainingDays = annualBalance?.remainingDays;
+        const remainingHours = annualBalance?.remainingHours ?? 0;
 
-        if (quota == null) {
+        if (quota == null || remainingDays == null) {
             return {
                 quota: null,
                 remaining: null,
@@ -544,9 +625,9 @@ const LeaveServicePage = () => {
 
         return {
             quota,
-            remaining: Math.max(quota - approvedLeaveDays, 0),
+            remaining: formatRemainingQuota(remainingDays * DAILY_WORK_HOURS + remainingHours),
         };
-    }, [annualBalance, myLeaves]);
+    }, [annualBalance]);
 
     const manageableApprovalLeaves = useMemo(
         () => approvalLeaves.filter((leave) => canManageEmployee(leave.employeeId)),
@@ -683,13 +764,14 @@ const LeaveServicePage = () => {
 
     const submitReview = async () => {
         if (!reviewTarget) return;
+        const reviewedLeave = reviewTarget.leave;
 
         if (reviewTarget.action === "REJECTED" && !rejectReason.trim()) {
             setError("Reddetme nedeni zorunludur.");
             return;
         }
 
-        if (!canManageEmployee(reviewTarget.leave.employeeId)) {
+        if (!canManageEmployee(reviewedLeave.employeeId)) {
             setError("Bu izin talebini onaylama veya reddetme yetkiniz yok.");
             return;
         }
@@ -700,11 +782,16 @@ const LeaveServicePage = () => {
 
         try {
             await reviewLeave({
-                leaveRequestId: reviewTarget.leave.id,
+                leaveRequestId: reviewedLeave.id,
                 managerId: employeeId,
                 action: reviewTarget.action,
                 comment: reviewTarget.action === "APPROVED" ? "Onaylandı" : rejectReason.trim(),
             });
+
+            if (reviewedLeave.employeeId === employeeId) {
+                const updatedBalance = await getAnnualLeaveBalance(employeeId);
+                setAnnualBalance(updatedBalance);
+            }
 
             setSuccess(reviewTarget.action === "APPROVED" ? "İzin talebi onaylandı." : "İzin talebi reddedildi.");
             setReviewTarget(null);
@@ -772,7 +859,6 @@ const LeaveServicePage = () => {
         );
     };
 
-    const today = toInputDate(new Date());
     const selectedDuration = isHalfDayLeave
         ? `${selectedHours ? selectedHours.toString().replace(".", ",") : 0} saat`
         : `${selectedDays || 0} gün`;
@@ -843,35 +929,31 @@ const LeaveServicePage = () => {
 
                                 <label className="block">
                                     <span className="text-sm font-medium text-slate-300">Başlangıç Tarihi *</span>
-                                    <input
-                                        type="date"
-                                        value={formData.startDate}
-                                        min={today}
-                                        onChange={(event) =>
-                                            setFormData((current) => ({
-                                                ...current,
-                                                startDate: event.target.value,
-                                                endDate: isHalfDayLeave
-                                                    ? event.target.value
-                                                    : !current.endDate || current.endDate < event.target.value
-                                                        ? event.target.value
-                                                        : current.endDate,
-                                            }))
-                                        }
-                                        className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
-                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => showDateOnCalendar("start")}
+                                        className={`mt-2 flex h-14 w-full items-center justify-between rounded-2xl border bg-slate-900/70 px-4 text-left text-sm font-semibold outline-none transition ${
+                                            activeDateField === "start" ? "border-violet-400/70 text-white" : "border-white/10 text-white hover:border-violet-400/45"
+                                        }`}
+                                    >
+                                        <span>{formData.startDate ? formatDate(`${formData.startDate}T00:00:00`) : "Tarih seçin"}</span>
+                                        <CalendarDays className="h-4 w-4 text-violet-300" />
+                                    </button>
                                 </label>
 
                                 <label className="block">
                                     <span className="text-sm font-medium text-slate-300">Bitiş Tarihi *</span>
-                                    <input
-                                        type="date"
-                                        value={formData.endDate}
-                                        min={formData.startDate || today}
+                                    <button
+                                        type="button"
                                         disabled={isHalfDayLeave}
-                                        onChange={(event) => setFormData((current) => ({ ...current, endDate: event.target.value }))}
-                                        className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70 disabled:cursor-not-allowed disabled:opacity-60"
-                                    />
+                                        onClick={() => showDateOnCalendar("end")}
+                                        className={`mt-2 flex h-14 w-full items-center justify-between rounded-2xl border bg-slate-900/70 px-4 text-left text-sm font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                            activeDateField === "end" ? "border-violet-400/70 text-white" : "border-white/10 text-white hover:border-violet-400/45"
+                                        }`}
+                                    >
+                                        <span>{formData.endDate ? formatDate(`${formData.endDate}T00:00:00`) : "Tarih seçin"}</span>
+                                        <CalendarDays className="h-4 w-4 text-violet-300" />
+                                    </button>
                                 </label>
 
                                 {isHalfDayLeave && (
@@ -938,6 +1020,101 @@ const LeaveServicePage = () => {
 
                         <aside className="space-y-5">
                             <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl">
+                                <div className="mb-5 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                                            <CalendarDays className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white">İzin Takvimi Önizleme</h3>
+                                            <p className="mt-1 text-xs font-semibold text-violet-300">
+                                                {activeDateField === "start" ? "Başlangıç tarihi seçiliyor" : "Bitiş tarihi seçiliyor"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-4 flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-violet-400/45 hover:text-white"
+                                        title="Önceki ay"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                    <p className="text-sm font-bold capitalize text-white">{calendarTitle}</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-violet-400/45 hover:text-white"
+                                        title="Sonraki ay"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase text-slate-500">
+                                    {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
+                                        <span key={day} className="py-1">
+                                            {day}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                <div className="mt-2 grid grid-cols-7 gap-1">
+                                    {calendarDays.map((day) => {
+                                        const disabled =
+                                            day.value < today ||
+                                            (activeDateField === "end" && Boolean(formData.startDate) && day.value < formData.startDate);
+                                        const isStart = day.value === formData.startDate;
+                                        const isEnd = day.value === formData.endDate;
+                                        const inRange =
+                                            Boolean(formData.startDate && formData.endDate) &&
+                                            day.value > formData.startDate &&
+                                            day.value < formData.endDate;
+
+                                        return (
+                                            <button
+                                                key={day.value}
+                                                type="button"
+                                                disabled={disabled}
+                                                onClick={() => selectCalendarDate(day.value)}
+                                                className={`flex aspect-square items-center justify-center rounded-xl text-xs font-bold transition ${
+                                                    isStart || isEnd
+                                                        ? "bg-violet-600 text-white shadow-[0_0_18px_rgba(124,58,237,0.35)]"
+                                                        : inRange
+                                                            ? "bg-violet-500/20 text-violet-100"
+                                                            : day.isWeekend
+                                                                ? "text-slate-500"
+                                                                : "text-slate-200"
+                                                } ${
+                                                    day.isCurrentMonth ? "" : "opacity-35"
+                                                } ${
+                                                    disabled
+                                                        ? "cursor-not-allowed opacity-25"
+                                                        : "hover:bg-violet-500/25 hover:text-white"
+                                                }`}
+                                            >
+                                                {day.date.getDate()}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-5 flex flex-wrap gap-3 text-[11px] text-slate-400">
+                                    <span className="flex items-center gap-2">
+                                        <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                                        Seçili aralık
+                                    </span>
+                                    <span className="flex items-center gap-2">
+                                        <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+                                        Hafta sonu
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl">
                                 <div className="mb-5 flex items-center gap-3">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
                                         <CalendarCheck className="h-5 w-5" />
@@ -951,7 +1128,7 @@ const LeaveServicePage = () => {
                                     </div>
                                     <div className="flex justify-between text-slate-300">
                                         <span>Kalan yıllık izin</span>
-                                        <strong className="text-lg text-violet-300">{myStats.remaining == null ? "Girilmedi" : `${myStats.remaining} gün`}</strong>
+                                        <strong className="text-lg text-violet-300">{myStats.remaining == null ? "Girilmedi" : myStats.remaining}</strong>
                                     </div>
                                 </div>
                             </div>
