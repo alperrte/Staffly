@@ -1,319 +1,534 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
+    BriefcaseBusiness,
     Building2,
-    ChevronDown,
-    ChevronUp,
-    FileText,
+    CalendarDays,
+    Eye,
+    Mail,
     Search,
-    XCircle,
+    ShieldCheck,
+    Users,
 } from "lucide-react";
+
 import { getDepartments } from "../../services/departmentService";
+import { getAllEmployees, getMyProfile } from "../../services/employeeService";
 import type { Department } from "../../types/departmentTypes";
+import type { EmployeeApiResponse, NormalizedEmployee } from "../../types/employeeTypes";
 
-type DeptTab = "departments" | "passive";
-type SortField = "name" | "description";
-type SortDirection = "asc" | "desc";
+const panelClass = "rounded-2xl border border-white/10 bg-slate-900/45 shadow-[0_0_45px_rgba(15,23,42,0.45)]";
+const inputClass =
+    "w-full rounded-xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30";
+const pageSize = 8;
 
-function DepartmentsPage() {
-    const [departments, setDepartments] = useState<Department[]>([]);
-    const [expandedDepartmentIds, setExpandedDepartmentIds] = useState<number[]>([]);
-    const [activeTab, setActiveTab] = useState<DeptTab>("departments");
+const empty = (value?: string | number | null) => {
+    if (value == null) return "Belirtilmemiş";
+    const text = String(value).trim();
+    return text || "Belirtilmemiş";
+};
+
+const formatDate = (value?: string | null) => {
+    if (!value) return "Belirtilmemiş";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return new Intl.DateTimeFormat("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    }).format(date);
+};
+
+const isActiveEmployee = (employee: NormalizedEmployee) =>
+    ["ACTIVE", "AKTIF", "AKTİF"].includes((employee.status || "").toLocaleUpperCase("tr-TR"));
+
+const collectRoleLabels = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return value.flatMap(collectRoleLabels);
+    }
+
+    if (value && typeof value === "object") {
+        const record = value as Record<string, unknown>;
+        return [record.name, record.role, record.roleName, record.authority].flatMap(collectRoleLabels);
+    }
+
+    if (typeof value === "string" || typeof value === "number") {
+        return [String(value)];
+    }
+
+    return [];
+};
+
+const hasEmployeeRole = (employee: NormalizedEmployee) => {
+    const raw = employee.raw as Record<string, unknown>;
+    const labels = [
+        raw.role,
+        raw.roleName,
+        raw.userRole,
+        raw.userRoleName,
+        raw.roles,
+        raw.roleNames,
+        raw.authorities,
+        raw.user,
+    ].flatMap(collectRoleLabels);
+
+    if (labels.length === 0) {
+        return true;
+    }
+
+    return labels.some((label) => {
+        const normalized = label.toLocaleUpperCase("tr-TR");
+        return (
+            normalized === "EMPLOYEE" ||
+            normalized === "ROLE_EMPLOYEE" ||
+            normalized === "ÇALIŞAN" ||
+            normalized === "CALISAN" ||
+            normalized === "ROLE_ÇALIŞAN" ||
+            normalized === "ROLE_CALISAN"
+        );
+    });
+};
+
+const DepartmentsPage = () => {
+    const [department, setDepartment] = useState<Department | null>(null);
+    const [employees, setEmployees] = useState<NormalizedEmployee[]>([]);
+    const [currentProfile, setCurrentProfile] = useState<EmployeeApiResponse | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [sortField, setSortField] = useState<SortField>("name");
-    const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-    const loadDepartments = async () => {
-        try {
-            setLoading(true);
-            const data = await getDepartments();
-            setDepartments(data);
-        } catch (err) {
-            console.error(err);
-            alert("Departmanlar alınamadı");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [positionFilter, setPositionFilter] = useState("ALL");
+    const [selectedEmployee, setSelectedEmployee] = useState<NormalizedEmployee | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        loadDepartments();
+        let alive = true;
+
+        const loadData = async () => {
+            setLoading(true);
+            setError("");
+
+            try {
+                const [profile, departments, employeeList] = await Promise.all([
+                    getMyProfile(),
+                    getDepartments(),
+                    getAllEmployees(),
+                ]);
+
+                if (!alive) return;
+
+                const departmentId = Number(profile?.departmentId);
+                const managerId = Number(profile?.id);
+                const ownDepartment =
+                    departments.find((item) => Number(item.id) === departmentId) ??
+                    departments.find((item) => item.name === profile?.departmentName) ??
+                    null;
+
+                setCurrentProfile(profile);
+                setDepartment(ownDepartment);
+                setEmployees(
+                    employeeList.filter((employee) => {
+                        if (!hasEmployeeRole(employee)) {
+                            return false;
+                        }
+
+                        if (Number.isFinite(managerId) && employee.id === managerId) {
+                            return false;
+                        }
+
+                        if (Number.isFinite(departmentId) && departmentId > 0) {
+                            return employee.organizationInfo.departmentId === departmentId;
+                        }
+
+                        return employee.organizationInfo.departmentName === profile?.departmentName;
+                    })
+                );
+                setSelectedEmployee(null);
+            } catch (loadError) {
+                console.error(loadError);
+                if (alive) setError("Departman bilgileri alınamadı.");
+            } finally {
+                if (alive) setLoading(false);
+            }
+        };
+
+        void loadData();
+
+        return () => {
+            alive = false;
+        };
     }, []);
 
-    const toggleDepartmentExpand = (id: number) => {
-        setExpandedDepartmentIds((prev) =>
-            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-        );
+    const toggleSelectedEmployee = (employee: NormalizedEmployee) => {
+        setSelectedEmployee((current) => (current?.id === employee.id ? null : employee));
     };
 
-    const handleSort = (field: SortField) => {
-        if (sortField === field) {
-            setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-            return;
-        }
+    const activeEmployees = useMemo(() => employees.filter(isActiveEmployee), [employees]);
+    const leaveEmployees = useMemo(
+        () => employees.filter((employee) => (employee.status || "").toLocaleUpperCase("tr-TR").includes("LEAVE")),
+        [employees]
+    );
+    const positions = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    employees
+                        .map((employee) => employee.organizationInfo.positionName)
+                        .filter((position) => position && position !== "Belirtilmemiş")
+                )
+            ),
+        [employees]
+    );
 
-        setSortField(field);
-        setSortDirection("asc");
-    };
+    const filteredEmployees = useMemo(() => {
+        const query = searchTerm.trim().toLocaleLowerCase("tr-TR");
 
-    const counts = useMemo(() => {
-        return {
-            departments: departments.filter((d) => d.deleted !== true).length,
-            passive: departments.filter((d) => d.deleted === true).length,
-        };
-    }, [departments]);
-
-    const filteredDepartments = useMemo(() => {
-        const lowerSearch = searchTerm.trim().toLowerCase();
-
-        const filtered = departments.filter((dep) => {
-            const matchesTab =
-                (activeTab === "departments" && dep.deleted !== true) ||
-                (activeTab === "passive" && dep.deleted === true);
-
+        return employees.filter((employee) => {
             const matchesSearch =
-                lowerSearch === "" ||
-                dep.name.toLowerCase().includes(lowerSearch) ||
-                dep.description.toLowerCase().includes(lowerSearch);
+                !query ||
+                [
+                    employee.basicInfo.fullName,
+                    employee.email,
+                    employee.organizationInfo.positionName,
+                    employee.status,
+                ]
+                    .join(" ")
+                    .toLocaleLowerCase("tr-TR")
+                    .includes(query);
 
-            return matchesTab && matchesSearch;
+            const matchesStatus =
+                statusFilter === "ALL" ||
+                (statusFilter === "ACTIVE" && isActiveEmployee(employee)) ||
+                (statusFilter === "LEAVE" && (employee.status || "").toLocaleUpperCase("tr-TR").includes("LEAVE"));
+
+            const matchesPosition =
+                positionFilter === "ALL" || employee.organizationInfo.positionName === positionFilter;
+
+            return matchesSearch && matchesStatus && matchesPosition;
         });
+    }, [employees, positionFilter, searchTerm, statusFilter]);
 
-        return filtered.sort((a, b) => {
-            const aValue = (a[sortField] || "").toString().toLowerCase();
-            const bValue = (b[sortField] || "").toString().toLowerCase();
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [positionFilter, searchTerm, statusFilter]);
 
-            if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-            if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+    const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
+    const paginatedEmployees = useMemo(
+        () => filteredEmployees.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+        [currentPage, filteredEmployees]
+    );
 
-            return 0;
-        });
-    }, [departments, activeTab, searchTerm, sortField, sortDirection]);
+    const managerName =
+        currentProfile != null
+            ? `${empty(currentProfile.firstName)} ${empty(currentProfile.lastName)}`.trim()
+            : "Belirtilmemiş";
 
-    const renderSortIcon = (field: SortField) => {
-        if (sortField !== field) {
-            return <ChevronDown className="h-4 w-4 text-slate-500"/>;
-        }
+    const departmentDescription = department?.description || "Departman açıklaması bulunmuyor.";
+    const departmentName = department?.name || empty(currentProfile?.departmentName);
+    const subDepartmentNames =
+        department?.subDepartments?.map((sub) => sub.name).filter(Boolean).join(", ") ||
+        empty(currentProfile?.subDepartmentName);
 
-        return sortDirection === "asc" ? (
-            <ChevronUp className="h-4 w-4 text-sky-400"/>
-        ) : (
-            <ChevronDown className="h-4 w-4 text-sky-400"/>
+    if (loading) {
+        return (
+            <div className="flex min-h-full items-center justify-center px-6 py-10 text-slate-300">
+                Departman bilgileri yükleniyor...
+            </div>
         );
-    };
+    }
 
-    const getTabIcon = (tab: DeptTab) => {
-        if (tab === "departments") {
-            return <Building2 className="h-4 w-4 text-sky-300"/>;
-        }
-
-        return <XCircle className="h-4 w-4 text-rose-300"/>;
-    };
-
-    const tabTitles: Record<DeptTab, string> = {
-        departments: "Departmanlar",
-        passive: "Pasif Departmanlar",
-    };
+    if (error) {
+        return (
+            <div className="flex min-h-full items-center justify-center px-6 py-10 text-rose-300">
+                {error}
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-[#020617] px-3 py-5 text-white sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[92rem]">
-                <div className="mb-5 rounded-2xl border border-slate-800/80 bg-slate-950/40 p-4 sm:p-5">
-                    <div className="mb-4">
-                        <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-[2rem]">
-                            Departmanlar
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-300">
-                            Departmanları, alt departmanları ve pozisyonları görüntüleyin.
-                        </p>
-                    </div>
-
-                    <div className="relative">
-                        <Search
-                            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/>
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Departman adı veya açıklama ile ara..."
-                            className="h-[58px] w-full rounded-2xl border border-slate-800 bg-slate-900/80 py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-all duration-300 hover:border-sky-400/40 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                        />
-                    </div>
-                </div>
-
-                <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {(["departments", "passive"] as DeptTab[]).map((tab) => {
-                        const isActive = activeTab === tab;
-                        const count = tab === "departments" ? counts.departments : counts.passive;
-
-                        return (
-                            <button
-                                key={tab}
-                                type="button"
-                                onClick={() => {
-                                    setActiveTab(tab);
-                                    setExpandedDepartmentIds([]);
-                                }}
-                                className={`cursor-pointer rounded-2xl border px-4 py-4 text-left transition-all duration-300 ${
-                                    isActive
-                                        ? "border-sky-500 bg-sky-500/10 shadow-[0_0_25px_rgba(14,165,233,0.12)]"
-                                        : "border-slate-800 bg-slate-900/70 hover:scale-[1.02] hover:border-sky-400/40 hover:shadow-[0_0_25px_rgba(56,189,248,0.12)]"
-                                }`}
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-2">
-                                        {getTabIcon(tab)}
-                                        <span className="text-sm text-slate-200">
-                                        {tabTitles[tab]}
-                                    </span>
-                                    </div>
-                                    <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-white">
-                                    {count}
-                                </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div
-                    className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/80 shadow-[0_0_35px_rgba(2,6,23,0.55)]">
-                    <div
-                        className="grid grid-cols-12 gap-3 border-b border-slate-800 bg-slate-900/70 px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-300 backdrop-blur-md">
-                        <button
-                            type="button"
-                            onClick={() => handleSort("name")}
-                            className="col-span-4 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
-                        >
-                            <Building2 className="h-3.5 w-3.5"/>
-                            Departman
-                            {renderSortIcon("name")}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => handleSort("description")}
-                            className="col-span-4 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
-                        >
-                            Açıklama
-                            {renderSortIcon("description")}
-                        </button>
-
-                        <div className="col-span-4 flex items-center">Durum</div>
-                    </div>
-
-                    <div>
-                        {loading ? (
-                            <div className="px-5 py-10 text-center text-sm text-slate-400">
-                                Departmanlar yükleniyor...
+        <div className="min-h-full px-3 py-6 text-white sm:px-6">
+            <div className="mx-auto grid max-w-none gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+                <main className="space-y-5">
+                    <header>
+                        <p className="text-sm text-slate-500">Çalışanlarım / Departmanım</p>
+                        <div className="mt-2 flex items-center gap-3">
+                            <Building2 className="h-8 w-8 text-violet-300" />
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight text-white">Departmanım</h1>
+                                <p className="mt-1 text-2xl font-bold text-violet-300">{departmentName}</p>
                             </div>
-                        ) : filteredDepartments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
-                                <FileText className="mb-4 h-14 w-14 opacity-30"/>
-                                <p className="text-sm text-slate-300">Henüz departman bulunmuyor</p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Arama veya sekme kriterlerine uygun kayıt yok
-                                </p>
+                        </div>
+                        <p className="mt-3 max-w-3xl text-sm text-slate-400">
+                            Departmanınızdaki çalışanları görüntüleyebilir, iletişim bilgilerine ulaşabilir ve organizasyon bilgisini takip edebilirsiniz.
+                        </p>
+                    </header>
+
+                    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                                    <Users className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Toplam Çalışan</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{employees.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+                                    <ShieldCheck className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Aktif Çalışan</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{activeEmployees.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300">
+                                    <CalendarDays className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">İzinli Çalışan</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{leaveEmployees.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300">
+                                    <BriefcaseBusiness className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Pozisyon Çeşidi</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{positions.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className={`${panelClass} overflow-hidden`}>
+                        <div className="grid gap-3 border-b border-white/10 p-4 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+                            <label className="relative block">
+                                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    value={searchTerm}
+                                    onChange={(event) => setSearchTerm(event.target.value)}
+                                    placeholder="Çalışan ara..."
+                                    className={`${inputClass} h-12 pl-12`}
+                                />
+                            </label>
+                            <select
+                                value={statusFilter}
+                                onChange={(event) => setStatusFilter(event.target.value)}
+                                className={`${inputClass} h-12`}
+                            >
+                                <option value="ALL">Durum: Tümü</option>
+                                <option value="ACTIVE">Aktif</option>
+                                <option value="LEAVE">İzinli</option>
+                            </select>
+                            <select
+                                value={positionFilter}
+                                onChange={(event) => setPositionFilter(event.target.value)}
+                                className={`${inputClass} h-12`}
+                            >
+                                <option value="ALL">Pozisyon: Tümü</option>
+                                {positions.map((position) => (
+                                    <option key={position} value={position}>
+                                        {position}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-[1.3fr_1fr_0.8fr_0.9fr_0.7fr] border-b border-white/10 bg-slate-950/35 px-5 py-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+                            <span>Çalışan</span>
+                            <span>Pozisyon</span>
+                            <span>Durum</span>
+                            <span>İşe Giriş Tarihi</span>
+                            <span className="text-right">İşlemler</span>
+                        </div>
+
+                        {filteredEmployees.length === 0 ? (
+                            <div className="px-5 py-14 text-center text-sm text-slate-400">
+                                Departmanınızda bu kritere uygun çalışan bulunamadı.
                             </div>
                         ) : (
-                            filteredDepartments.map((dep) => {
-                                const isExpanded = expandedDepartmentIds.includes(dep.id!);
-                                const isPassive = dep.deleted === true;
-
-                                return (
-                                    <div key={dep.id} className="border-b border-slate-800 last:border-b-0">
-                                        <div
-                                            className="grid grid-cols-12 gap-3 px-5 py-4 text-left transition-all duration-200 hover:bg-slate-900/50">
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-4 flex cursor-pointer items-center gap-2 text-sm text-white"
-                                            >
-                                                <span className="truncate font-medium">{dep.name}</span>
-                                                {isExpanded ? (
-                                                    <ChevronUp className="h-4 w-4 shrink-0 text-slate-500"/>
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-500"/>
-                                                )}
-                                            </div>
-
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-4 flex cursor-pointer items-center text-sm text-slate-300"
-                                            >
-                                                <span className="line-clamp-2">{dep.description || "—"}</span>
-                                            </div>
-
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-4 flex cursor-pointer items-center"
-                                            >
-                                            <span
-                                                className={`rounded-full border px-2.5 py-0.5 text-xs ${
-                                                    isPassive
-                                                        ? "border-rose-400/20 bg-rose-500/15 text-rose-300"
-                                                        : "border-emerald-400/20 bg-emerald-500/15 text-emerald-300"
-                                                }`}
-                                            >
-                                                {isPassive ? "Pasif" : "Aktif"}
-                                            </span>
-                                            </div>
-                                        </div>
-
-                                        {isExpanded && (
-                                            <div className="border-t border-slate-800 bg-slate-900/40 px-5 py-5">
-                                                {dep.subDepartments && dep.subDepartments.length > 0 ? (
-                                                    dep.subDepartments.map((sub, subIndex) => (
-                                                        <div
-                                                            key={subIndex}
-                                                            className="mb-4 last:mb-0 rounded-2xl border border-slate-800 bg-slate-950/70 p-4"
-                                                        >
-                                                            <div className="text-sm font-semibold text-sky-300">
-                                                                ↳ {sub.name}
-                                                            </div>
-
-                                                            <div className="mt-1 text-sm text-slate-400">
-                                                                {sub.description || "Açıklama bulunmuyor"}
-                                                            </div>
-
-                                                            {sub.positions && sub.positions.length > 0 && (
-                                                                <div
-                                                                    className="mt-3 space-y-2 border-t border-slate-800 pt-3 pl-2">
-                                                                    {sub.positions.map((pos, posIndex) => (
-                                                                        <div
-                                                                            key={posIndex}
-                                                                            className="text-sm text-slate-300"
-                                                                        >
-                                                                            •{" "}
-                                                                            <span className="font-medium">
-                                                                            {pos.name}
-                                                                        </span>{" "}
-                                                                            <span
-                                                                                className="text-slate-500">—</span>{" "}
-                                                                            {pos.description || "Açıklama yok"}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-sm text-slate-500">
-                                                        Alt departman bulunmuyor
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                            paginatedEmployees.map((employee) => (
+                                <div
+                                    key={employee.id}
+                                    onClick={() => toggleSelectedEmployee(employee)}
+                                    className={`grid cursor-pointer grid-cols-[1.3fr_1fr_0.8fr_0.9fr_0.7fr] items-center gap-4 border-b border-white/10 px-5 py-4 text-sm last:border-b-0 hover:bg-slate-950/30 ${
+                                        selectedEmployee?.id === employee.id ? "bg-sky-500/10" : ""
+                                    }`}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate font-bold text-white">{employee.basicInfo.fullName}</p>
+                                        <p className="mt-1 truncate text-xs text-slate-400">{employee.email}</p>
                                     </div>
-                                );
-                            })
+                                    <div className="flex items-center gap-3">
+                                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                                            <BriefcaseBusiness className="h-5 w-5" />
+                                        </span>
+                                        <span className="truncate text-slate-200">{employee.organizationInfo.positionName}</span>
+                                    </div>
+                                    <span>
+                                        <span
+                                            className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+                                                isActiveEmployee(employee)
+                                                    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
+                                                    : "border-amber-400/20 bg-amber-500/10 text-amber-300"
+                                            }`}
+                                        >
+                                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                            {isActiveEmployee(employee) ? "Aktif" : empty(employee.status)}
+                                        </span>
+                                    </span>
+                                    <span className="text-slate-300">{formatDate(employee.hireDate)}</span>
+                                    <span className="flex justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                toggleSelectedEmployee(employee);
+                                            }}
+                                            className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10 text-violet-300 transition hover:bg-violet-500/20"
+                                            title="Görüntüle"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </button>
+                                        <a
+                                            href={`mailto:${employee.email}`}
+                                            onClick={(event) => event.stopPropagation()}
+                                            className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-300 transition hover:bg-indigo-500/20"
+                                            title="E-posta"
+                                        >
+                                            <Mail className="h-4 w-4" />
+                                        </a>
+                                    </span>
+                                </div>
+                            ))
                         )}
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-4 text-sm text-slate-400">
+                            <span>Toplam {filteredEmployees.length} çalışan</span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                    disabled={currentPage === 1}
+                                    className="h-9 rounded-xl border border-white/10 px-3 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Önceki
+                                </button>
+                                <span className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 font-semibold text-white">
+                                    {currentPage} / {totalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="h-9 rounded-xl border border-white/10 px-3 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Sonraki
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+
+                <aside className={`${panelClass} h-fit p-4 xl:sticky xl:top-6 ${selectedEmployee ? "xl:mt-16" : "xl:mt-10"}`}>
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-200">
+                            <Building2 className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="break-words text-lg font-bold text-white">{departmentName}</h2>
+                                <span className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
+                                    Aktif
+                                </span>
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">{subDepartmentNames}</p>
+                        </div>
                     </div>
-                </div>
+
+                    <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                        <div>
+                            <p className="text-sm text-slate-400">Departman Yöneticisi</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{managerName}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-slate-400">Açıklama</p>
+                            <p className="mt-1 text-sm leading-6 text-slate-200">{departmentDescription}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                        <div className="flex justify-between gap-4">
+                            <span className="text-slate-400">Toplam Çalışan</span>
+                            <strong className="text-white">{employees.length}</strong>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                            <span className="text-slate-400">Pozisyon Çeşidi</span>
+                            <strong className="text-white">{positions.length}</strong>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                            <span className="text-slate-400">Aktif Çalışan</span>
+                            <strong className="text-white">{activeEmployees.length}</strong>
+                        </div>
+                    </div>
+
+                    {selectedEmployee && (
+                        <>
+                            <div className="mt-4 flex items-start gap-4 border-t border-white/10 pt-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-200">
+                                    <Users className="h-6 w-6" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h3 className="break-words text-lg font-bold text-white">{selectedEmployee.basicInfo.fullName}</h3>
+                                        <span className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
+                                            {isActiveEmployee(selectedEmployee) ? "Aktif" : empty(selectedEmployee.status)}
+                                        </span>
+                                    </div>
+                                    <p className="mt-2 text-sm text-slate-400">{selectedEmployee.organizationInfo.positionName}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                <div>
+                                    <p className="text-sm text-slate-400">E-posta</p>
+                                    <p className="mt-1 break-words text-sm font-semibold text-white">{selectedEmployee.email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Telefon</p>
+                                    <p className="mt-1 text-sm font-semibold text-white">{empty(selectedEmployee.phone)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">İşe Giriş Tarihi</p>
+                                    <p className="mt-1 text-sm font-semibold text-white">{formatDate(selectedEmployee.hireDate)}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                <div className="flex justify-between gap-4">
+                                    <span className="text-slate-400">Departman</span>
+                                    <strong className="text-right text-white">{selectedEmployee.organizationInfo.departmentName}</strong>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                    <span className="text-slate-400">Alt Departman</span>
+                                    <strong className="text-right text-white">{selectedEmployee.organizationInfo.subDepartmentName}</strong>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </aside>
             </div>
         </div>
     );
-}
+};
+
 export default DepartmentsPage;

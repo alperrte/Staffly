@@ -163,15 +163,15 @@ const Sidebar = () => {
                     </NavLink>
                 )}
 
-                {hasAnyRole([ROLE_SYSTEM_ADMIN]) && (
+                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
                     <NavLink to="/app/departments/manage" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaBuilding /> Departman Yönetimi
                     </NavLink>
                 )}
 
-                {hasAnyRole([ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
+                {hasAnyRole([ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/departments" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaBuilding /> Departmanlar
+                        <FaBuilding /> Departmanlarım
                     </NavLink>
                 )}
 

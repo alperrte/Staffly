@@ -2,756 +2,474 @@ import { useEffect, useMemo, useState } from "react";
 import {
     Building2,
     ChevronDown,
-    ChevronUp,
-    FileText,
+    ChevronRight,
+    Edit3,
+    Layers3,
+    Plus,
+    RotateCcw,
     Search,
-    XCircle,
+    Trash2,
+    X,
 } from "lucide-react";
+
 import {
     createDepartment,
     getDepartments,
     updateDepartment,
 } from "../../services/departmentService";
+import type { Department, DepartmentPosition, SubDepartment } from "../../types/departmentTypes";
 
-import type {
-    Department,
-    SubDepartment,
-    DepartmentPosition,
-} from "../../types/departmentTypes";
+const emptyPosition = (): DepartmentPosition => ({
+    name: "",
+    description: "",
+});
 
-type DeptTab = "departments" | "passive";
-type SortField = "name" | "description";
-type SortDirection = "asc" | "desc";
+const emptySubDepartment = (): SubDepartment => ({
+    name: "",
+    description: "",
+    managerId: null,
+    positions: [emptyPosition()],
+});
 
-function DepartmentManagementPage() {
+const emptyDepartment = (): Department => ({
+    name: "",
+    description: "",
+    managerId: null,
+    subDepartments: [emptySubDepartment()],
+});
+
+const panelClass = "rounded-2xl border border-white/10 bg-slate-900/45 shadow-[0_0_45px_rgba(15,23,42,0.45)]";
+const inputClass =
+    "w-full rounded-xl border border-white/10 bg-slate-950/35 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30";
+const pageSize = 6;
+
+const normalizeDepartment = (department: Department): Department => ({
+    id: department.id,
+    name: department.name ?? "",
+    description: department.description ?? "",
+    managerId: department.managerId ?? null,
+    deleted: department.deleted,
+    subDepartments:
+        department.subDepartments?.length > 0
+            ? department.subDepartments.map((sub) => ({
+                  name: sub.name ?? "",
+                  description: sub.description ?? "",
+                  managerId: sub.managerId ?? null,
+                  positions:
+                      sub.positions?.length > 0
+                          ? sub.positions.map((position) => ({
+                                name: position.name ?? "",
+                                description: position.description ?? "",
+                            }))
+                          : [emptyPosition()],
+              }))
+            : [emptySubDepartment()],
+});
+
+const sanitizeDepartment = (department: Department): Department => ({
+    ...department,
+    name: department.name.trim(),
+    description: department.description.trim(),
+    subDepartments: department.subDepartments
+        .filter((sub) => sub.name.trim() || sub.description.trim() || sub.positions.some((position) => position.name.trim()))
+        .map((sub) => ({
+            ...sub,
+            name: sub.name.trim(),
+            description: sub.description.trim(),
+            positions: sub.positions
+                .filter((position) => position.name.trim() || position.description.trim())
+                .map((position) => ({
+                    name: position.name.trim(),
+                    description: position.description.trim(),
+                })),
+        })),
+});
+
+const DepartmentManagementPage = () => {
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [form, setForm] = useState<Department>(() => emptyDepartment());
+    const [editingDepartmentId, setEditingDepartmentId] = useState<number | null>(null);
     const [expandedDepartmentIds, setExpandedDepartmentIds] = useState<number[]>([]);
-
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [isUpdateOpen, setIsUpdateOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<DeptTab>("departments");
     const [searchTerm, setSearchTerm] = useState("");
-
-    const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
-
-    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-    const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-
+    const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [sortField, setSortField] = useState<SortField>("name");
-    const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-    const emptyPosition: DepartmentPosition = {
-        name: "",
-        description: "",
-    };
-
-    const emptySubDepartment: SubDepartment = {
-        name: "",
-        description: "",
-        managerId: null,
-        positions: [{ ...emptyPosition }],
-    };
-
-    const emptyDepartmentForm: Department = {
-        name: "",
-        description: "",
-        managerId: null,
-        subDepartments: [{ ...emptySubDepartment }],
-    };
-
-    const [createForm, setCreateForm] = useState<Department>(emptyDepartmentForm);
-    const [updateForm, setUpdateForm] = useState<Department>(emptyDepartmentForm);
-    const [updateSelectedSubIndex, setUpdateSelectedSubIndex] = useState(0);
-    const [updateSelectedPositionIndex, setUpdateSelectedPositionIndex] = useState(0);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
 
     const loadDepartments = async () => {
+        setLoading(true);
+        setError("");
+
         try {
-            setLoading(true);
-            const data = await getDepartments();
-            setDepartments(data);
-        } catch (err) {
-            console.error(err);
-            alert("Departmanlar alınamadı");
+            setDepartments(await getDepartments());
+        } catch (loadError) {
+            console.error(loadError);
+            setError("Departmanlar alınamadı.");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                await loadDepartments();
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchData();
+        void loadDepartments();
     }, []);
 
-    useEffect(() => {
-        if (!isUpdateOpen) return;
-        if (updateForm.subDepartments.length === 0) {
-            setUpdateSelectedSubIndex(0);
-            return;
-        }
-        setUpdateSelectedSubIndex((i) =>
-            Math.min(i, updateForm.subDepartments.length - 1)
-        );
-    }, [isUpdateOpen, updateForm.subDepartments.length]);
-
-    const updateSelectedPositionsLength =
-        updateForm.subDepartments[updateSelectedSubIndex]?.positions.length ?? 0;
-
-    useEffect(() => {
-        if (!isUpdateOpen) return;
-        if (updateSelectedPositionsLength === 0) {
-            setUpdateSelectedPositionIndex(0);
-            return;
-        }
-        setUpdateSelectedPositionIndex((i) =>
-            Math.min(i, updateSelectedPositionsLength - 1)
-        );
-    }, [isUpdateOpen, updateSelectedSubIndex, updateSelectedPositionsLength]);
-
-    const toggleDepartmentExpand = (id: number) => {
-        setExpandedDepartmentIds((prev) =>
-            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-        );
-    };
-
-    const resetCreateForm = () => {
-        setCreateForm({
-            name: "",
-            description: "",
-            managerId: null,
-            subDepartments: [
-                {
-                    name: "",
-                    description: "",
-                    managerId: null,
-                    positions: [{ name: "", description: "" }],
-                },
-            ],
-        });
-    };
-
-    const mapDepartmentToForm = (dep: Department): Department => ({
-        id: dep.id,
-        name: dep.name,
-        description: dep.description,
-        managerId: dep.managerId ?? null,
-        subDepartments:
-            dep.subDepartments?.length > 0
-                ? dep.subDepartments.map((sub) => ({
-                    name: sub.name,
-                    description: sub.description,
-                    managerId: sub.managerId ?? null,
-                    positions:
-                        sub.positions?.length > 0
-                            ? sub.positions.map((pos) => ({
-                                name: pos.name,
-                                description: pos.description,
-                            }))
-                            : [{ name: "", description: "" }],
-                }))
-                : [
-                    {
-                        name: "",
-                        description: "",
-                        managerId: null,
-                        positions: [{ name: "", description: "" }],
-                    },
-                ],
-    });
-
-    const handleCreateChange = (field: keyof Department, value: string | number | null) => {
-        setCreateForm((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-
-    const handleUpdateChange = (field: keyof Department, value: string | number | null) => {
-        setUpdateForm((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-
-    const handleCreateSubDepartmentChange = (
-        subIndex: number,
-        field: keyof SubDepartment,
-        value: string | number | null
-    ) => {
-        setCreateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                [field]: value,
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const handleUpdateSubDepartmentChange = (
-        subIndex: number,
-        field: keyof SubDepartment,
-        value: string | number | null
-    ) => {
-        setUpdateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                [field]: value,
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const handleCreatePositionChange = (
-        subIndex: number,
-        posIndex: number,
-        field: keyof DepartmentPosition,
-        value: string
-    ) => {
-        setCreateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            const updatedPositions = [...updatedSubs[subIndex].positions];
-            updatedPositions[posIndex] = {
-                ...updatedPositions[posIndex],
-                [field]: value,
-            };
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: updatedPositions,
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const handleUpdatePositionChange = (
-        subIndex: number,
-        posIndex: number,
-        field: keyof DepartmentPosition,
-        value: string
-    ) => {
-        setUpdateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            const updatedPositions = [...updatedSubs[subIndex].positions];
-            updatedPositions[posIndex] = {
-                ...updatedPositions[posIndex],
-                [field]: value,
-            };
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: updatedPositions,
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const addCreateSubDepartment = () => {
-        setCreateForm((prev) => ({
-            ...prev,
-            subDepartments: [
-                ...prev.subDepartments,
-                {
-                    name: "",
-                    description: "",
-                    managerId: null,
-                    positions: [{ name: "", description: "" }],
-                },
-            ],
-        }));
-    };
-
-
-    const addCreatePosition = (subIndex: number) => {
-        setCreateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: [...updatedSubs[subIndex].positions, { name: "", description: "" }],
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-
-
-    const removeCreateSubDepartment = (subIndex: number) => {
-        setCreateForm((prev) => ({
-            ...prev,
-            subDepartments: prev.subDepartments.filter((_, i) => i !== subIndex),
-        }));
-    };
-
-    const removeUpdateSubDepartment = (subIndex: number) => {
-        setUpdateForm((prev) => ({
-            ...prev,
-            subDepartments: prev.subDepartments.filter((_, i) => i !== subIndex),
-        }));
-    };
-
-    const removeCreatePosition = (subIndex: number, posIndex: number) => {
-        setCreateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: updatedSubs[subIndex].positions.filter((_, i) => i !== posIndex),
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const removeUpdatePosition = (subIndex: number, posIndex: number) => {
-        setUpdateForm((prev) => {
-            const updatedSubs = [...prev.subDepartments];
-            updatedSubs[subIndex] = {
-                ...updatedSubs[subIndex],
-                positions: updatedSubs[subIndex].positions.filter((_, i) => i !== posIndex),
-            };
-            return { ...prev, subDepartments: updatedSubs };
-        });
-    };
-
-    const sanitizeDepartmentPayload = (data: Department): Department => {
-        return {
-            ...data,
-            name: data.name.trim(),
-            description: data.description.trim(),
-            subDepartments: data.subDepartments
-                .filter((sub) => sub.name.trim() !== "")
-                .map((sub) => ({
-                    ...sub,
-                    name: sub.name.trim(),
-                    description: sub.description.trim(),
-                    positions: sub.positions
-                        .filter((pos) => pos.name.trim() !== "")
-                        .map((pos) => ({
-                            name: pos.name.trim(),
-                            description: pos.description.trim(),
-                        })),
-                })),
-        };
-    };
-
-    const handleCreate = async () => {
-        try {
-            const payload = sanitizeDepartmentPayload(createForm);
-            await createDepartment(payload);
-            alert("Departman oluşturuldu");
-            setIsCreateOpen(false);
-            resetCreateForm();
-            await loadDepartments();
-        } catch (err) {
-            console.error(err);
-            alert("Departman oluşturulamadı");
-        }
-    };
-
-    const handleOpenUpdate = (dep: Department) => {
-        setSelectedDepartmentId(dep.id!);
-        setUpdateForm(mapDepartmentToForm(dep));
-        setUpdateSelectedSubIndex(0);
-        setUpdateSelectedPositionIndex(0);
-        setIsUpdateOpen(true);
-    };
-
-    const handleAddUpdateSubDepartmentClick = () => {
-        setUpdateForm((prev) => {
-            const subDepartments = [
-                ...prev.subDepartments,
-                {
-                    name: "",
-                    description: "",
-                    managerId: null,
-                    positions: [{ name: "", description: "" }],
-                },
-            ];
-            setUpdateSelectedSubIndex(subDepartments.length - 1);
-            return { ...prev, subDepartments };
-        });
-    };
-
-    const handleRemoveUpdateSubDepartmentClick = (subIndex: number) => {
-        removeUpdateSubDepartment(subIndex);
-        setUpdateSelectedSubIndex((prevSel) => {
-            if (subIndex < prevSel) return prevSel - 1;
-            if (subIndex === prevSel) return Math.max(0, prevSel - 1);
-            return prevSel;
-        });
-        setUpdateSelectedPositionIndex(0);
-    };
-
-    const handleAddUpdatePositionClick = () => {
-        const subIdx = updateSelectedSubIndex;
-        setUpdateForm((prev) => {
-            const subs = [...prev.subDepartments];
-            const positions = [
-                ...subs[subIdx].positions,
-                { name: "", description: "" },
-            ];
-            subs[subIdx] = { ...subs[subIdx], positions };
-            setUpdateSelectedPositionIndex(positions.length - 1);
-            return { ...prev, subDepartments: subs };
-        });
-    };
-
-    const handleRemoveUpdatePositionClick = (subIndex: number, posIndex: number) => {
-        removeUpdatePosition(subIndex, posIndex);
-        setUpdateSelectedPositionIndex((prevSel) => {
-            if (posIndex < prevSel) return prevSel - 1;
-            if (posIndex === prevSel) return Math.max(0, prevSel - 1);
-            return prevSel;
-        });
-    };
-
-    const handleToggleDepartment = async (dep: Department) => {
-        try {
-            await updateDepartment(dep.id!, {
-                ...dep,
-                deleted: !dep.deleted,
-            });
-            await loadDepartments();
-        } catch (err) {
-            console.error(err);
-            alert("İşlem başarısız");
-        }
-    };
-
-    const handleUpdate = async () => {
-        if (!selectedDepartmentId) {
-            alert("Lütfen düzenlenecek departmanı seç");
-            return;
-        }
-
-        try {
-            const payload = sanitizeDepartmentPayload(updateForm);
-            await updateDepartment(selectedDepartmentId, payload);
-            alert("Departman güncellendi");
-            setIsUpdateOpen(false);
-            await loadDepartments();
-        } catch (err) {
-            console.error(err);
-            alert("Departman güncellenemedi");
-        }
-    };
-
-    const handleSort = (field: SortField) => {
-        if (sortField === field) {
-            setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-            return;
-        }
-        setSortField(field);
-        setSortDirection("asc");
-    };
-
-    const counts = useMemo(() => {
-        return {
-            departments: departments.filter((d) => d.deleted !== true).length,
-            passive: departments.filter((d) => d.deleted === true).length,
-        };
-    }, [departments]);
+    const activeDepartments = useMemo(
+        () => departments.filter((department) => department.deleted !== true),
+        [departments]
+    );
+    const passiveDepartments = useMemo(
+        () => departments.filter((department) => department.deleted === true),
+        [departments]
+    );
 
     const filteredDepartments = useMemo(() => {
-        const lowerSearch = searchTerm.trim().toLowerCase();
+        const query = searchTerm.trim().toLocaleLowerCase("tr-TR");
 
-        const filtered = departments.filter((dep) => {
-            const matchesTab =
-                (activeTab === "departments" && dep.deleted !== true) ||
-                (activeTab === "passive" && dep.deleted === true);
+        return departments.filter((department) => {
+            if (!query) return true;
 
-            const matchesSearch =
-                lowerSearch === "" ||
-                dep.name.toLowerCase().includes(lowerSearch) ||
-                dep.description.toLowerCase().includes(lowerSearch);
-
-            return matchesTab && matchesSearch;
+            return [
+                department.name,
+                department.description,
+                ...(department.subDepartments ?? []).flatMap((sub) => [
+                    sub.name,
+                    sub.description,
+                    ...(sub.positions ?? []).map((position) => position.name),
+                ]),
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLocaleLowerCase("tr-TR")
+                .includes(query);
         });
+    }, [departments, searchTerm]);
 
-        return filtered.sort((a, b) => {
-            const aValue = (a[sortField] || "").toString().toLowerCase();
-            const bValue = (b[sortField] || "").toString().toLowerCase();
-            if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-            if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-            return 0;
-        });
-    }, [departments, activeTab, searchTerm, sortField, sortDirection]);
+    const totalEmployees = useMemo(
+        () => departments.reduce((sum, department) => sum + Number((department as Department & { employeeCount?: number }).employeeCount ?? 0), 0),
+        [departments]
+    );
 
-    const renderSortIcon = (field: SortField) => {
-        if (sortField !== field) {
-            return <ChevronDown className="h-4 w-4 text-slate-500" />;
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredDepartments.length / pageSize));
+    const paginatedDepartments = useMemo(
+        () => filteredDepartments.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+        [currentPage, filteredDepartments]
+    );
+
+    const resetForm = () => {
+        setForm(emptyDepartment());
+        setEditingDepartmentId(null);
+        setMessage("");
+        setError("");
+    };
+
+    const startEdit = (department: Department) => {
+        setForm(normalizeDepartment(department));
+        setEditingDepartmentId(department.id ?? null);
+        setMessage("");
+        setError("");
+    };
+
+    const updateFormField = (field: keyof Department, value: string | number | null) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const updateSubDepartment = (subIndex: number, field: keyof SubDepartment, value: string | number | null) => {
+        setForm((current) => ({
+            ...current,
+            subDepartments: current.subDepartments.map((sub, index) =>
+                index === subIndex ? { ...sub, [field]: value } : sub
+            ),
+        }));
+    };
+
+    const updatePosition = (subIndex: number, positionIndex: number, field: keyof DepartmentPosition, value: string) => {
+        setForm((current) => ({
+            ...current,
+            subDepartments: current.subDepartments.map((sub, index) =>
+                index === subIndex
+                    ? {
+                          ...sub,
+                          positions: sub.positions.map((position, posIndex) =>
+                              posIndex === positionIndex ? { ...position, [field]: value } : position
+                          ),
+                      }
+                    : sub
+            ),
+        }));
+    };
+
+    const addSubDepartment = () => {
+        setForm((current) => ({
+            ...current,
+            subDepartments: [...current.subDepartments, emptySubDepartment()],
+        }));
+    };
+
+    const removeSubDepartment = (subIndex: number) => {
+        setForm((current) => ({
+            ...current,
+            subDepartments:
+                current.subDepartments.length > 1
+                    ? current.subDepartments.filter((_, index) => index !== subIndex)
+                    : [emptySubDepartment()],
+        }));
+    };
+
+    const addPosition = (subIndex: number) => {
+        setForm((current) => ({
+            ...current,
+            subDepartments: current.subDepartments.map((sub, index) =>
+                index === subIndex ? { ...sub, positions: [...sub.positions, emptyPosition()] } : sub
+            ),
+        }));
+    };
+
+    const removePosition = (subIndex: number, positionIndex: number) => {
+        setForm((current) => ({
+            ...current,
+            subDepartments: current.subDepartments.map((sub, index) =>
+                index === subIndex
+                    ? {
+                          ...sub,
+                          positions:
+                              sub.positions.length > 1
+                                  ? sub.positions.filter((_, posIndex) => posIndex !== positionIndex)
+                                  : [emptyPosition()],
+                      }
+                    : sub
+            ),
+        }));
+    };
+
+    const saveDepartment = async () => {
+        const payload = sanitizeDepartment(form);
+
+        if (!payload.name || !payload.description) {
+            setError("Departman adı ve açıklaması zorunludur.");
+            return;
         }
-        return sortDirection === "asc" ? (
-            <ChevronUp className="h-4 w-4 text-sky-400" />
-        ) : (
-            <ChevronDown className="h-4 w-4 text-sky-400" />
+
+        setSaving(true);
+        setError("");
+        setMessage("");
+
+        try {
+            if (editingDepartmentId) {
+                await updateDepartment(editingDepartmentId, payload);
+                setMessage("Departman güncellendi.");
+            } else {
+                await createDepartment(payload);
+                setMessage("Departman oluşturuldu.");
+            }
+
+            resetForm();
+            await loadDepartments();
+        } catch (saveError) {
+            console.error(saveError);
+            setError(editingDepartmentId ? "Departman güncellenemedi." : "Departman oluşturulamadı.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const toggleDepartmentStatus = async (department: Department) => {
+        if (!department.id) return;
+
+        setError("");
+        setMessage("");
+
+        try {
+            await updateDepartment(department.id, {
+                ...normalizeDepartment(department),
+                deleted: department.deleted !== true,
+            });
+            setMessage(department.deleted ? "Departman tekrar aktife alındı." : "Departman pasife alındı.");
+            await loadDepartments();
+        } catch (toggleError) {
+            console.error(toggleError);
+            setError("Departman durumu güncellenemedi.");
+        }
+    };
+
+    const toggleExpanded = (id?: number) => {
+        if (!id) return;
+
+        setExpandedDepartmentIds((current) =>
+            current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
         );
     };
 
-    const getTabIcon = (tab: DeptTab) => {
-        if (tab === "departments") {
-            return <Building2 className="h-4 w-4 text-sky-300" />;
-        }
-        return <XCircle className="h-4 w-4 text-rose-300" />;
-    };
-
-    const tabTitles: Record<DeptTab, string> = {
-        departments: "Departmanlar",
-        passive: "Pasif Departmanlar",
-    };
-
-    const showDepartmentActions = activeTab === "departments";
-    const showPassiveActions = activeTab === "passive";
-
     return (
-        <div className="min-h-screen bg-[#020617] px-3 py-5 text-white sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[92rem]">
-                <div className="mb-5 rounded-2xl border border-slate-800/80 bg-slate-950/40 p-4 sm:p-5">
-                    <div className="mb-4">
-                        <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-[2rem]">
-                            Departman Yönetimi
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-300">
-                            Departmanları listeleyin, arayın; aktif kayıtları düzenleyin veya pasif
-                            kayıtları tekrar açın.
+        <div className="min-h-full px-3 py-6 text-white sm:px-6">
+            <div className="mx-auto grid max-w-none gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
+                <main className="space-y-5">
+                    <header>
+                        <h1 className="text-3xl font-bold tracking-tight text-white">Departman Yönetimi</h1>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Departmanları listeleyin, arayın; aktif kayıtları düzenleyin veya pasif kayıtları tekrar açın.
                         </p>
-                    </div>
+                    </header>
 
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                        <div>
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    {(message || error) && (
+                        <div
+                            className={`rounded-xl border px-4 py-3 text-sm ${
+                                error
+                                    ? "border-rose-400/25 bg-rose-500/10 text-rose-200"
+                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                            }`}
+                        >
+                            {error || message}
+                        </div>
+                    )}
+
+                    <section className={`${panelClass} p-4`}>
+                        <div className="grid gap-3">
+                            <label className="relative block">
+                                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    type="text"
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(event) => setSearchTerm(event.target.value)}
                                     placeholder="Departman adı veya açıklama ile ara..."
-                                    className="h-[58px] w-full rounded-2xl border border-slate-800 bg-slate-900/80 py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-all duration-300 hover:border-sky-400/40 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                    className={`${inputClass} h-12 pl-12`}
                                 />
-                            </div>
+                            </label>
                         </div>
+                    </section>
 
-                        <div className="flex items-center justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateOpen(true)}
-                                className="h-[58px] w-full rounded-2xl bg-sky-600 px-6 text-sm font-semibold text-white transition hover:bg-sky-500 lg:w-auto"
-                            >
-                                + Departman Ekle
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {(["departments", "passive"] as DeptTab[]).map((tab) => {
-                        const isActive = activeTab === tab;
-                        const count =
-                            tab === "departments" ? counts.departments : counts.passive;
-
-                        return (
-                            <button
-                                key={tab}
-                                type="button"
-                                onClick={() => {
-                                    setActiveTab(tab);
-                                    setExpandedDepartmentIds([]);
-                                }}
-                                className={`cursor-pointer rounded-2xl border px-4 py-4 text-left transition-all duration-300 ${
-                                    isActive
-                                        ? "border-sky-500 bg-sky-500/10 shadow-[0_0_25px_rgba(14,165,233,0.12)]"
-                                        : "border-slate-800 bg-slate-900/70 hover:scale-[1.02] hover:border-sky-400/40 hover:shadow-[0_0_25px_rgba(56,189,248,0.12)]"
-                                }`}
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-2">
-                                        {getTabIcon(tab)}
-                                        <span className="text-sm text-slate-200">{tabTitles[tab]}</span>
-                                    </div>
-                                    <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-white">
-                                        {count}
-                                    </span>
+                    <section className="grid gap-4 md:grid-cols-3">
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300">
+                                    <Building2 className="h-7 w-7" />
                                 </div>
-
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/80 shadow-[0_0_35px_rgba(2,6,23,0.55)]">
-                    <div className="grid grid-cols-12 gap-3 border-b border-slate-800 bg-slate-900/70 px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-300 backdrop-blur-md">
-                        <button
-                            type="button"
-                            onClick={() => handleSort("name")}
-                            className="col-span-4 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
-                        >
-                            <Building2 className="h-3.5 w-3.5" />
-                            Departman
-                            {renderSortIcon("name")}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleSort("description")}
-                            className="col-span-4 flex cursor-pointer items-center gap-1 text-left transition-colors hover:text-sky-300"
-                        >
-                            Açıklama
-                            {renderSortIcon("description")}
-                        </button>
-                        <div className="col-span-2 flex items-center">Durum</div>
-                        <div className="col-span-2 text-right">
-                            {showDepartmentActions || showPassiveActions ? "İşlemler" : ""}
+                                <div>
+                                    <p className="text-sm text-slate-400">Toplam Departman</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{activeDepartments.length}</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-300">
+                                    <Trash2 className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Pasif Departman</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{passiveDepartments.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`${panelClass} p-5`}>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                                    <Layers3 className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-400">Kayıtlı Çalışan</p>
+                                    <p className="mt-1 text-3xl font-bold text-white">{totalEmployees}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-                    <div>
+                    <section className={`${panelClass} overflow-hidden`}>
+                        <div className="grid grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr] border-b border-white/10 bg-slate-950/35 px-4 py-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+                            <span>Departman Adı</span>
+                            <span>Açıklama</span>
+                            <span>Durum</span>
+                            <span>Çalışan Sayısı</span>
+                            <span className="text-right">İşlemler</span>
+                        </div>
+
                         {loading ? (
-                            <div className="px-5 py-10 text-center text-sm text-slate-400">
-                                Departmanlar yükleniyor...
-                            </div>
+                            <div className="px-5 py-14 text-center text-sm text-slate-400">Departmanlar yükleniyor...</div>
                         ) : filteredDepartments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
-                                <FileText className="mb-4 h-14 w-14 opacity-30" />
-                                <p className="text-sm text-slate-300">Henüz departman bulunmuyor</p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Arama veya sekme kriterlerine uygun kayıt yok
-                                </p>
-                            </div>
+                            <div className="px-5 py-14 text-center text-sm text-slate-400">Departman bulunamadı.</div>
                         ) : (
-                            filteredDepartments.map((dep) => {
-                                const isExpanded = expandedDepartmentIds.includes(dep.id!);
-                                const isPassive = dep.deleted === true;
+                            paginatedDepartments.map((department) => {
+                                const isExpanded = department.id != null && expandedDepartmentIds.includes(department.id);
+                                const employeeCount = Number((department as Department & { employeeCount?: number }).employeeCount ?? 0);
 
                                 return (
-                                    <div key={dep.id} className="border-b border-slate-800 last:border-b-0">
-                                        <div
-                                            className="grid grid-cols-12 gap-3 px-5 py-4 text-left transition-all duration-200 hover:bg-slate-900/50"
-                                        >
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-4 flex cursor-pointer items-center gap-2 text-sm text-white"
+                                    <div key={department.id ?? department.name} className="border-b border-white/10 last:border-b-0">
+                                        <div className="grid grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr] items-center gap-4 px-4 py-4 text-sm transition hover:bg-slate-950/30">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleExpanded(department.id)}
+                                                className="flex min-w-0 items-center gap-3 text-left"
                                             >
-                                                <span className="truncate font-medium">{dep.name}</span>
-                                                {isExpanded ? (
-                                                    <ChevronUp className="h-4 w-4 shrink-0 text-slate-500" />
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
-                                                )}
-                                            </div>
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-4 flex cursor-pointer items-center text-sm text-slate-300"
-                                            >
-                                                <span className="line-clamp-2">{dep.description || "—"}</span>
-                                            </div>
-                                            <div
-                                                role="presentation"
-                                                onClick={() => toggleDepartmentExpand(dep.id!)}
-                                                className="col-span-2 flex items-center"
-                                            >
+                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                                                    {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                                                </span>
+                                                <span className="truncate font-bold text-white">{department.name}</span>
+                                            </button>
+                                            <span className="line-clamp-2 text-slate-300">{department.description || "-"}</span>
+                                            <span>
                                                 <span
-                                                    className={`rounded-full border px-2.5 py-0.5 text-xs ${
-                                                        isPassive
-                                                            ? "border-rose-400/20 bg-rose-500/15 text-rose-300"
-                                                            : "border-emerald-400/20 bg-emerald-500/15 text-emerald-300"
+                                                    className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+                                                        department.deleted
+                                                            ? "border-rose-400/20 bg-rose-500/10 text-rose-300"
+                                                            : "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
                                                     }`}
                                                 >
-                                                    {isPassive ? "Pasif" : "Aktif"}
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                                    {department.deleted ? "Pasif" : "Aktif"}
                                                 </span>
-                                            </div>
-                                            <div className="col-span-2 flex items-center justify-end gap-2">
-                                                {showDepartmentActions && (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleOpenUpdate(dep);
-                                                            }}
-                                                            className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800"
-                                                        >
-                                                            Düzenle
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedDepartment(dep);
-                                                                setConfirmModalOpen(true);
-                                                            }}
-                                                            className="rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500"
-                                                        >
-                                                            Kapat
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {showPassiveActions && (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleOpenUpdate(dep);
-                                                            }}
-                                                            className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800"
-                                                        >
-                                                            Düzenle
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedDepartment(dep);
-                                                                setConfirmModalOpen(true);
-                                                            }}
-                                                            className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
-                                                        >
-                                                            Aç
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
+                                            </span>
+                                            <span className="font-semibold text-slate-200">{employeeCount}</span>
+                                            <span className="flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEdit(department)}
+                                                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/10 text-indigo-300 transition hover:bg-indigo-500/20"
+                                                    title="Güncelle"
+                                                >
+                                                    <Edit3 className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleDepartmentStatus(department)}
+                                                    className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                                                        department.deleted
+                                                            ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                                                            : "border-rose-400/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                                                    }`}
+                                                    title={department.deleted ? "Aktife al" : "Pasife al"}
+                                                >
+                                                    {department.deleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                                                </button>
+                                            </span>
                                         </div>
 
                                         {isExpanded && (
-                                            <div className="border-t border-slate-800 bg-slate-900/40 px-5 py-5">
-                                                {dep.subDepartments && dep.subDepartments.length > 0 ? (
-                                                    dep.subDepartments.map((sub, subIndex) => (
-                                                        <div
-                                                            key={subIndex}
-                                                            className="mb-4 last:mb-0 rounded-2xl border border-slate-800 bg-slate-950/70 p-4"
-                                                        >
-                                                            <div className="text-sm font-semibold text-sky-300">
-                                                                ↳ {sub.name}
-                                                            </div>
-                                                            <div className="mt-1 text-sm text-slate-400">
-                                                                {sub.description}
-                                                            </div>
-                                                            {sub.positions && sub.positions.length > 0 && (
-                                                                <div className="mt-3 space-y-2 border-t border-slate-800 pt-3 pl-2">
-                                                                    {sub.positions.map((pos, posIndex) => (
-                                                                        <div
-                                                                            key={posIndex}
-                                                                            className="text-sm text-slate-300"
+                                            <div className="space-y-3 border-t border-white/10 bg-slate-950/20 px-5 py-4">
+                                                {department.subDepartments?.length ? (
+                                                    department.subDepartments.map((sub, index) => (
+                                                        <div key={`${sub.name}-${index}`} className="rounded-xl border border-white/10 bg-slate-950/35 p-4">
+                                                            <p className="font-semibold text-sky-200">{sub.name}</p>
+                                                            <p className="mt-1 text-sm text-slate-400">{sub.description || "Açıklama yok"}</p>
+                                                            {sub.positions?.length > 0 && (
+                                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                                    {sub.positions.map((position, posIndex) => (
+                                                                        <span
+                                                                            key={`${position.name}-${posIndex}`}
+                                                                            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-200"
                                                                         >
-                                                                            • <span className="font-medium">{pos.name}</span>{" "}
-                                                                            <span className="text-slate-500">—</span>{" "}
-                                                                            {pos.description}
-                                                                        </div>
+                                                                            {position.name}
+                                                                        </span>
                                                                     ))}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className="text-sm text-slate-500">
-                                                        Alt departman bulunmuyor
-                                                    </div>
+                                                    <p className="text-sm text-slate-500">Alt departman bulunmuyor.</p>
                                                 )}
                                             </div>
                                         )}
@@ -759,409 +477,189 @@ function DepartmentManagementPage() {
                                 );
                             })
                         )}
-                    </div>
-                </div>
-            </div>
 
-            {isCreateOpen && (
-                <ModalWrapper title="Yeni Departman" onClose={() => setIsCreateOpen(false)}>
-                    <input
-                        placeholder="Departman Adı"
-                        value={createForm.name}
-                        onChange={(e) => handleCreateChange("name", e.target.value)}
-                        className={modalInputClass}
-                    />
-                    <input
-                        placeholder="Departman Açıklama"
-                        value={createForm.description}
-                        onChange={(e) => handleCreateChange("description", e.target.value)}
-                        className={modalInputClass}
-                    />
-                    {createForm.subDepartments.map((sub, subIndex) => (
-                        <div key={subIndex} className={modalSubCardClass}>
-                            <input
-                                placeholder="Alt Departman Adı"
-                                value={sub.name}
-                                onChange={(e) =>
-                                    handleCreateSubDepartmentChange(subIndex, "name", e.target.value)
-                                }
-                                className={modalInputClass}
-                            />
-                            <input
-                                placeholder="Alt Departman Açıklama"
-                                value={sub.description}
-                                onChange={(e) =>
-                                    handleCreateSubDepartmentChange(subIndex, "description", e.target.value)
-                                }
-                                className={modalInputClass}
-                            />
-                            {sub.positions.map((pos, posIndex) => (
-                                <div key={posIndex} className="ml-3 space-y-2 border-l border-slate-700 pl-3">
-                                    <input
-                                        placeholder="Pozisyon Adı"
-                                        value={pos.name}
-                                        onChange={(e) =>
-                                            handleCreatePositionChange(
-                                                subIndex,
-                                                posIndex,
-                                                "name",
-                                                e.target.value
-                                            )
-                                        }
-                                        className={modalInputClass}
-                                    />
-                                    <input
-                                        placeholder="Pozisyon Açıklama"
-                                        value={pos.description}
-                                        onChange={(e) =>
-                                            handleCreatePositionChange(
-                                                subIndex,
-                                                posIndex,
-                                                "description",
-                                                e.target.value
-                                            )
-                                        }
-                                        className={modalInputClass}
-                                    />
+                        {!loading && filteredDepartments.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-4 text-sm text-slate-400">
+                                <span>Toplam {filteredDepartments.length} departman</span>
+                                <div className="flex items-center gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => removeCreatePosition(subIndex, posIndex)}
-                                        className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
+                                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                        disabled={currentPage === 1}
+                                        className="h-9 rounded-xl border border-white/10 px-3 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                                     >
-                                        Pozisyon Sil
+                                        Önceki
+                                    </button>
+                                    <span className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 font-semibold text-white">
+                                        {currentPage} / {totalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="h-9 rounded-xl border border-white/10 px-3 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        Sonraki
                                     </button>
                                 </div>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={() => addCreatePosition(subIndex)}
-                                className="mt-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"
-                            >
-                                + Pozisyon Ekle
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => removeCreateSubDepartment(subIndex)}
-                                className="ml-2 mt-2 rounded-lg bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600"
-                            >
-                                Alt Departman Sil
-                            </button>
-                        </div>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={addCreateSubDepartment}
-                        className="mt-2 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500"
-                    >
-                        + Alt Departman Ekle
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleCreate}
-                        className="mt-4 w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-500"
-                    >
-                        Oluştur
-                    </button>
-                </ModalWrapper>
-            )}
+                            </div>
+                        )}
+                    </section>
+                </main>
 
-            {isUpdateOpen && (
-                <ModalWrapper
-                    title="Departman Düzenle"
-                    onClose={() => {
-                        setIsUpdateOpen(false);
-                        setUpdateSelectedSubIndex(0);
-                        setUpdateSelectedPositionIndex(0);
-                    }}
-                >
-                    <input
-                        placeholder="Departman Adı"
-                        value={updateForm.name}
-                        onChange={(e) => handleUpdateChange("name", e.target.value)}
-                        className={modalInputClass}
-                    />
-                    <input
-                        placeholder="Departman Açıklama"
-                        value={updateForm.description}
-                        onChange={(e) => handleUpdateChange("description", e.target.value)}
-                        className={modalInputClass}
-                    />
-                    <details className="mb-4 rounded-xl border border-slate-700 bg-slate-900/40 p-2">
-                        <summary className="cursor-pointer select-none px-2 py-2 text-sm font-semibold text-white">
-                            Alt Departmanlar
-                        </summary>
-                        <div className="mt-2 space-y-3 border-t border-slate-700 px-2 pt-3">
-                            {updateForm.subDepartments.length > 0 ? (
-                                <label className="block text-xs font-medium text-slate-400">
-                                    Düzenlemek için alt departman seçin
-                                    <select
-                                        className={`${modalInputClass} mt-1`}
-                                        value={updateSelectedSubIndex}
-                                        onChange={(e) => {
-                                            setUpdateSelectedSubIndex(Number(e.target.value));
-                                            setUpdateSelectedPositionIndex(0);
-                                        }}
-                                    >
-                                        {updateForm.subDepartments.map((sub, i) => (
-                                            <option key={i} value={i}>
-                                                {sub.name.trim() !== ""
-                                                    ? sub.name
-                                                    : `Alt Departman ${i + 1}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                            ) : (
-                                <p className="text-xs text-slate-500">
-                                    Henüz alt departman yok. Aşağıdan yeni alt departman ekleyebilirsiniz.
-                                </p>
-                            )}
-                            {updateForm.subDepartments[updateSelectedSubIndex] != null && (
-                                <div
-                                    key={updateSelectedSubIndex}
-                                    className={modalSubCardClass}
+                <aside className={`${panelClass} h-fit p-6 xl:sticky xl:top-6`}>
+                    <div className="mb-6 flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">
+                                {editingDepartmentId ? "Departman Güncelle" : "Yeni Departman"}
+                            </h2>
+                            <p className="mt-1 text-sm text-slate-400">
+                                Departman bilgilerini ve alt yapısını buradan yönetin.
+                            </p>
+                        </div>
+                        {editingDepartmentId && (
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="rounded-xl p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                                title="Yeni departman"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="space-y-5">
+                        <label className="block">
+                            <span className="text-sm font-medium text-slate-300">Departman Adı *</span>
+                            <input
+                                value={form.name}
+                                onChange={(event) => updateFormField("name", event.target.value)}
+                                placeholder="Departman adını giriniz"
+                                className={`${inputClass} mt-2`}
+                            />
+                        </label>
+
+                        <label className="block">
+                            <span className="text-sm font-medium text-slate-300">Departman Açıklama *</span>
+                            <input
+                                value={form.description}
+                                onChange={(event) => updateFormField("description", event.target.value)}
+                                placeholder="Departman açıklamasını giriniz"
+                                className={`${inputClass} mt-2`}
+                            />
+                        </label>
+
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/25 p-4">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-semibold text-white">Alt Departmanlar</p>
+                                    <p className="mt-1 text-xs text-slate-500">Alt departman ve pozisyonları ekleyin.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={addSubDepartment}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500"
                                 >
-                                    <input
-                                        placeholder="Alt Departman Adı"
-                                        value={
-                                            updateForm.subDepartments[updateSelectedSubIndex].name
-                                        }
-                                        onChange={(e) =>
-                                            handleUpdateSubDepartmentChange(
-                                                updateSelectedSubIndex,
-                                                "name",
-                                                e.target.value
-                                            )
-                                        }
-                                        className={modalInputClass}
-                                    />
-                                    <input
-                                        placeholder="Alt Departman Açıklama"
-                                        value={
-                                            updateForm.subDepartments[updateSelectedSubIndex]
-                                                .description
-                                        }
-                                        onChange={(e) =>
-                                            handleUpdateSubDepartmentChange(
-                                                updateSelectedSubIndex,
-                                                "description",
-                                                e.target.value
-                                            )
-                                        }
-                                        className={modalInputClass}
-                                    />
-                                    <details className="ml-3 rounded-lg border border-slate-700 bg-slate-950/50 p-2">
-                                        <summary className="cursor-pointer select-none px-1 py-1 text-xs font-semibold text-white">
-                                            Pozisyonlar
-                                        </summary>
-                                        <div className="mt-2 space-y-3 border-t border-slate-700 pt-3 pl-2">
-                                            {updateForm.subDepartments[updateSelectedSubIndex].positions
-                                                .length > 0 ? (
-                                                <>
-                                                    <label className="block text-xs font-medium text-slate-400">
-                                                        Düzenlemek için pozisyon seçin
-                                                        <select
-                                                            className={`${modalInputClass} mt-1`}
-                                                            value={updateSelectedPositionIndex}
-                                                            onChange={(e) =>
-                                                                setUpdateSelectedPositionIndex(
-                                                                    Number(e.target.value)
-                                                                )
-                                                            }
-                                                        >
-                                                            {updateForm.subDepartments[
-                                                                updateSelectedSubIndex
-                                                                ].positions.map((pos, i) => (
-                                                                <option key={i} value={i}>
-                                                                    {pos.name.trim() !== ""
-                                                                        ? pos.name
-                                                                        : `Pozisyon ${i + 1}`}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </label>
-                                                    {updateForm.subDepartments[
-                                                        updateSelectedSubIndex
-                                                        ].positions[updateSelectedPositionIndex] != null && (
-                                                        <div
-                                                            key={updateSelectedPositionIndex}
-                                                            className="space-y-2 border-l border-slate-700 pl-3"
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <input
-                                                                    placeholder="Pozisyon Adı"
-                                                                    value={
-                                                                        updateForm.subDepartments[
-                                                                            updateSelectedSubIndex
-                                                                            ].positions[updateSelectedPositionIndex]
-                                                                            .name
-                                                                    }
-                                                                    onChange={(e) =>
-                                                                        handleUpdatePositionChange(
-                                                                            updateSelectedSubIndex,
-                                                                            updateSelectedPositionIndex,
-                                                                            "name",
-                                                                            e.target.value
-                                                                        )
-                                                                    }
-                                                                    className={`${modalInputClass.replace("mb-3", "mb-0")} min-w-0 flex-1`}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleRemoveUpdatePositionClick(
-                                                                            updateSelectedSubIndex,
-                                                                            updateSelectedPositionIndex
-                                                                        )
-                                                                    }
-                                                                    className="shrink-0 rounded-lg bg-rose-600 px-3 py-2 text-xs text-white hover:bg-rose-500"
-                                                                >
-                                                                    Pozisyon Sil
-                                                                </button>
-                                                            </div>
-                                                            <input
-                                                                placeholder="Pozisyon Açıklama"
-                                                                value={
-                                                                    updateForm.subDepartments[
-                                                                        updateSelectedSubIndex
-                                                                        ].positions[updateSelectedPositionIndex]
-                                                                        .description
-                                                                }
-                                                                onChange={(e) =>
-                                                                    handleUpdatePositionChange(
-                                                                        updateSelectedSubIndex,
-                                                                        updateSelectedPositionIndex,
-                                                                        "description",
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                                className={modalInputClass}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <p className="text-xs text-slate-500">
-                                                    Henüz pozisyon yok. Aşağıdan pozisyon ekleyebilirsiniz.
-                                                </p>
-                                            )}
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Alt Departman
+                                </button>
+                            </div>
+
+                            <div className="max-h-[46vh] space-y-4 overflow-y-auto pr-1">
+                                {form.subDepartments.map((sub, subIndex) => (
+                                    <div key={subIndex} className="rounded-xl border border-white/10 bg-slate-900/45 p-4">
+                                        <div className="mb-3 flex items-center justify-between gap-3">
+                                            <p className="text-sm font-semibold text-sky-200">Alt Departman {subIndex + 1}</p>
                                             <button
                                                 type="button"
-                                                onClick={handleAddUpdatePositionClick}
-                                                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"
+                                                onClick={() => removeSubDepartment(subIndex)}
+                                                className="rounded-lg p-1.5 text-rose-300 transition hover:bg-rose-500/10"
+                                                title="Alt departmanı sil"
                                             >
-                                                + Pozisyon Ekle
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
-                                    </details>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleRemoveUpdateSubDepartmentClick(
-                                                updateSelectedSubIndex
-                                            )
-                                        }
-                                        className="ml-2 mt-2 rounded-lg bg-rose-700 px-3 py-2 text-sm text-white hover:bg-rose-600"
-                                    >
-                                        Alt Departman Sil
-                                    </button>
-                                </div>
-                            )}
+                                        <div className="grid gap-3">
+                                            <input
+                                                value={sub.name}
+                                                onChange={(event) => updateSubDepartment(subIndex, "name", event.target.value)}
+                                                placeholder="Alt departman adı"
+                                                className={inputClass}
+                                            />
+                                            <input
+                                                value={sub.description}
+                                                onChange={(event) => updateSubDepartment(subIndex, "description", event.target.value)}
+                                                placeholder="Alt departman açıklaması"
+                                                className={inputClass}
+                                            />
+                                        </div>
+
+                                        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pozisyonlar</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addPosition(subIndex)}
+                                                    className="text-xs font-semibold text-sky-300 transition hover:text-sky-200"
+                                                >
+                                                    + Pozisyon
+                                                </button>
+                                            </div>
+                                            {sub.positions.map((position, positionIndex) => (
+                                                <div key={positionIndex} className="grid gap-2 rounded-xl border border-white/10 bg-slate-950/30 p-3">
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            value={position.name}
+                                                            onChange={(event) => updatePosition(subIndex, positionIndex, "name", event.target.value)}
+                                                            placeholder="Pozisyon adı"
+                                                            className={`${inputClass} min-w-0 flex-1`}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removePosition(subIndex, positionIndex)}
+                                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-rose-300 transition hover:bg-rose-500/10"
+                                                            title="Pozisyon sil"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        value={position.description}
+                                                        onChange={(event) => updatePosition(subIndex, positionIndex, "description", event.target.value)}
+                                                        placeholder="Pozisyon açıklaması"
+                                                        className={inputClass}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </details>
-                    <button
-                        type="button"
-                        onClick={handleAddUpdateSubDepartmentClick}
-                        className="mt-2 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500"
-                    >
-                        + Alt Departman Ekle
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleUpdate}
-                        className="mt-4 w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-500"
-                    >
-                        Güncelle
-                    </button>
-                </ModalWrapper>
-            )}
 
-            {confirmModalOpen && selectedDepartment && (
-                <ModalWrapper
-                    title="Onay"
-                    onClose={() => {
-                        setConfirmModalOpen(false);
-                        setSelectedDepartment(null);
-                    }}
-                >
-                    <p className="mb-6 text-sm leading-6 text-slate-300">
-                        {selectedDepartment.deleted
-                            ? "Departmanı açmak istediğinize emin misiniz?"
-                            : "Departmanı kapatmak istediğinize emin misiniz?"}
-                    </p>
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                await handleToggleDepartment(selectedDepartment);
-                                setConfirmModalOpen(false);
-                                setSelectedDepartment(null);
-                            }}
-                            className="flex-1 rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-500"
-                        >
-                            Evet
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setConfirmModalOpen(false);
-                                setSelectedDepartment(null);
-                            }}
-                            className="flex-1 rounded-xl border border-slate-700 bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
-                        >
-                            Hayır
-                        </button>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="h-12 rounded-xl border border-white/10 bg-slate-900/70 px-5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={saveDepartment}
+                                disabled={saving}
+                                className="h-12 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {saving ? "Kaydediliyor..." : editingDepartmentId ? "Güncelle" : "Oluştur"}
+                            </button>
+                        </div>
                     </div>
-                </ModalWrapper>
-            )}
-        </div>
-    );
-}
-
-function ModalWrapper({
-                          title,
-                          children,
-                          onClose,
-                      }: {
-    title: string;
-    children: React.ReactNode;
-    onClose?: () => void;
-}) {
-    return (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-            <div className="max-h-[90vh] w-full max-w-[720px] overflow-y-auto rounded-3xl border border-white/10 bg-slate-950 p-8 shadow-[0_0_50px_rgba(2,6,23,0.8)]">
-                <div className="mb-6 flex items-start justify-between gap-3">
-                    <h2 className="text-xl font-semibold text-white">{title}</h2>
-                    {onClose && (
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-full p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
-                        >
-                            Kapat
-                        </button>
-                    )}
-                </div>
-                {children}
+                </aside>
             </div>
         </div>
     );
-}
-
-const modalInputClass =
-    "mb-3 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20";
-
-const modalSubCardClass =
-    "mb-4 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 last:mb-0";
+};
 
 export default DepartmentManagementPage;

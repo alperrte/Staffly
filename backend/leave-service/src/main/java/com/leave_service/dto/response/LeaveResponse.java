@@ -24,6 +24,7 @@ public class LeaveResponse {
     private String employeeFirstName;
     private String employeeLastName;
     private String employeeFullName;
+    private String rejectionReason;
 
     private LocalDateTime createdAt;
 }

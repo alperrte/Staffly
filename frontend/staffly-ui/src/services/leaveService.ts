@@ -24,6 +24,7 @@ export type Leave = {
     totalHours?: number | null;
     status: string;
     reason?: string | null;
+    rejectionReason?: string | null;
     employeeFirstName?: string | null;
     employeeLastName?: string | null;
     employeeFullName?: string | null;
