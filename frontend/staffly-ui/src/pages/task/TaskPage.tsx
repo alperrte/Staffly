@@ -1,7 +1,30 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAllTasks, updateStatus } from "../../services/taskService";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, hasAnyRole } from "../../utils/auth";
+import {
+  ArrowRight,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  ListChecks,
+  Plus,
+  Search,
+  TimerReset,
+  UserRoundCheck,
+  XCircle,
+} from "lucide-react";
+
+import { getAllTasks, updateStatus } from "../../services/taskService";
+import { getAllEmployees } from "../../services/employeeService";
+import {
+  ROLE_SYSTEM_ADMIN,
+  ROLE_HR_MANAGER,
+  ROLE_DEPARTMENT_MANAGER,
+  ROLE_MANAGER,
+  hasAnyRole,
+} from "../../utils/auth";
+import type { NormalizedEmployee } from "../../types/employeeTypes";
 
 type TaskResponse = {
   id: number;
@@ -30,11 +53,10 @@ type TaskResponse = {
 type SortDir = "asc" | "desc";
 type SortKey = keyof TaskResponse | null;
 
-/* ══ Helpers ════════════════════════════════════════════════════════ */
 const priorityStyles: Record<string, string> = {
-  LOW: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-  MEDIUM: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
-  HIGH: "bg-red-500/20 text-red-400 border border-red-500/30",
+  LOW: "border-emerald-400/30 bg-emerald-500/15 text-emerald-300",
+  MEDIUM: "border-amber-400/30 bg-amber-500/15 text-amber-300",
+  HIGH: "border-rose-400/30 bg-rose-500/15 text-rose-300",
 };
 
 const priorityLabelTR: Record<string, string> = {
@@ -44,10 +66,10 @@ const priorityLabelTR: Record<string, string> = {
 };
 
 const statusStyles: Record<string, string> = {
-  TODO: "bg-slate-500/20 text-slate-300 border border-slate-500/30",
-  IN_PROGRESS: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-  DONE: "bg-green-500/20 text-green-300 border border-green-500/30",
-  CANCELLED: "bg-red-500/20 text-red-300 border border-red-500/30",
+  TODO: "border-slate-400/25 bg-slate-500/15 text-slate-300",
+  IN_PROGRESS: "border-sky-400/30 bg-sky-500/15 text-sky-300",
+  DONE: "border-emerald-400/30 bg-emerald-500/15 text-emerald-300",
+  CANCELLED: "border-rose-400/30 bg-rose-500/15 text-rose-300",
 };
 
 const statusLabelTR: Record<string, string> = {
@@ -57,44 +79,53 @@ const statusLabelTR: Record<string, string> = {
   CANCELLED: "İptal Edildi",
 };
 
-const emptyDash = (v: unknown) => {
-  if (v == null) return "-";
-  const s = String(v).trim();
-  return s || "-";
+const panelClass =
+    "rounded-[26px] border border-white/10 bg-slate-950/45 shadow-[0_0_34px_rgba(15,23,42,0.35)]";
+
+const emptyDash = (value: unknown) => {
+  if (value == null) return "-";
+  const text = String(value).trim();
+  return text || "-";
 };
 
-const formatMaybeDateTR = (v: unknown) => {
-  if (v == null) return "-";
-  const s = String(v).trim();
-  if (!s) return "-";
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? s : d.toLocaleString("tr-TR");
+const formatMaybeDateTR = (value: unknown) => {
+  if (value == null) return "-";
+
+  const text = String(value).trim();
+  if (!text) return "-";
+
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? text : date.toLocaleString("tr-TR");
 };
 
 function normalizeTaskStatus(raw: string | null | undefined): string {
-  const s = String(raw ?? "").trim().toUpperCase();
+  const status = String(raw ?? "").trim().toUpperCase();
 
-  if (["1", "TODO", "PENDING", "NEW"].includes(s)) return "TODO";
-  if (["2", "IN_PROGRESS", "STARTED", "ACTIVE"].includes(s)) return "IN_PROGRESS";
-  if (["3", "DONE", "COMPLETED"].includes(s)) return "DONE";
-  if (["4", "CANCELLED", "CANCELED"].includes(s)) return "CANCELLED";
+  if (["1", "TODO", "PENDING", "NEW"].includes(status)) return "TODO";
+  if (["2", "IN_PROGRESS", "STARTED", "ACTIVE"].includes(status)) return "IN_PROGRESS";
+  if (["3", "DONE", "COMPLETED"].includes(status)) return "DONE";
+  if (["4", "CANCELLED", "CANCELED"].includes(status)) return "CANCELLED";
 
   return "TODO";
 }
 
-/* ══ SortIcon ═══════════════════════════════════════════════════════ */
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
-      <span className={`inline-flex flex-col ml-1.5 shrink-0 ${active ? "opacity-100" : "opacity-30"}`}>
+      <span className={`ml-1.5 inline-flex shrink-0 flex-col ${active ? "opacity-100" : "opacity-30"}`}>
       <svg
-          className={`w-2 h-2 -mb-0.5 ${active && dir === "asc" ? "text-sky-400" : "text-slate-400"}`}
+          className={`h-2 w-2 -mb-0.5 ${
+              active && dir === "asc" ? "text-sky-400" : "text-slate-400"
+          }`}
           viewBox="0 0 6 4"
           fill="currentColor"
       >
         <path d="M3 0L6 4H0z" />
       </svg>
+
       <svg
-          className={`w-2 h-2 ${active && dir === "desc" ? "text-sky-400" : "text-slate-400"}`}
+          className={`h-2 w-2 ${
+              active && dir === "desc" ? "text-sky-400" : "text-slate-400"
+          }`}
           viewBox="0 0 6 4"
           fill="currentColor"
       >
@@ -104,38 +135,43 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   );
 }
 
-/* ══ TaskPage ══════════════════════════════════════════════════════ */
 const TaskPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [employees, setEmployees] = useState<NormalizedEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  /* Sort */
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  /* Expand */
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const canCreateTask = hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]);
 
-  /* ── Loads ── */
+  const canCreateTask = hasAnyRole([
+    ROLE_SYSTEM_ADMIN,
+    ROLE_HR_MANAGER,
+    ROLE_DEPARTMENT_MANAGER,
+    ROLE_MANAGER,
+  ]);
+
   const loadTasks = () => {
-    getAllTasks()
-        .then((taskRes) => {
-          const taskData = Array.isArray(taskRes)
-              ? taskRes
-              : taskRes?.content || [];
+    setLoading(true);
+
+    Promise.all([getAllTasks(), getAllEmployees().catch(() => [])])
+        .then(([taskRes, employeeRows]) => {
+          const taskData = Array.isArray(taskRes) ? taskRes : taskRes?.content || [];
+
           setTasks(taskData);
+          setEmployees(Array.isArray(employeeRows) ? employeeRows : []);
         })
         .catch((err) => {
           console.error("TASK ERROR:", err);
-          setError("Görevler yüklenemedi");
+          setError("Görevler yüklenemedi.");
         })
         .finally(() => setLoading(false));
   };
@@ -151,7 +187,11 @@ const TaskPage = () => {
 
     if (state?.taskCreated) {
       const title = state.createdTaskTitle?.trim();
-      setSuccessMessage(title ? `"${title}" başarıyla oluşturuldu.` : "Görev başarıyla oluşturuldu.");
+
+      setSuccessMessage(
+          title ? `"${title}" başarıyla oluşturuldu.` : "Görev başarıyla oluşturuldu."
+      );
+
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -159,58 +199,42 @@ const TaskPage = () => {
   const handleChangeStatus = async (taskId: number, newStatus: string) => {
     try {
       setActionLoading(true);
+
       const statusMap: Record<string, number> = {
         TODO: 1,
         IN_PROGRESS: 2,
         DONE: 3,
         CANCELLED: 4,
       };
+
       await updateStatus(taskId, statusMap[newStatus]);
       await loadTasks();
-    } catch (error) {
-      console.error("Durum güncellenirken hata oluştu:", error);
+    } catch (updateError) {
+      console.error("Durum güncellenirken hata oluştu:", updateError);
       setError("Durum güncellerken hata oluştu.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  /* ── Filter + Sort ── */
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-
-    let list = q
-        ? tasks.filter((task) =>
-            Object.values(task)
-                .map((v) => (v == null ? "" : String(v)))
-                .join(" ")
-                .toLowerCase()
-                .includes(q)
-        )
-        : [...tasks];
-
-    if (sortKey) {
-      list.sort((a, b) => {
-        const as = String(a[sortKey] ?? "").toLowerCase();
-        const bs = String(b[sortKey] ?? "").toLowerCase();
-        return sortDir === "asc" ? as.localeCompare(bs, "tr") : bs.localeCompare(as, "tr");
-      });
-    }
-
-    return list;
-  }, [search, tasks, sortKey, sortDir]);
-
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
-
-  if (loading) return <div className="text-slate-400 p-6">Görevler yükleniyor...</div>;
-
   const getAssigneeDetailLines = (task: TaskResponse): string[] => {
+    if (Array.isArray(task.assigneeEmployeeIds) && task.assigneeEmployeeIds.length > 0) {
+      const employeeNames = task.assigneeEmployeeIds
+          .map((employeeId) => employees.find((employee) => employee.id === employeeId))
+          .filter((employee): employee is NormalizedEmployee => Boolean(employee))
+          .map(
+              (employee) =>
+                  employee.basicInfo?.fullName ||
+                  `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim() ||
+                  employee.email
+          )
+          .filter(Boolean);
+
+      if (employeeNames.length > 0) {
+        return employeeNames;
+      }
+    }
+
     if (Array.isArray(task.assigneeEmails) && task.assigneeEmails.length > 0) {
       return task.assigneeEmails;
     }
@@ -222,7 +246,72 @@ const TaskPage = () => {
     return [];
   };
 
-  /* ── Th helper ── */
+  const filtered = useMemo(() => {
+    const query = search.toLowerCase().trim();
+
+    const list = query
+        ? tasks.filter((task) => {
+          const assignees = getAssigneeDetailLines(task).join(" ");
+
+          return [
+            task.title,
+            task.description,
+            task.priority,
+            task.status,
+            task.statusId,
+            task.startDate,
+            task.dueDate,
+            assignees,
+          ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase()
+              .includes(query);
+        })
+        : [...tasks];
+
+    if (sortKey) {
+      list.sort((a, b) => {
+        const first = String(a[sortKey] ?? "").toLowerCase();
+        const second = String(b[sortKey] ?? "").toLowerCase();
+
+        return sortDir === "asc"
+            ? first.localeCompare(second, "tr")
+            : second.localeCompare(first, "tr");
+      });
+    }
+
+    return list;
+  }, [search, tasks, sortKey, sortDir, employees]);
+
+  const stats = useMemo(() => {
+    const total = tasks.length;
+
+    const todo = tasks.filter(
+        (task) => normalizeTaskStatus(task.status || String(task.statusId)) === "TODO"
+    ).length;
+
+    const inProgress = tasks.filter(
+        (task) => normalizeTaskStatus(task.status || String(task.statusId)) === "IN_PROGRESS"
+    ).length;
+
+    const done = tasks.filter(
+        (task) => normalizeTaskStatus(task.status || String(task.statusId)) === "DONE"
+    ).length;
+
+    return { total, todo, inProgress, done };
+  }, [tasks]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDir("asc");
+  };
+
   const Th = ({
                 children,
                 sk,
@@ -234,217 +323,421 @@ const TaskPage = () => {
   }) => (
       <th
           onClick={() => sk && handleSort(sk)}
-          className={`p-3 text-left whitespace-nowrap select-none
-          ${sk ? "cursor-pointer hover:text-sky-300 transition-colors" : ""}
-          ${right ? "text-right" : ""}`}
+          className={`select-none px-5 py-4 text-left text-xs font-bold uppercase tracking-[0.16em] text-slate-400 ${
+              sk ? "cursor-pointer transition hover:text-sky-300" : ""
+          } ${right ? "text-right" : ""}`}
       >
-      <span className="inline-flex items-center">
+      <span className={`inline-flex items-center ${right ? "justify-end" : ""}`}>
         {children}
         {sk && <SortIcon active={sortKey === sk} dir={sortDir} />}
       </span>
       </th>
   );
 
-  return (
-      <div className="w-full flex flex-col gap-6 px-3 sm:px-6">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h1 className="text-2xl font-semibold">Görevler</h1>
-          <div className="flex gap-3 items-center">
-            {canCreateTask && (
-              <button
-                  onClick={() => navigate("/app/tasks/create")}
-                  className="bg-sky-500 hover:bg-sky-400 px-5 py-2 rounded-lg text-sm font-semibold text-white transition shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-              >
-                + Görev Ekle
-              </button>
-            )}
-            <input
-                type="text"
-                placeholder="Ara..."
-                className="w-[260px] max-w-full rounded-lg bg-slate-900/50 border border-slate-700 px-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+  if (loading) {
+    return (
+        <div className="flex min-h-[60vh] items-center justify-center text-slate-400">
+          Görevler yükleniyor...
         </div>
+    );
+  }
 
-        {error && (
-            <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
+  return (
+      <div className="min-h-full w-full px-5 py-5 text-slate-100 sm:px-6 lg:px-8">
+        <div className="flex w-full flex-col gap-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-300">
+                Task Management
+              </div>
+
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+                Görevler
+              </h1>
+
+              <p className="mt-2 text-sm text-slate-400">
+                Atanan görevleri takip edin, durumlarını kontrol edin ve detaylarını görüntüleyin.
+              </p>
             </div>
-        )}
-        {successMessage && (
-            <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-              ✓ {successMessage}
+
+            <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto xl:items-center">
+              <div className="relative w-full sm:w-[320px]">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+
+                <input
+                    type="text"
+                    placeholder="Görev, kişi veya durum ara..."
+                    className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/60 py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60 focus:ring-1 focus:ring-sky-400/25"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                />
+              </div>
+
+              {canCreateTask && (
+                  <button
+                      type="button"
+                      onClick={() => navigate("/app/tasks/create")}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-sky-500 px-5 text-sm font-bold text-white shadow-[0_0_24px_rgba(56,189,248,0.22)] transition hover:bg-sky-400"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Görev Ekle
+                  </button>
+              )}
             </div>
-        )}
-
-        {/* ── Table ── */}
-        <div className="rounded-xl border border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[1240px]">
-              <thead className="bg-slate-800/60 text-slate-400 text-xs uppercase tracking-wide">
-              <tr>
-                <Th sk="title">Başlık</Th>
-                <Th sk="priority">Öncelik</Th>
-                <Th sk="status">Durum</Th>
-                <Th sk="startDate">Başlangıç</Th>
-                <Th sk="dueDate">Bitiş</Th>
-              </tr>
-              </thead>
-
-              <tbody>
-              {filtered.map((task) => {
-                const isOpen = expandedId === task.id;
-
-                return (
-                    <Fragment key={task.id}>
-                      {/* ── Main row ── */}
-                      <tr
-                          onClick={() => setExpandedId((p) => (p === task.id ? null : task.id))}
-                          className="border-t border-slate-700/70 transition cursor-pointer hover:bg-slate-800/30"
-                      >
-                        <td className="p-3 font-medium text-slate-200">
-                        <span className="flex items-center gap-1.5">
-                          {task.title}
-                          <span className="text-slate-600 text-xs">{isOpen ? "▾" : "▸"}</span>
-                        </span>
-                        </td>
-                        <td className="p-3">
-                        <span
-                            className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                                priorityStyles[task.priority] ?? ""
-                            }`}
-                        >
-                          {priorityLabelTR[task.priority] ?? task.priority}
-                        </span>
-                        </td>
-                        <td className="p-3">
-                        <span
-                            className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                                statusStyles[normalizeTaskStatus(task.status || String(task.statusId))] ?? ""
-                            }`}
-                        >
-                          {statusLabelTR[normalizeTaskStatus(task.status || String(task.statusId))]}
-                        </span>
-                        </td>
-                        <td className="p-3 text-slate-300 text-xs">
-                          {formatMaybeDateTR(task.startDate)}
-                        </td>
-                        <td className="p-3 text-slate-300 text-xs">
-                          {formatMaybeDateTR(task.dueDate)}
-                        </td>
-                      </tr>
-
-                      {/* ══ EXPAND PANEL ════════════════════════════════════════ */}
-                      {isOpen && (
-                          <tr>
-                            <td colSpan={5} className="border-t border-slate-700/50 bg-slate-900/25 p-4">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Başlık</div>
-                                  <div className="text-sm text-slate-200 font-medium">{task.title}</div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Açıklama</div>
-                                  <div className="text-sm text-slate-200 font-medium break-words">
-                                    {emptyDash(task.description)}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Öncelik</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {priorityLabelTR[task.priority] ?? task.priority}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Durum</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {statusLabelTR[normalizeTaskStatus(task.status || String(task.statusId))]}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Başlangıç Tarihi</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {formatMaybeDateTR(task.startDate)}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Bitiş Tarihi</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {formatMaybeDateTR(task.dueDate)}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Oluşturma Tarihi</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {formatMaybeDateTR(task.createdAt)}
-                                  </div>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                  <div className="text-[10px] text-slate-500 mb-1">Güncellenme Tarihi</div>
-                                  <div className="text-sm text-slate-200 font-medium">
-                                    {formatMaybeDateTR(task.updatedAt)}
-                                  </div>
-                                </div>
-
-                                {getAssigneeDetailLines(task).length > 0 && (
-                                    <div className="sm:col-span-2 lg:col-span-2 rounded-xl border border-slate-700/60 bg-slate-950/30 px-3 py-2.5">
-                                      <div className="text-[10px] text-slate-500 mb-1">Atananlar</div>
-                                      <div className="text-sm text-slate-200 font-medium break-words">
-                                        {getAssigneeDetailLines(task).join(", ")}
-                                      </div>
-                                    </div>
-                                )}
-                              </div>
-
-                              <div className="mt-4 border-t border-slate-700/50 pt-4">
-                                <div className="text-[10px] text-slate-500 mb-2 uppercase tracking-wide font-semibold">İşlemler</div>
-                                <div className="flex flex-wrap gap-2">
-                                  {normalizeTaskStatus(task.status || String(task.statusId)) !== "CANCELLED" && (
-                                      <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleChangeStatus(task.id, "CANCELLED");
-                                          }}
-                                          disabled={actionLoading}
-                                          className="rounded-lg border border-red-600 bg-red-700/30 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-600/40 disabled:opacity-50"
-                                      >
-                                        {actionLoading ? "Güncelleniyor..." : "İptal Et"}
-                                      </button>
-                                  )}
-                                  {normalizeTaskStatus(task.status || String(task.statusId)) === "CANCELLED" && (
-                                      <span className="text-xs text-red-300 px-3 py-1.5">İptal Edildi</span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                      )}
-                    </Fragment>
-                );
-              })}
-              </tbody>
-            </table>
           </div>
 
-          {filtered.length === 0 && (
-              <div className="p-8 text-center text-slate-500 text-sm">
-                {search ? `"${search}" için sonuç bulunamadı` : "Henüz görev yok"}
+          {error && (
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {error}
               </div>
           )}
+
+          {successMessage && (
+              <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                ✓ {successMessage}
+              </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <TaskStatCard
+                title="Toplam Görev"
+                value={stats.total}
+                description="Sistemdeki tüm görevler"
+                color="blue"
+                icon={<ClipboardList className="h-8 w-8" />}
+            />
+
+            <TaskStatCard
+                title="Yapılacak"
+                value={stats.todo}
+                description="Henüz başlanmamış görevler"
+                color="amber"
+                icon={<ListChecks className="h-8 w-8" />}
+            />
+
+            <TaskStatCard
+                title="İşlemde"
+                value={stats.inProgress}
+                description="Devam eden görevler"
+                color="blue"
+                icon={<TimerReset className="h-8 w-8" />}
+            />
+
+            <TaskStatCard
+                title="Tamamlanan"
+                value={stats.done}
+                description="Bitirilen görevler"
+                color="emerald"
+                icon={<CheckCircle2 className="h-8 w-8" />}
+            />
+          </div>
+
+          <section className={`${panelClass} overflow-hidden`}>
+            <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white">Görev Listesi</h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  {filtered.length} görev listeleniyor.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1280px] table-fixed text-sm">
+                <thead className="bg-slate-900/75">
+                <tr>
+                  <Th sk="title">Başlık</Th>
+                  <Th sk="description">Görev</Th>
+                  <Th>Atanan</Th>
+                  <Th sk="priority">Öncelik</Th>
+                  <Th sk="status">Durum</Th>
+                  <Th sk="startDate">Başlangıç</Th>
+                  <Th sk="dueDate">Bitiş</Th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {filtered.map((task) => {
+                  const isOpen = expandedId === task.id;
+
+                  const normalizedStatus = normalizeTaskStatus(
+                      task.status || String(task.statusId)
+                  );
+
+                  const assignees = getAssigneeDetailLines(task);
+
+                  return (
+                      <Fragment key={task.id}>
+                        <tr
+                            onClick={() =>
+                                setExpandedId((current) =>
+                                    current === task.id ? null : task.id
+                                )
+                            }
+                            className="cursor-pointer border-t border-white/10 transition hover:bg-sky-500/[0.04]"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex min-w-0 items-center gap-2">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300">
+                              {isOpen ? (
+                                  <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                              )}
+                            </span>
+
+                              <span className="truncate font-bold text-white">
+                              {task.title}
+                            </span>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4 text-slate-300">
+                          <span className="block truncate">
+                            {emptyDash(task.description)}
+                          </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-slate-300">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <UserRoundCheck className="h-4 w-4 shrink-0 text-slate-500" />
+
+                              <span className="truncate">
+                              {assignees.join(", ") || "-"}
+                            </span>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                          <span
+                              className={`inline-flex rounded-xl px-3 py-1.5 text-xs font-bold ${
+                                  priorityStyles[task.priority] ?? ""
+                              }`}
+                          >
+                            {priorityLabelTR[task.priority] ?? task.priority}
+                          </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                          <span
+                              className={`inline-flex rounded-xl px-3 py-1.5 text-xs font-bold ${
+                                  statusStyles[normalizedStatus] ?? ""
+                              }`}
+                          >
+                            {statusLabelTR[normalizedStatus]}
+                          </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-xs text-slate-300">
+                            <div className="flex items-center gap-2">
+                              <CalendarClock className="h-4 w-4 text-slate-500" />
+                              {formatMaybeDateTR(task.startDate)}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4 text-xs text-slate-300">
+                            <div className="flex items-center gap-2">
+                              <CalendarClock className="h-4 w-4 text-slate-500" />
+                              {formatMaybeDateTR(task.dueDate)}
+                            </div>
+                          </td>
+                        </tr>
+
+                        {isOpen && (
+                            <tr>
+                              <td
+                                  colSpan={7}
+                                  className="border-t border-white/10 bg-slate-950/45 px-5 py-5"
+                              >
+                                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                  <DetailCard title="Başlık" value={task.title} />
+
+                                  <DetailCard
+                                      title="Öncelik"
+                                      value={priorityLabelTR[task.priority] ?? task.priority}
+                                  />
+
+                                  <DetailCard
+                                      title="Durum"
+                                      value={statusLabelTR[normalizedStatus]}
+                                  />
+
+                                  <DetailCard
+                                      title="Başlangıç Tarihi"
+                                      value={formatMaybeDateTR(task.startDate)}
+                                  />
+
+                                  <DetailCard
+                                      title="Bitiş Tarihi"
+                                      value={formatMaybeDateTR(task.dueDate)}
+                                  />
+
+                                  <DetailCard
+                                      title="Oluşturma Tarihi"
+                                      value={formatMaybeDateTR(task.createdAt)}
+                                  />
+
+                                  <DetailCard
+                                      title="Güncellenme Tarihi"
+                                      value={formatMaybeDateTR(task.updatedAt)}
+                                  />
+
+                                  <DetailCard
+                                      title="Atananlar"
+                                      value={assignees.join(", ") || "-"}
+                                  />
+
+                                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 md:col-span-2 xl:col-span-4">
+                                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                                      Açıklama
+                                    </div>
+
+                                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                                      {emptyDash(task.description)}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+                                  <div>
+                                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                                      İşlemler
+                                    </div>
+
+                                    <p className="mt-1 text-sm text-slate-400">
+                                      Görev durumunu buradan güncelleyebilirsiniz.
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    {normalizedStatus !== "CANCELLED" ? (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              handleChangeStatus(task.id, "CANCELLED");
+                                            }}
+                                            disabled={actionLoading}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+                                        >
+                                          <XCircle className="h-4 w-4" />
+
+                                          {actionLoading ? "Güncelleniyor..." : "İptal Et"}
+                                        </button>
+                                    ) : (
+                                        <span className="inline-flex rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200">
+                                    İptal Edildi
+                                  </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                        )}
+                      </Fragment>
+                  );
+                })}
+                </tbody>
+              </table>
+            </div>
+
+            {filtered.length === 0 && (
+                <div className="p-10 text-center text-sm text-slate-500">
+                  {search ? `"${search}" için sonuç bulunamadı.` : "Henüz görev yok."}
+                </div>
+            )}
+          </section>
         </div>
       </div>
   );
 };
+
+function TaskStatCard({
+                        title,
+                        value,
+                        description,
+                        color,
+                        icon,
+                      }: {
+  title: string;
+  value: number;
+  description: string;
+  color: "blue" | "amber" | "rose" | "emerald";
+  icon: ReactNode;
+}) {
+  const styles = {
+    blue: {
+      card: "border-blue-400/25 bg-blue-500/10",
+      icon: "bg-blue-500/15 text-blue-300 shadow-[0_0_32px_rgba(37,99,235,0.28)]",
+      text: "text-blue-200",
+      arrow: "bg-blue-500/15 text-blue-300",
+    },
+    amber: {
+      card: "border-amber-400/25 bg-amber-500/10",
+      icon: "bg-amber-500/15 text-amber-300 shadow-[0_0_32px_rgba(245,158,11,0.18)]",
+      text: "text-amber-200",
+      arrow: "bg-amber-500/15 text-amber-300",
+    },
+    rose: {
+      card: "border-rose-400/25 bg-rose-500/10",
+      icon: "bg-rose-500/15 text-rose-300 shadow-[0_0_32px_rgba(244,63,94,0.18)]",
+      text: "text-rose-200",
+      arrow: "bg-rose-500/15 text-rose-300",
+    },
+    emerald: {
+      card: "border-emerald-400/25 bg-emerald-500/10",
+      icon: "bg-emerald-500/15 text-emerald-300 shadow-[0_0_32px_rgba(16,185,129,0.18)]",
+      text: "text-emerald-200",
+      arrow: "bg-emerald-500/15 text-emerald-300",
+    },
+  };
+
+  const selected = styles[color];
+
+  return (
+      <div
+          className={`rounded-2xl border p-5 text-left transition hover:border-white/20 hover:bg-white/[0.04] ${selected.card}`}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-5">
+            <div
+                className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${selected.icon}`}
+            >
+              {icon}
+            </div>
+
+            <div className="min-w-0">
+              <p className={`text-sm font-bold ${selected.text}`}>{title}</p>
+
+              <p className="mt-1 text-3xl font-extrabold text-white">{value}</p>
+
+              <p className="mt-1 truncate text-sm text-slate-400">{description}</p>
+            </div>
+          </div>
+
+          <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${selected.arrow}`}
+          >
+            <ArrowRight className="h-5 w-5" />
+          </div>
+        </div>
+      </div>
+  );
+}
+
+function DetailCard({ title, value }: { title: string; value: ReactNode }) {
+  return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+        <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+          {title}
+        </div>
+
+        <div className="mt-2 break-words text-sm font-semibold text-slate-200">
+          {value}
+        </div>
+      </div>
+  );
+}
 
 export default TaskPage;

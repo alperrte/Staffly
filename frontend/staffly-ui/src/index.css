@@ -230,3 +230,69 @@ input:-webkit-autofill:active {
 .react-datepicker--inline {
     width: 100% !important;
 }
+
+/* React Datepicker Time Panel - Staffly Dark Fix */
+.react-datepicker__time-container {
+    background: #020617 !important;
+    border-left: 1px solid rgba(51, 65, 85, 0.9) !important;
+}
+
+.react-datepicker__time-container .react-datepicker__header {
+    background: #0f172a !important;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.9) !important;
+}
+
+.react-datepicker__time-container .react-datepicker-time__header {
+    color: #f8fafc !important;
+    font-weight: 800 !important;
+}
+
+.react-datepicker__time {
+    background: #020617 !important;
+}
+
+.react-datepicker__time-box {
+    background: #020617 !important;
+}
+
+.react-datepicker__time-list {
+    background: #020617 !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.45) transparent;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar-track {
+    background: #020617;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.45);
+}
+
+.react-datepicker__time-list-item {
+    color: #cbd5e1 !important;
+    background: #020617 !important;
+    transition: 0.2s ease !important;
+}
+
+.react-datepicker__time-list-item:hover {
+    background: rgba(14, 165, 233, 0.18) !important;
+    color: #ffffff !important;
+}
+
+.react-datepicker__time-list-item--selected {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.react-datepicker__time-list-item--disabled {
+    color: #475569 !important;
+    background: #020617 !important;
+    cursor: not-allowed !important;
+}
