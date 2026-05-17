@@ -146,6 +146,16 @@ public class PayrollController {
         );
     }
 
+    @PostMapping("/me/generate")
+    @PreAuthorize("hasAnyRole('EMPLOYEE')")
+    public ResponseEntity<PayrollResponse> generateMyPayroll(
+            @RequestBody PayrollRequest request,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        request.setEmployeeId(extractEmployeeId(authHeader));
+        return ResponseEntity.ok(payrollService.createPayroll(request));
+    }
+
     // 🔥 2. Bonus ekleme
     @PostMapping("/bonus")
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','ACCOUNTING')")

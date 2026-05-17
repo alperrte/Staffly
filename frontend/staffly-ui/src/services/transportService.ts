@@ -57,6 +57,10 @@ export type CreateTransportRoutePayload = {
     description?: string;
     originArea: string;
     destinationArea: string;
+    originLatitude: number;
+    originLongitude: number;
+    destinationLatitude: number;
+    destinationLongitude: number;
     serviceAreas: string[];
     capacity: number;
     active?: boolean;

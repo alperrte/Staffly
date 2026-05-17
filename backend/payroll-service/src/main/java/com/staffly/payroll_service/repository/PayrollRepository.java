@@ -8,8 +8,8 @@ import java.util.Optional;
 
 public interface PayrollRepository extends JpaRepository<Payroll, Long> {
 
-    // 🔥 duplicate engelle
-    boolean existsByEmployeeIdAndMonthAndYear(Long employeeId, int month, int year);
+    // 🔥 aynı dönem bordrosunu bul
+    Optional<Payroll> findByEmployeeIdAndMonthAndYear(Long employeeId, int month, int year);
 
     // 🔥 geçmiş payrolllar
     List<Payroll> findByEmployeeId(Long employeeId);

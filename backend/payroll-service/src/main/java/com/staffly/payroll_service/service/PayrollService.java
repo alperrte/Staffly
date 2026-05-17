@@ -109,11 +109,6 @@ public class PayrollService {
         int month = request.getMonth();
         int year = request.getYear();
 
-        // 🔥 DUPLICATE KONTROL
-        if (payrollRepository.existsByEmployeeIdAndMonthAndYear(employeeId, month, year)) {
-            throw new RuntimeException("Payroll already exists for this month");
-        }
-
         // 🔥 AY ARALIĞI
         LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
         LocalDateTime end = start.plusMonths(1);
@@ -152,18 +147,21 @@ public class PayrollService {
                 .subtract(totalDeduction)
                 .subtract(totalAdvance);
 
-        // 🔥 entity oluştur
-        Payroll payroll = Payroll.builder()
-                .employeeId(employeeId)
-                .month(month)
-                .year(year)
-                .baseSalary(base)
-                .totalBonus(totalBonus)
-                .totalDeduction(totalDeduction)
-                .netSalary(net)
-                .status("PENDING")
-                .createdAt(LocalDateTime.now())
-                .build();
+        // 🔥 aynı dönem varsa yeniden hesapla, yoksa oluştur
+        Payroll payroll = payrollRepository
+                .findByEmployeeIdAndMonthAndYear(employeeId, month, year)
+                .orElseGet(() -> Payroll.builder()
+                        .employeeId(employeeId)
+                        .month(month)
+                        .year(year)
+                        .status("PENDING")
+                        .build());
+
+        payroll.setBaseSalary(base);
+        payroll.setTotalBonus(totalBonus);
+        payroll.setTotalDeduction(totalDeduction);
+        payroll.setNetSalary(net);
+        payroll.setCreatedAt(LocalDateTime.now());
 
         payrollRepository.save(payroll);
 

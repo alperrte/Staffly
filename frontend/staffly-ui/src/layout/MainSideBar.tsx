@@ -5,7 +5,6 @@ import {
     FaUsers,
     FaBuilding,
     FaHeadset,
-    FaCog,
     FaUser,
     FaTasks,
     FaFileAlt,
@@ -75,7 +74,7 @@ const Sidebar = () => {
                 </div>
             </div>
 
-            <nav className="staffly-scroll mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+            <nav className="staffly-scroll mt-5 min-h-0 flex-1 overflow-y-auto border-t border-white/10 pt-4 pr-1">
                 <div className="flex flex-col gap-1 pb-5">
                     <NavLink
                         to="/app"
@@ -302,7 +301,6 @@ const Sidebar = () => {
                         <>
                             {hasAnyRole([
                                 ROLE_SYSTEM_ADMIN,
-                                ROLE_HR_MANAGER,
                                 ROLE_DEPARTMENT_MANAGER,
                                 ROLE_MANAGER,
                             ]) && (
@@ -356,7 +354,6 @@ const Sidebar = () => {
 
                     {hasAnyRole([
                         ROLE_SYSTEM_ADMIN,
-                        ROLE_HR_MANAGER,
                         ROLE_DEPARTMENT_MANAGER,
                     ]) && (
                         <NavLink
@@ -400,6 +397,7 @@ const Sidebar = () => {
                         ROLE_HR_MANAGER,
                         ROLE_DEPARTMENT_MANAGER,
                         ROLE_MANAGER,
+                        ROLE_EMPLOYEE,
                     ]) && (
                         <NavLink
                             to="/app/support/all"
@@ -425,6 +423,7 @@ const Sidebar = () => {
 
                 <NavLink
                     to="/app/support"
+                    end
                     className={({ isActive }) =>
                         `${linkBase} ${isActive ? linkActive : linkInactive}`
                     }
@@ -433,15 +432,6 @@ const Sidebar = () => {
                 </NavLink>
 
 
-
-                <NavLink
-                    to="/app/settings"
-                    className={({ isActive }) =>
-                        `${linkBase} ${isActive ? linkActive : linkInactive}`
-                    }
-                >
-                    <FaCog /> Ayarlar
-                </NavLink>
 
                 <button
                     onClick={() => setShowLogoutModal(true)}

@@ -17,7 +17,10 @@ import {
     getDepartments,
     updateDepartment,
 } from "../../services/departmentService";
+import { getAllEmployees } from "../../services/employeeService";
 import type { Department, DepartmentPosition, SubDepartment } from "../../types/departmentTypes";
+import type { NormalizedEmployee } from "../../types/employeeTypes";
+import { hasAnyRole, ROLE_SYSTEM_ADMIN } from "../../utils/auth";
 
 const emptyPosition = (): DepartmentPosition => ({
     name: "",
@@ -86,7 +89,9 @@ const sanitizeDepartment = (department: Department): Department => ({
 });
 
 const DepartmentManagementPage = () => {
+    const canManageDepartments = hasAnyRole([ROLE_SYSTEM_ADMIN]);
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [employees, setEmployees] = useState<NormalizedEmployee[]>([]);
     const [form, setForm] = useState<Department>(() => emptyDepartment());
     const [editingDepartmentId, setEditingDepartmentId] = useState<number | null>(null);
     const [expandedDepartmentIds, setExpandedDepartmentIds] = useState<number[]>([]);
@@ -102,7 +107,13 @@ const DepartmentManagementPage = () => {
         setError("");
 
         try {
-            setDepartments(await getDepartments());
+            const [departmentList, employeeList] = await Promise.all([
+                getDepartments(),
+                getAllEmployees(),
+            ]);
+
+            setDepartments(departmentList);
+            setEmployees(employeeList);
         } catch (loadError) {
             console.error(loadError);
             setError("Departmanlar alınamadı.");
@@ -147,9 +158,18 @@ const DepartmentManagementPage = () => {
     }, [departments, searchTerm]);
 
     const totalEmployees = useMemo(
-        () => departments.reduce((sum, department) => sum + Number((department as Department & { employeeCount?: number }).employeeCount ?? 0), 0),
-        [departments]
+        () => employees.length,
+        [employees]
     );
+
+    const employeeCountByDepartmentId = useMemo(() => {
+        return employees.reduce<Record<number, number>>((counts, employee) => {
+            if (employee.departmentId == null) return counts;
+
+            counts[employee.departmentId] = (counts[employee.departmentId] ?? 0) + 1;
+            return counts;
+        }, {});
+    }, [employees]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -248,6 +268,8 @@ const DepartmentManagementPage = () => {
     };
 
     const saveDepartment = async () => {
+        if (!canManageDepartments) return;
+
         const payload = sanitizeDepartment(form);
 
         if (!payload.name || !payload.description) {
@@ -279,7 +301,7 @@ const DepartmentManagementPage = () => {
     };
 
     const toggleDepartmentStatus = async (department: Department) => {
-        if (!department.id) return;
+        if (!canManageDepartments || !department.id) return;
 
         setError("");
         setMessage("");
@@ -307,12 +329,18 @@ const DepartmentManagementPage = () => {
 
     return (
         <div className="min-h-full px-3 py-6 text-white sm:px-6">
-            <div className="mx-auto grid max-w-none gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
+            <div
+                className={`mx-auto grid max-w-none gap-5 ${
+                    canManageDepartments ? "xl:grid-cols-[minmax(0,1fr)_430px]" : "grid-cols-1"
+                }`}
+            >
                 <main className="space-y-5">
                     <header>
                         <h1 className="text-3xl font-bold tracking-tight text-white">Departman Yönetimi</h1>
                         <p className="mt-2 text-sm text-slate-400">
-                            Departmanları listeleyin, arayın; aktif kayıtları düzenleyin veya pasif kayıtları tekrar açın.
+                            {canManageDepartments
+                                ? "Departmanları listeleyin, arayın; aktif kayıtları düzenleyin veya pasif kayıtları tekrar açın."
+                                : "Departmanları ve bağlı organizasyon yapısını görüntüleyin."}
                         </p>
                     </header>
 
@@ -379,12 +407,18 @@ const DepartmentManagementPage = () => {
                     </section>
 
                     <section className={`${panelClass} overflow-hidden`}>
-                        <div className="grid grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr] border-b border-white/10 bg-slate-950/35 px-4 py-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+                        <div
+                            className={`grid border-b border-white/10 bg-slate-950/35 px-4 py-4 text-xs font-bold uppercase tracking-wide text-slate-400 ${
+                                canManageDepartments
+                                    ? "grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr]"
+                                    : "grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr]"
+                            }`}
+                        >
                             <span>Departman Adı</span>
                             <span>Açıklama</span>
                             <span>Durum</span>
                             <span>Çalışan Sayısı</span>
-                            <span className="text-right">İşlemler</span>
+                            {canManageDepartments && <span className="text-right">İşlemler</span>}
                         </div>
 
                         {loading ? (
@@ -394,11 +428,18 @@ const DepartmentManagementPage = () => {
                         ) : (
                             paginatedDepartments.map((department) => {
                                 const isExpanded = department.id != null && expandedDepartmentIds.includes(department.id);
-                                const employeeCount = Number((department as Department & { employeeCount?: number }).employeeCount ?? 0);
+                                const employeeCount =
+                                    department.id == null ? 0 : employeeCountByDepartmentId[department.id] ?? 0;
 
                                 return (
                                     <div key={department.id ?? department.name} className="border-b border-white/10 last:border-b-0">
-                                        <div className="grid grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr] items-center gap-4 px-4 py-4 text-sm transition hover:bg-slate-950/30">
+                                        <div
+                                            className={`grid items-center gap-4 px-4 py-4 text-sm transition hover:bg-slate-950/30 ${
+                                                canManageDepartments
+                                                    ? "grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr_0.8fr]"
+                                                    : "grid-cols-[1.1fr_1.3fr_0.7fr_0.8fr]"
+                                            }`}
+                                        >
                                             <button
                                                 type="button"
                                                 onClick={() => toggleExpanded(department.id)}
@@ -423,28 +464,30 @@ const DepartmentManagementPage = () => {
                                                 </span>
                                             </span>
                                             <span className="font-semibold text-slate-200">{employeeCount}</span>
-                                            <span className="flex justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => startEdit(department)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/10 text-indigo-300 transition hover:bg-indigo-500/20"
-                                                    title="Güncelle"
-                                                >
-                                                    <Edit3 className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleDepartmentStatus(department)}
-                                                    className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                                                        department.deleted
-                                                            ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
-                                                            : "border-rose-400/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                                                    }`}
-                                                    title={department.deleted ? "Aktife al" : "Pasife al"}
-                                                >
-                                                    {department.deleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                                                </button>
-                                            </span>
+                                            {canManageDepartments && (
+                                                <span className="flex justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startEdit(department)}
+                                                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/10 text-indigo-300 transition hover:bg-indigo-500/20"
+                                                        title="Güncelle"
+                                                    >
+                                                        <Edit3 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleDepartmentStatus(department)}
+                                                        className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                                                            department.deleted
+                                                                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                                                                : "border-rose-400/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                                                        }`}
+                                                        title={department.deleted ? "Aktife al" : "Pasife al"}
+                                                    >
+                                                        {department.deleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                                                    </button>
+                                                </span>
+                                            )}
                                         </div>
 
                                         {isExpanded && (
@@ -507,6 +550,7 @@ const DepartmentManagementPage = () => {
                     </section>
                 </main>
 
+                {canManageDepartments && (
                 <aside className={`${panelClass} h-fit p-6 xl:sticky xl:top-6`}>
                     <div className="mb-6 flex items-start justify-between gap-4">
                         <div>
@@ -657,6 +701,7 @@ const DepartmentManagementPage = () => {
                         </div>
                     </div>
                 </aside>
+                )}
             </div>
         </div>
     );

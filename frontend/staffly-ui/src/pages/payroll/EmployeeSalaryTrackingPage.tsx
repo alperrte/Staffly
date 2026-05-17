@@ -6,6 +6,7 @@ import {
     getMyDeductions,
     getMyPayrollOverview,
     getMyPayrolls,
+    generateMyPayroll,
     requestAdvance,
     type AdvanceRecord,
     type BonusRecord,
@@ -47,6 +48,7 @@ const EmployeeSalaryTrackingPage = () => {
     const [advanceAmount, setAdvanceAmount] = useState("");
     const [advanceDate, setAdvanceDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [submitting, setSubmitting] = useState(false);
+    const [generatingPayroll, setGeneratingPayroll] = useState(false);
     const [message, setMessage] = useState("");
 
     const load = async () => {
@@ -116,14 +118,39 @@ const EmployeeSalaryTrackingPage = () => {
         }
     };
 
+    const handleGeneratePayroll = async () => {
+        const today = new Date();
+
+        try {
+            setGeneratingPayroll(true);
+            setMessage("");
+            await generateMyPayroll({
+                month: today.getMonth() + 1,
+                year: today.getFullYear(),
+            });
+            setMessage("Bordro oluşturuldu.");
+            await load();
+        } catch (err) {
+            console.error(err);
+            setMessage("Bordro oluşturulamadı.");
+        } finally {
+            setGeneratingPayroll(false);
+        }
+    };
+
     if (loading) {
-        return <div className="text-slate-300">Maaş verileri yükleniyor...</div>;
+        return (
+            <div className="min-h-full w-full px-5 py-6 text-slate-300 sm:px-6 lg:px-8">
+                Maaş verileri yükleniyor...
+            </div>
+        );
     }
 
     const currentGross = overview?.lastBaseSalary ?? overview?.currentSalary?.baseSalary;
+    const currentNet = payrolls[0]?.netSalary ?? overview?.lastNetSalary;
 
     return (
-        <div className="space-y-6 text-slate-100">
+        <div className="min-h-full w-full space-y-6 px-5 py-6 text-slate-100 sm:px-6 lg:px-8">
             <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-300">Çalışan</div>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Maaş Takibi</h1>
@@ -144,7 +171,7 @@ const EmployeeSalaryTrackingPage = () => {
                 <div className={panelClass}>
                     <HandCoins className="h-6 w-6 text-emerald-300" />
                     <div className="mt-4 text-sm text-slate-400">Net Maaş</div>
-                    <div className="mt-1 text-2xl font-semibold text-white">{money(overview?.lastNetSalary)}</div>
+                    <div className="mt-1 text-2xl font-semibold text-white">{money(currentNet)}</div>
                 </div>
                 <div className={panelClass}>
                     <History className="h-6 w-6 text-amber-300" />
@@ -195,11 +222,21 @@ const EmployeeSalaryTrackingPage = () => {
                 </section>
 
                 <section className={panelClass}>
-                    <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <h2 className="font-semibold text-white">Dönem Bordroları</h2>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-                            Son dönem: {overview?.lastPayrollMonth && overview?.lastPayrollYear ? `${overview.lastPayrollMonth}/${overview.lastPayrollYear}` : "-"}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                                Son dönem: {overview?.lastPayrollMonth && overview?.lastPayrollYear ? `${overview.lastPayrollMonth}/${overview.lastPayrollYear}` : "-"}
+                            </span>
+                            <button
+                                onClick={handleGeneratePayroll}
+                                disabled={generatingPayroll}
+                                className="inline-flex items-center gap-2 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-60"
+                            >
+                                {generatingPayroll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                                Bordro Oluştur
+                            </button>
+                        </div>
                     </div>
 
                     <div className="space-y-3">
