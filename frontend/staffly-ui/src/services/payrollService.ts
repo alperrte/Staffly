@@ -215,3 +215,8 @@ export const generatePayroll = async (payload: PayrollGeneratePayload) => {
     const res = await payrollApi.post<PayrollResponse>("/payrolls/generate", payload);
     return res.data;
 };
+
+export const generateMyPayroll = async (payload: Omit<PayrollGeneratePayload, "employeeId">) => {
+    const res = await payrollApi.post<PayrollResponse>("/payrolls/me/generate", payload);
+    return res.data;
+};

@@ -1,5 +1,7 @@
 package com.staffly.transport_service.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,7 +55,27 @@ public class TransportRouteService {
                 .active(request.getActive() == null || request.getActive())
                 .build();
 
-        return mapToResponse(transportRouteRepository.save(route));
+        TransportRoute savedRoute = transportRouteRepository.save(route);
+
+        transportRouteStopRepository.save(TransportRouteStop.builder()
+                .route(savedRoute)
+                .stopOrder(1)
+                .stopName(savedRoute.getOriginArea())
+                .latitude(BigDecimal.valueOf(request.getOriginLatitude()))
+                .longitude(BigDecimal.valueOf(request.getOriginLongitude()))
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        transportRouteStopRepository.save(TransportRouteStop.builder()
+                .route(savedRoute)
+                .stopOrder(2)
+                .stopName(savedRoute.getDestinationArea())
+                .latitude(BigDecimal.valueOf(request.getDestinationLatitude()))
+                .longitude(BigDecimal.valueOf(request.getDestinationLongitude()))
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        return mapToResponse(savedRoute);
     }
 
     public TransportRouteResponse updateRoute(Long id, UpdateTransportRouteRequest request) {

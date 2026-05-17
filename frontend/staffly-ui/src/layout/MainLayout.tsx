@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./MainSideBar";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
     ROLE_DEPARTMENT_MANAGER,
@@ -9,6 +9,7 @@ import {
     ROLE_MANAGER,
     ROLE_SYSTEM_ADMIN,
     ROLE_ACCOUNTING,
+    getTokenRoles,
     hasAnyRole,
 } from "../utils/auth";
 
@@ -185,6 +186,18 @@ const MainLayout = () => {
     const [search, setSearch] = useState("");
 
     const isDashboard = location.pathname === "/app";
+    const roleLabelMap: Record<string, string> = {
+        [ROLE_SYSTEM_ADMIN]: "Sistem Admini",
+        [ROLE_HR_MANAGER]: "HR",
+        [ROLE_DEPARTMENT_MANAGER]: "Departman Yöneticisi",
+        [ROLE_MANAGER]: "Yönetici",
+        [ROLE_ACCOUNTING]: "Muhasebe",
+        [ROLE_EMPLOYEE]: "Çalışan",
+    };
+    const currentRoleLabel =
+        getTokenRoles()
+            .map((role) => roleLabelMap[role])
+            .filter(Boolean)[0] ?? "Rol bilgisi yok";
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -276,15 +289,10 @@ const MainLayout = () => {
                             </div>
 
                             <div className="ml-auto flex items-center gap-4">
-                                <button
-                                    type="button"
-                                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs transition hover:border-sky-400/60 hover:bg-slate-900"
-                                >
-                                    <span className="max-w-[170px] truncate text-slate-100">
-                                        {email || "User"}
-                                    </span>
-                                    <ChevronDown className="h-4 w-4 text-slate-300" />
-                                </button>
+                                <div className="max-w-[260px] truncate rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs text-slate-100">
+                                    <span className="font-semibold uppercase text-sky-300">{currentRoleLabel}:</span>{" "}
+                                    {email || "User"}
+                                </div>
                             </div>
                         </header>
                     )}

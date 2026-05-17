@@ -115,7 +115,7 @@ function App() {
                     <Route
                         path="tasks"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]}>
                                 <TaskPage />
                             </ProtectedRoute>
                         }
@@ -181,7 +181,7 @@ function App() {
                     <Route
                         path="work-schedules"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_DEPARTMENT_MANAGER]}>
                                 <WorkScheduleManagementPage />
                             </ProtectedRoute>
                         }

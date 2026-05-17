@@ -744,25 +744,6 @@ const CreateEmployeePage = () => {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className={labelClass}>Profil Fotoğrafı (opsiyonel)</label>
-                        <label className="relative cursor-pointer inline-block w-full">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                    setError("");
-                                    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-                                    setForm((prev) => ({ ...prev, profileFile: f }));
-                                }}
-                                className="hidden"
-                            />
-                            <span className={`${inputClass} block cursor-pointer text-slate-400`}>
-                                {form.profileFile ? form.profileFile.name : "Dosya seçmek için tıklayın"}
-                            </span>
-                        </label>
-                    </div>
-
                     <div className="md:col-span-2 mt-2">
                         <div className="flex items-center justify-between mb-1">
                             <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">

@@ -25,6 +25,18 @@ public class CreateTransportRouteRequest {
     @NotBlank
     private String destinationArea;
 
+    @NotNull
+    private Double originLatitude;
+
+    @NotNull
+    private Double originLongitude;
+
+    @NotNull
+    private Double destinationLatitude;
+
+    @NotNull
+    private Double destinationLongitude;
+
     @NotEmpty
     private List<@NotBlank String> serviceAreas;
 
