@@ -57,12 +57,14 @@ public class SecurityConfig {
                         ).permitAll()
 
                         .requestMatchers(
-                                "/auth/register",
                                 "/auth/login",
                                 "/auth/refresh",
                                 "/auth/set-password",
                                 "/auth/forgot-password"
                         ).permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/auth/register")
+                        .hasAnyAuthority("ROLE_SYSTEM_ADMIN", "ROLE_HR_MANAGER")
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 

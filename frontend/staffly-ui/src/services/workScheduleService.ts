@@ -1,11 +1,10 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import type {
     WorkScheduleResponse,
     CreateWorkScheduleRequest,
     CreateBulkWorkScheduleRequest,
     OvertimeResponse,
     CreateOvertimeRequest,
-    CreateBulkOvertimeRequest,
     UpdateOvertimeRequest,
     CalendarEventResponse,
     CreateCalendarEventRequest,
@@ -29,7 +28,7 @@ const departmentApi = axios.create({
     baseURL: "http://localhost:8083",
 });
 
-const attachToken = (config: any) => {
+const attachToken = (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -151,10 +150,8 @@ export const createOvertime = async (
     return response.data;
 };
 
-export const createBulkOvertime = async (
-    data: CreateBulkOvertimeRequest
-): Promise<OvertimeResponse[]> => {
-    const response = await workScheduleApi.post("/overtimes/bulk", data);
+export const getOvertimes = async (): Promise<OvertimeResponse[]> => {
+    const response = await workScheduleApi.get("/overtimes");
     return response.data;
 };
 
@@ -326,8 +323,16 @@ export const deactivateDepartmentWorkSchedule = async (
     await workScheduleApi.patch(`/department-work-schedules/${id}/deactivate`);
 };
 
+export const deleteDepartmentWorkSchedule = async (id: number) => {
+    await workScheduleApi.delete(`/department-work-schedules/${id}`);
+};
+
 export const activateDepartmentWorkSchedule = async (
     id: number
 ): Promise<void> => {
     await workScheduleApi.patch(`/department-work-schedules/${id}/activate`);
+};
+
+export const deleteCalendarEvent = async (id: number) => {
+    await api.delete(`/calendar-events/${id}`);
 };

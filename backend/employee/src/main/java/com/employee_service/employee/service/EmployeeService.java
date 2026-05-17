@@ -384,7 +384,6 @@ public class EmployeeService {
             Long id,
             MultipartFile file
     ) {
-        System.out.println("UPLOAD WORKING");
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
@@ -408,7 +407,6 @@ public class EmployeeService {
         }
 
         employee.setProfileImage(uploadDir + fileName);
-        System.out.println("FILE SAVED = " + uploadDir + fileName);
         employeeRepository.save(employee);
 
         EmployeePersonalInfo personalInfo =

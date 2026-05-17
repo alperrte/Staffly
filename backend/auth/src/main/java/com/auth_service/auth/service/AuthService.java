@@ -2,7 +2,9 @@ package com.auth_service.auth.service;
 
 import com.auth_service.auth.dto.request.LoginRequest;
 import com.auth_service.auth.dto.request.RegisterRequest;
+import com.auth_service.auth.dto.response.EmployeeResponse;
 import com.auth_service.auth.dto.response.AuthResponse;
+import com.auth_service.auth.client.EmployeeClient;
 import com.auth_service.auth.entity.RefreshToken;
 import com.auth_service.auth.entity.ResetToken;
 import com.auth_service.auth.entity.Role;
@@ -36,9 +38,34 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final ResetTokenService resetTokenService;
     private final MailService mailService;
-    public AuthResponse register(RegisterRequest request) {
+    private final EmployeeClient employeeClient;
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+    public AuthResponse register(RegisterRequest request, String authHeader) {
+
+        if (request.getEmployeeId() == null) {
+            throw new RuntimeException("Employee is required");
+        }
+
+        EmployeeResponse employee = employeeClient.getEmployeeById(authHeader, request.getEmployeeId());
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(employee.getStatus())) {
+            throw new RuntimeException("Only active employees can be granted user access");
+        }
+
+        if (employee.getEmail() == null || employee.getEmail().isBlank()) {
+            throw new RuntimeException("Employee email is required");
+        }
+
+        if (request.getEmail() != null &&
+                !employee.getEmail().equalsIgnoreCase(request.getEmail())) {
+            throw new RuntimeException("Employee email does not match request");
+        }
+
+        if (userRepository.existsByEmail(employee.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -64,7 +91,7 @@ public class AuthService {
 
         User user = User.builder()
                 .employeeId(request.getEmployeeId())
-                .email(request.getEmail())
+                .email(employee.getEmail())
                 .password(null)
                 .active(false)
                 .roles(roles)
