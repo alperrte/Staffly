@@ -2,8 +2,6 @@ package com.staffly.work_schedule_service.service;
 
 import com.staffly.work_schedule_service.client.WorkDepartmentClient;
 import com.staffly.work_schedule_service.client.WorkEmployeeClient;
-import com.staffly.work_schedule_service.client.response.EmployeeResponse;
-import com.staffly.work_schedule_service.dto.request.CreateBulkOvertimeRequest;
 import com.staffly.work_schedule_service.dto.request.CreateOvertimeRequest;
 import com.staffly.work_schedule_service.dto.request.UpdateOvertimeRequest;
 import com.staffly.work_schedule_service.dto.response.OvertimeResponse;
@@ -15,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -57,66 +54,20 @@ public class OvertimeService {
         return toResponse(savedOvertime);
     }
 
-    public List<OvertimeResponse> createBulkOvertime(CreateBulkOvertimeRequest request) {
-
-        if (request.getDepartmentId() != null) {
-            workDepartmentClient.getDepartmentById(request.getDepartmentId());
-        }
-
-        validateOvertimeDateAndTime(
-                request.getOvertimeDate(),
-                request.getStartTime(),
-                request.getEndTime()
-        );
-
-        List<Long> targetEmployeeIds = new ArrayList<>();
-
-        if (request.getEmployeeIds() != null && !request.getEmployeeIds().isEmpty()) {
-            targetEmployeeIds.addAll(request.getEmployeeIds());
-        } else if (request.getDepartmentId() != null) {
-            List<EmployeeResponse> employees =
-                    workEmployeeClient.getEmployeesByDepartmentId(request.getDepartmentId());
-
-            targetEmployeeIds.addAll(
-                    employees.stream()
-                            .map(EmployeeResponse::getId)
-                            .toList()
-            );
-        } else {
-            throw new RuntimeException("Toplu ek mesai için departman veya çalışan listesi seçilmelidir.");
-        }
-
-        List<OvertimeResponse> responses = new ArrayList<>();
-
-        for (Long employeeId : targetEmployeeIds) {
-            workEmployeeClient.getEmployeeById(employeeId);
-
-            Overtime overtime = Overtime.builder()
-                    .employeeId(employeeId)
-                    .departmentId(request.getDepartmentId())
-                    .overtimeDate(request.getOvertimeDate())
-                    .startTime(request.getStartTime())
-                    .endTime(request.getEndTime())
-                    .reason(request.getReason())
-                    .status(OvertimeStatus.PLANNED)
-                    .build();
-
-            Overtime saved = overtimeRepository.save(overtime);
-            responses.add(toResponse(saved));
-        }
-
-        return responses;
-    }
-
     public List<OvertimeResponse> getEmployeeOvertimes(
             Long employeeId,
             LocalDate startDate,
             LocalDate endDate
     ) {
-        workEmployeeClient.getEmployeeById(employeeId);
-
         return overtimeRepository
                 .findByEmployeeIdAndOvertimeDateBetween(employeeId, startDate, endDate)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<OvertimeResponse> getAllOvertimes() {
+        return overtimeRepository.findAll()
                 .stream()
                 .map(this::toResponse)
                 .toList();

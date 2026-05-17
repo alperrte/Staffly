@@ -99,8 +99,6 @@ public class WorkScheduleService {
             LocalDate startDate,
             LocalDate endDate
     ) {
-        workEmployeeClient.getEmployeeById(employeeId);
-
         return workScheduleRepository
                 .findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate)
                 .stream()
@@ -113,8 +111,6 @@ public class WorkScheduleService {
             LocalDate startDate,
             LocalDate endDate
     ) {
-        workEmployeeClient.getEmployeeById(employeeId);
-
         return workScheduleRepository
                 .findByEmployeeIdAndWorkDateBetween(employeeId, startDate, endDate)
                 .stream()
@@ -137,8 +133,6 @@ public class WorkScheduleService {
     }
 
     public WorkScheduleResponse getDailySchedule(Long employeeId, LocalDate workDate) {
-        workEmployeeClient.getEmployeeById(employeeId);
-
         WorkSchedule workSchedule = workScheduleRepository
                 .findByEmployeeIdAndWorkDate(employeeId, workDate)
                 .orElseThrow(() -> new RuntimeException("Bu tarihe ait çalışma planı bulunamadı."));

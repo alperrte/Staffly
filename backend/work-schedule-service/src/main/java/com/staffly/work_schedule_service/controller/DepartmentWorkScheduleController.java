@@ -65,4 +65,10 @@ public class DepartmentWorkScheduleController {
     public DepartmentWorkScheduleResponse activate(@PathVariable Long id) {
         return departmentWorkScheduleService.activate(id);
     }
+
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER')")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        departmentWorkScheduleService.delete(id);
+    }
 }

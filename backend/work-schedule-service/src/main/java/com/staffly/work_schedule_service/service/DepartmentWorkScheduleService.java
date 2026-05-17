@@ -115,4 +115,11 @@ public class DepartmentWorkScheduleService {
 
         return toResponse(saved);
     }
+
+    public void delete(Long id) {
+        DepartmentWorkSchedule schedule = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Departman çalışma saati bulunamadı."));
+
+        repository.delete(schedule);
+    }
 }

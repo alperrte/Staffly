@@ -1,6 +1,5 @@
 package com.staffly.work_schedule_service.controller;
 
-import com.staffly.work_schedule_service.dto.request.CreateBulkOvertimeRequest;
 import com.staffly.work_schedule_service.dto.request.CreateOvertimeRequest;
 import com.staffly.work_schedule_service.dto.request.UpdateOvertimeRequest;
 import com.staffly.work_schedule_service.dto.response.OvertimeResponse;
@@ -27,12 +26,10 @@ public class OvertimeController {
         return overtimeService.createOvertime(request);
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
-    @PostMapping("/bulk")
-    public List<OvertimeResponse> createBulkOvertime(
-            @RequestBody CreateBulkOvertimeRequest request
-    ) {
-        return overtimeService.createBulkOvertime(request);
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
+    @GetMapping
+    public List<OvertimeResponse> getAllOvertimes() {
+        return overtimeService.getAllOvertimes();
     }
 
     @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")

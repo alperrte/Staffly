@@ -1,33 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import DatePicker from "react-datepicker";
+import { registerLocale } from "react-datepicker";
+import { tr } from "date-fns/locale/tr";
+
+import "react-datepicker/dist/react-datepicker.css";
+
 import {
-    addParticipants,
+    CalendarDays,
+    ChevronDown,
+    Clock3,
+    Edit3,
+    GraduationCap,
+    MapPin,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Trash2,
+    UserRound,
+    Video,
+    X,
+    BriefcaseBusiness,
+    MessageSquare,
+    Ban,
+} from "lucide-react";
+
+import {
     cancelCalendarEvent,
     createCalendarEvent,
+    deleteCalendarEvent,
     getCalendarEvents,
     getDepartments,
-    getEmployees,
-    removeParticipant,
     updateCalendarEvent,
 } from "../../services/workScheduleService";
 
 import type {
     CalendarEventResponse,
     DepartmentResponse,
-    EmployeeResponse,
     EventType,
 } from "../../types/workScheduleTypes";
 
-const inputClass =
-    "w-full rounded-xl bg-slate-950/80 border border-slate-700/80 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 transition [&>option]:bg-slate-950 [&>option]:text-slate-100";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
-const buttonClass =
-    "rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-5 py-3 text-sm transition shadow-lg shadow-sky-500/20";
+registerLocale("tr", tr);
 
-const secondaryButtonClass =
-    "rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold px-5 py-3 text-sm transition";
+type SortType = "DATE_ASC" | "DATE_DESC";
 
-const cardClass =
-    "rounded-3xl border border-slate-800/80 bg-slate-950/70 shadow-[0_0_35px_rgba(15,23,42,0.75)] p-6";
+type ConfirmAction = "save" | "cancel" | "delete" | null;
 
 const eventTypeLabels: Record<EventType, string> = {
     MEETING: "Toplantı",
@@ -37,8 +55,125 @@ const eventTypeLabels: Record<EventType, string> = {
     OTHER: "Diğer",
 };
 
+const eventTypeConfig: Record<
+    EventType,
+    {
+        icon: JSX.Element;
+        badge: string;
+        iconBox: string;
+        dot: string;
+    }
+> = {
+    MEETING: {
+        icon: <BriefcaseBusiness className="h-5 w-5" />,
+        badge: "border-sky-400/40 bg-sky-500/10 text-sky-300",
+        iconBox: "bg-sky-500/15 text-sky-300",
+        dot: "bg-sky-400",
+    },
+    INTERVIEW: {
+        icon: <UserRound className="h-5 w-5" />,
+        badge: "border-violet-400/40 bg-violet-500/10 text-violet-300",
+        iconBox: "bg-violet-500/15 text-violet-300",
+        dot: "bg-violet-400",
+    },
+    TRAINING: {
+        icon: <GraduationCap className="h-5 w-5" />,
+        badge: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+        iconBox: "bg-emerald-500/15 text-emerald-300",
+        dot: "bg-emerald-400",
+    },
+    COMPANY_EVENT: {
+        icon: <CalendarDays className="h-5 w-5" />,
+        badge: "border-orange-400/40 bg-orange-500/10 text-orange-300",
+        iconBox: "bg-orange-500/15 text-orange-300",
+        dot: "bg-orange-400",
+    },
+    OTHER: {
+        icon: <MessageSquare className="h-5 w-5" />,
+        badge: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
+        iconBox: "bg-cyan-500/15 text-cyan-300",
+        dot: "bg-cyan-400",
+    },
+};
+
+const inputClass =
+    "h-12 w-full rounded-xl border border-slate-700/80 bg-slate-950/80 px-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60 [&>option]:bg-slate-950 [&>option]:text-slate-100";
+
+const modalInputClass =
+    "w-full rounded-xl border border-slate-700/80 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60 [&>option]:bg-slate-950 [&>option]:text-slate-100";
+
+const buttonClass =
+    "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 text-sm font-semibold text-white shadow-lg transition hover:from-sky-400 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-60";
+
+const secondaryButtonClass =
+    "inline-flex items-center justify-center rounded-xl bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60";
+
+const dangerButtonClass =
+    "inline-flex items-center justify-center rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60";
+
+const formatDateValue = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
+const parseLocalDate = (value: string) => {
+    return new Date(`${value}T12:00:00`);
+};
+
+const startOfToday = () => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const dateToDateTimeLocal = (date: Date, time: string) => {
+    return `${formatDateValue(date)}T${time}`;
+};
+
+const formatDate = (value: string) => {
+    if (!value) return "-";
+
+    const datePart = value.slice(0, 10);
+    const date = parseLocalDate(datePart);
+
+    return date.toLocaleDateString("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+};
+
+const formatTime = (value: string) => {
+    if (!value) return "-";
+    return value.slice(11, 16);
+};
+
+const formatMonthTitle = (date: Date) => {
+    return date.toLocaleDateString("tr-TR", {
+        month: "long",
+        year: "numeric",
+    });
+};
+
+const getDateOnlyFromDateTime = (value: string) => {
+    return value.slice(0, 10);
+};
+
+const isPastDateString = (value: string) => {
+    const today = startOfToday();
+    const date = parseLocalDate(value);
+    date.setHours(0, 0, 0, 0);
+
+    return date < today;
+};
+
 const MeetingPlanningPage = () => {
-    const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
+    const todayDate = useMemo(() => startOfToday(), []);
+    const today = useMemo(() => formatDateValue(todayDate), [todayDate]);
+
     const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
     const [events, setEvents] = useState<CalendarEventResponse[]>([]);
 
@@ -49,72 +184,113 @@ const MeetingPlanningPage = () => {
     const [selectedEvent, setSelectedEvent] =
         useState<CalendarEventResponse | null>(null);
 
-    const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [confirmModalLoading, setConfirmModalLoading] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+
+    const [actionTarget, setActionTarget] =
+        useState<CalendarEventResponse | null>(null);
+
+    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
 
     const [filter, setFilter] = useState({
-        startDate: today,
-        endDate: today,
+        search: "",
+        eventType: "ALL",
+        departmentId: "ALL",
+        sort: "DATE_ASC" as SortType,
     });
+
+    const [calendarDate, setCalendarDate] = useState<Date>(todayDate);
 
     const [eventForm, setEventForm] = useState({
         title: "",
         description: "",
         eventType: "MEETING" as EventType,
-        startDateTime: `${today}T09:00`,
-        endDateTime: `${today}T10:00`,
+        startDate: todayDate,
+        startTime: "09:00",
+        endDate: todayDate,
+        endTime: "10:00",
         location: "",
         onlineMeetingUrl: "",
         departmentId: "",
-        participantIds: [] as number[],
     });
 
     const eventTypes: EventType[] = [
         "MEETING",
-        "TRAINING",
         "INTERVIEW",
+        "TRAINING",
         "COMPANY_EVENT",
         "OTHER",
     ];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(event.target as Node)
+            ) {
+                setOpenMenuId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!message && !error) return;
+
+        const timer = window.setTimeout(() => {
+            setMessage("");
+            setError("");
+        }, 3500);
+
+        return () => window.clearTimeout(timer);
+    }, [message, error]);
 
     const showSuccess = (text: string) => {
         setMessage(text);
         setError("");
     };
 
-    const showError = (err: any, fallback: string) => {
+    const showError = (err: unknown, fallback: string) => {
+        const apiError = err as { response?: { data?: { message?: string } } };
+
         setMessage("");
-        setError(err?.response?.data?.message || fallback);
+        setError(apiError.response?.data?.message || fallback);
     };
+
+
 
     const loadEvents = async () => {
         try {
             const data = await getCalendarEvents(
-                `${filter.startDate}T00:00:00`,
-                `${filter.endDate}T23:59:59`
+                `${today}T00:00:00`,
+                "2999-12-31T23:59:59"
             );
 
             setEvents(data);
             setError("");
         } catch (err) {
-            setError("Etkinlikler getirilemedi.");
+            showError(err, "Etkinlikler getirilemedi.");
         }
     };
 
     const loadInitialData = async () => {
         try {
-            setError("");
-
-            const [employeeData, departmentData] = await Promise.all([
-                getEmployees(),
+            const [departmentData, eventData] = await Promise.all([
                 getDepartments(),
+                getCalendarEvents(`${today}T00:00:00`, `${today}T23:59:59`),
             ]);
 
-            setEmployees(employeeData);
             setDepartments(departmentData);
-
-            await loadEvents();
+            setEvents(eventData);
         } catch (err) {
-            setError("Veriler yüklenirken hata oluştu.");
+            showError(err, "Veriler yüklenirken hata oluştu.");
         }
     };
 
@@ -122,18 +298,30 @@ const MeetingPlanningPage = () => {
         loadInitialData();
     }, []);
 
+
+
+    const getDepartmentName = (departmentId: number | null) => {
+        if (!departmentId) return "Departman yok";
+
+        return (
+            departments.find((item) => item.id === departmentId)?.name ||
+            `Departman #${departmentId}`
+        );
+    };
+
     const resetForm = () => {
         setSelectedEvent(null);
         setEventForm({
             title: "",
             description: "",
             eventType: "MEETING",
-            startDateTime: `${today}T09:00`,
-            endDateTime: `${today}T10:00`,
+            startDate: todayDate,
+            startTime: "09:00",
+            endDate: todayDate,
+            endTime: "10:00",
             location: "",
             onlineMeetingUrl: "",
             departmentId: "",
-            participantIds: [],
         });
     };
 
@@ -143,537 +331,1156 @@ const MeetingPlanningPage = () => {
     };
 
     const closeModal = () => {
+        if (confirmModalLoading) return;
+
         resetForm();
         setIsModalOpen(false);
     };
 
-    const toggleParticipant = (employeeId: number) => {
-        setEventForm((prev) => {
-            const exists = prev.participantIds.includes(employeeId);
-
-            return {
-                ...prev,
-                participantIds: exists
-                    ? prev.participantIds.filter((id) => id !== employeeId)
-                    : [...prev.participantIds, employeeId],
-            };
-        });
-    };
-
-    const handleCreateOrUpdateEvent = async () => {
-        try {
-            const payload = {
-                title: eventForm.title,
-                description: eventForm.description,
-                eventType: eventForm.eventType,
-                startDateTime: eventForm.startDateTime,
-                endDateTime: eventForm.endDateTime,
-                location: eventForm.location,
-                onlineMeetingUrl: eventForm.onlineMeetingUrl,
-                departmentId: eventForm.departmentId
-                    ? Number(eventForm.departmentId)
-                    : null,
-            };
-
-            if (selectedEvent) {
-                await updateCalendarEvent(selectedEvent.id, payload);
-
-                const oldParticipantIds =
-                    selectedEvent.participants?.map((p) => p.employeeId) ?? [];
-
-                const newParticipantIds = eventForm.participantIds;
-
-                const participantsToAdd = newParticipantIds.filter(
-                    (id) => !oldParticipantIds.includes(id)
-                );
-
-                const participantsToRemove = oldParticipantIds.filter(
-                    (id) => !newParticipantIds.includes(id)
-                );
-
-                if (participantsToAdd.length > 0) {
-                    await addParticipants(selectedEvent.id, participantsToAdd);
-                }
-
-                for (const employeeId of participantsToRemove) {
-                    await removeParticipant(selectedEvent.id, employeeId);
-                }
-
-                showSuccess("Etkinlik güncellendi.");
-            } else {
-                await createCalendarEvent({
-                    ...payload,
-                    participantIds: eventForm.participantIds,
-                });
-
-                showSuccess("Etkinlik oluşturuldu.");
-            }
-
-            closeModal();
-            await loadEvents();
-        } catch (err) {
-            showError(err, "Etkinlik kaydedilemedi.");
-        }
-    };
-
-    const handleEditEvent = (event: CalendarEventResponse) => {
+    const openEditEvent = (event: CalendarEventResponse) => {
         setSelectedEvent(event);
+
+        const startDateValue = getDateOnlyFromDateTime(event.startDateTime);
+        const endDateValue = getDateOnlyFromDateTime(event.endDateTime);
 
         setEventForm({
             title: event.title,
             description: event.description || "",
             eventType: event.eventType,
-            startDateTime: event.startDateTime.slice(0, 16),
-            endDateTime: event.endDateTime.slice(0, 16),
+            startDate: parseLocalDate(startDateValue),
+            startTime: formatTime(event.startDateTime),
+            endDate: parseLocalDate(endDateValue),
+            endTime: formatTime(event.endDateTime),
             location: event.location || "",
             onlineMeetingUrl: event.onlineMeetingUrl || "",
             departmentId: event.departmentId ? String(event.departmentId) : "",
-            participantIds: event.participants?.map((p) => p.employeeId) ?? [],
         });
 
+        setOpenMenuId(null);
         setIsModalOpen(true);
     };
 
-    const handleCancelEvent = async (id: number) => {
+    const handleStartDateChange = (date: Date | null) => {
+        if (!date) return;
+
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+
+        setEventForm((prev) => {
+            const shouldUpdateEndDate = prev.endDate < normalized;
+
+            return {
+                ...prev,
+                startDate: normalized,
+                endDate: shouldUpdateEndDate ? normalized : prev.endDate,
+            };
+        });
+    };
+
+    const handleEndDateChange = (date: Date | null) => {
+        if (!date) return;
+
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+
+        setEventForm((prev) => ({
+            ...prev,
+            endDate: normalized,
+        }));
+    };
+
+    const handleStartTimeChange = (value: string) => {
+        setEventForm((prev) => {
+            const sameDay =
+                formatDateValue(prev.startDate) === formatDateValue(prev.endDate);
+
+            return {
+                ...prev,
+                startTime: value,
+                endTime: sameDay && prev.endTime <= value ? value : prev.endTime,
+            };
+        });
+    };
+
+    const validateEventForm = () => {
+        if (!eventForm.title.trim()) {
+            setMessage("");
+            setError("Etkinlik başlığı boş bırakılamaz.");
+            return false;
+        }
+
+        if (eventForm.startDate < todayDate || eventForm.endDate < todayDate) {
+            setMessage("");
+            setError("Geçmiş tarihli etkinlik oluşturamazsın.");
+            return false;
+        }
+
+        if (!eventForm.startTime || !eventForm.endTime) {
+            setMessage("");
+            setError("Başlangıç ve bitiş saatini seçmelisin.");
+            return false;
+        }
+
+        const startDateTime = dateToDateTimeLocal(
+            eventForm.startDate,
+            eventForm.startTime
+        );
+
+        const endDateTime = dateToDateTimeLocal(
+            eventForm.endDate,
+            eventForm.endTime
+        );
+
+        if (endDateTime <= startDateTime) {
+            setMessage("");
+            setError("Bitiş tarihi ve saati başlangıçtan sonra olmalıdır.");
+            return false;
+        }
+
+        setError("");
+        return true;
+    };
+
+    const openSaveConfirm = () => {
+        const isValid = validateEventForm();
+
+        if (!isValid) return;
+
+        setConfirmAction("save");
+        setConfirmModalOpen(true);
+    };
+
+    const openCancelConfirm = (event: CalendarEventResponse) => {
+        setActionTarget(event);
+        setConfirmAction("cancel");
+        setConfirmModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const openDeleteConfirm = (event: CalendarEventResponse) => {
+        setActionTarget(event);
+        setConfirmAction("delete");
+        setConfirmModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const closeConfirmModal = () => {
+        if (confirmModalLoading) return;
+
+        setConfirmModalOpen(false);
+        setConfirmAction(null);
+        setActionTarget(null);
+    };
+
+    const handleCreateOrUpdateEvent = async () => {
+        const payload = {
+            title: eventForm.title.trim(),
+            description: eventForm.description,
+            eventType: eventForm.eventType,
+            startDateTime: dateToDateTimeLocal(
+                eventForm.startDate,
+                eventForm.startTime
+            ),
+            endDateTime: dateToDateTimeLocal(eventForm.endDate, eventForm.endTime),
+            location: eventForm.location,
+            onlineMeetingUrl: eventForm.onlineMeetingUrl,
+            departmentId: eventForm.departmentId
+                ? Number(eventForm.departmentId)
+                : null,
+        };
+
+        if (selectedEvent) {
+            await updateCalendarEvent(selectedEvent.id, payload);
+            showSuccess("Etkinlik güncellendi.");
+        } else {
+            await createCalendarEvent({
+                ...payload,
+                participantIds: [],
+            });
+
+            showSuccess("Etkinlik oluşturuldu.");
+        }
+
+        closeModal();
+        await loadEvents();
+    };
+
+    const handleCancelEvent = async () => {
+        if (!actionTarget) return;
+
+        await cancelCalendarEvent(actionTarget.id);
+        showSuccess("Etkinlik iptal edildi.");
+        await loadEvents();
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!actionTarget) return;
+
+        await deleteCalendarEvent(actionTarget.id);
+        showSuccess("Etkinlik silindi.");
+        await loadEvents();
+    };
+
+    const handleConfirmAction = async () => {
         try {
-            await cancelCalendarEvent(id);
-            showSuccess("Etkinlik iptal edildi.");
-            await loadEvents();
+            setConfirmModalLoading(true);
+
+            if (confirmAction === "save") {
+                await handleCreateOrUpdateEvent();
+            }
+
+            if (confirmAction === "cancel") {
+                await handleCancelEvent();
+            }
+
+            if (confirmAction === "delete") {
+                await handleDeleteEvent();
+            }
+
+            setConfirmModalOpen(false);
+            setConfirmAction(null);
+            setActionTarget(null);
         } catch (err) {
-            showError(err, "Etkinlik iptal edilemedi.");
+            if (confirmAction === "save") {
+                showError(err, "Etkinlik kaydedilemedi.");
+            }
+
+            if (confirmAction === "cancel") {
+                showError(err, "Etkinlik iptal edilemedi.");
+            }
+
+            if (confirmAction === "delete") {
+                showError(err, "Etkinlik silinemedi.");
+            }
+        } finally {
+            setConfirmModalLoading(false);
         }
     };
 
-    const getDepartmentName = (departmentId: number | null) => {
-        if (!departmentId) return "Departman yok";
 
-        const department = departments.find((item) => item.id === departmentId);
-        return department ? department.name : `Departman #${departmentId}`;
+
+
+    const handleCalendarDateChange = (date: Date | null) => {
+        if (!date) return;
+
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+
+        setCalendarDate(normalized);
     };
 
-    return (
-        <div className="min-h-screen bg-[#020617] text-slate-100 p-6 overflow-y-auto staffly-scroll">
-            <div className="mb-6 flex flex-col gap-5">
-                <div>
-                    <p className="text-sm text-sky-400 font-semibold tracking-[0.25em] uppercase">
-                        Calendar Event Service
-                    </p>
-                    <h1 className="text-3xl font-bold mt-2">
-                        Toplantı & Etkinlik Yönetimi
-                    </h1>
-                    <p className="text-slate-400 text-sm mt-2">
-                        Toplantı, eğitim, mülakat ve şirket etkinliklerini oluştur,
-                        katılımcıları belirle ve takvim kayıtlarını yönet.
-                    </p>
-                </div>
+    const resetFilters = () => {
+        setFilter({
+            search: "",
+            eventType: "ALL",
+            departmentId: "ALL",
+            sort: "DATE_ASC",
+        });
 
-                <section className={cardClass}>
-                    <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+        setCalendarDate(todayDate);
+    };
+
+    const filteredEvents = useMemo(() => {
+        const searchValue = filter.search.trim().toLowerCase();
+
+        return events
+            .filter((event) => {
+                const matchesSearch =
+                    !searchValue ||
+                    event.title?.toLowerCase().includes(searchValue);
+
+                const matchesType =
+                    filter.eventType === "ALL" ||
+                    event.eventType === filter.eventType;
+
+                const matchesDepartment =
+                    filter.departmentId === "ALL" ||
+                    String(event.departmentId) === filter.departmentId;
+
+                return matchesSearch && matchesType && matchesDepartment;
+            })
+            .sort((a, b) => {
+                if (filter.sort === "DATE_ASC") {
+                    return a.startDateTime.localeCompare(b.startDateTime);
+                }
+
+                return b.startDateTime.localeCompare(a.startDateTime);
+            });
+    }, [events, filter]);
+
+    const stats = useMemo(() => {
+        const meetingsToday = events.filter(
+            (event) =>
+                getDateOnlyFromDateTime(event.startDateTime) === today &&
+                event.eventType === "MEETING"
+        ).length;
+
+        const weekLimit = new Date(todayDate);
+        weekLimit.setDate(weekLimit.getDate() + 7);
+
+        const upcoming = events.filter((event) => {
+            const eventDate = parseLocalDate(
+                getDateOnlyFromDateTime(event.startDateTime)
+            );
+
+            return eventDate >= todayDate && eventDate <= weekLimit;
+        }).length;
+
+        const trainings = events.filter(
+            (event) => event.eventType === "TRAINING"
+        ).length;
+
+        const activeEvents = events.filter(
+            (event) => event.status !== "CANCELLED"
+        ).length;
+
+        return {
+            meetingsToday,
+            upcoming,
+            trainings,
+            activeEvents,
+        };
+    }, [events, today, todayDate]);
+
+    const eventCounts = useMemo(() => {
+        return {
+            ALL: events.length,
+            MEETING: events.filter((event) => event.eventType === "MEETING").length,
+            INTERVIEW: events.filter((event) => event.eventType === "INTERVIEW").length,
+            TRAINING: events.filter((event) => event.eventType === "TRAINING").length,
+            COMPANY_EVENT: events.filter(
+                (event) => event.eventType === "COMPANY_EVENT"
+            ).length,
+            OTHER: events.filter((event) => event.eventType === "OTHER").length,
+        };
+    }, [events]);
+
+    const eventDateSet = useMemo(() => {
+        return new Set(
+            events.map((event) => getDateOnlyFromDateTime(event.startDateTime))
+        );
+    }, [events]);
+
+    const getStatusBadge = (status: string) => {
+        if (status === "CANCELLED") {
+            return "border-red-400/30 bg-red-500/10 text-red-300";
+        }
+
+        if (status === "ACTIVE") {
+            return "border-emerald-400/30 bg-emerald-500/10 text-emerald-300";
+        }
+
+        return "border-blue-400/30 bg-blue-500/10 text-blue-300";
+    };
+
+    const getStatusLabel = (status: string) => {
+        if (status === "CANCELLED") return "İptal";
+        if (status === "ACTIVE") return "Onaylandı";
+        return status;
+    };
+
+    const getConfirmModalProps = () => {
+        if (confirmAction === "delete") {
+            return {
+                variant: "danger" as const,
+                title: "Etkinliği Sil",
+                description: "Bu etkinlik sistemden silinecek.",
+                detailText:
+                    "Silme işleminden sonra etkinlik listede görünmez. Bu işlem geri alınamayabilir.",
+                itemName: actionTarget?.title,
+                confirmText: "Evet, Sil",
+            };
+        }
+
+        if (confirmAction === "cancel") {
+            return {
+                variant: "warning" as const,
+                title: "Etkinliği İptal Et",
+                description: "Bu etkinlik iptal durumuna alınacak.",
+                detailText:
+                    "İptal edilen etkinlik listede görünebilir fakat aktif etkinlik olarak değerlendirilmez.",
+                itemName: actionTarget?.title,
+                confirmText: "Evet, İptal Et",
+            };
+        }
+
+        return {
+            variant: "success" as const,
+            title: selectedEvent ? "Etkinliği Güncelle" : "Etkinlik Oluştur",
+            description: selectedEvent
+                ? "Seçili etkinlik yeni bilgilerle güncellenecek."
+                : "Yeni etkinlik oluşturulacak.",
+            detailText:
+                "Onayladıktan sonra etkinlik bilgileri sisteme kaydedilecek ve liste otomatik güncellenecek.",
+            itemName: eventForm.title || undefined,
+            confirmText: selectedEvent ? "Evet, Güncelle" : "Evet, Oluştur",
+        };
+    };
+
+    const confirmProps = getConfirmModalProps();
+
+    return (
+        <div className="min-h-full w-full bg-[#020617] p-0 text-slate-100">
+            <div className="flex min-h-screen w-full flex-col bg-slate-950/40 p-5">
+                <div className="rounded-3xl border border-slate-800/80 bg-slate-950/70 p-5 shadow-[0_0_35px_rgba(15,23,42,0.75)]">
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_1.7fr] xl:items-center">
                         <div>
-                            <h2 className="text-xl font-semibold">
-                                Etkinlikleri Listele
-                            </h2>
-                            <p className="text-sm text-slate-400 mt-1">
-                                Tarih aralığına göre toplantı ve etkinlikleri görüntüle.
+                            <h1 className="text-3xl font-black tracking-tight text-white">
+                                Toplantı & Etkinlik Yönetimi
+                            </h1>
+
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                                Toplantı, eğitim, mülakat ve şirket etkinliklerini oluştur,
+                                düzenle, iptal et ve takvim üzerinden takip et.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full xl:w-auto">
-                            <input
-                                className={inputClass}
-                                type="date"
-                                value={filter.startDate}
-                                onChange={(e) =>
-                                    setFilter({
-                                        ...filter,
-                                        startDate: e.target.value,
-                                    })
-                                }
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <StatCard
+                                icon={<CalendarDays className="h-6 w-6" />}
+                                iconClass="bg-sky-500/15 text-sky-300"
+                                title="Bugünkü Toplantılar"
+                                value={stats.meetingsToday}
+                                subtitle="Bugün"
+                                subtitleClass="text-sky-400"
                             />
 
-                            <input
-                                className={inputClass}
-                                type="date"
-                                value={filter.endDate}
-                                onChange={(e) =>
-                                    setFilter({
-                                        ...filter,
-                                        endDate: e.target.value,
-                                    })
-                                }
+                            <StatCard
+                                icon={<Clock3 className="h-6 w-6" />}
+                                iconClass="bg-violet-500/15 text-violet-300"
+                                title="Yaklaşan Etkinlikler"
+                                value={stats.upcoming}
+                                subtitle="7 gün içinde"
+                                subtitleClass="text-violet-300"
                             />
 
-                            <button className={buttonClass} onClick={loadEvents}>
-                                Listele
-                            </button>
+                            <StatCard
+                                icon={<GraduationCap className="h-6 w-6" />}
+                                iconClass="bg-emerald-500/15 text-emerald-300"
+                                title="Eğitimler"
+                                value={stats.trainings}
+                                subtitle="Planlanan"
+                                subtitleClass="text-emerald-300"
+                            />
+
+                            <StatCard
+                                icon={<CalendarDays className="h-6 w-6" />}
+                                iconClass="bg-orange-500/15 text-orange-300"
+                                title="Aktif Etkinlik"
+                                value={stats.activeEvents}
+                                subtitle="Toplam"
+                                subtitleClass="text-orange-300"
+                            />
                         </div>
-
-                        <button className={buttonClass} onClick={openCreateModal}>
-                            + Yeni Etkinlik / Toplantı Oluştur
-                        </button>
                     </div>
-                </section>
-            </div>
-
-            {message && (
-                <div className="mb-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">
-                    {message}
-                </div>
-            )}
-
-            {error && (
-                <div className="mb-5 rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-300">
-                    {error}
-                </div>
-            )}
-
-            <section className={cardClass}>
-                <div className="flex items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h2 className="text-xl font-semibold">Etkinlikler</h2>
-                        <p className="text-sm text-slate-400 mt-1">
-                            Oluşturulan etkinlikleri düzenle veya iptal et.
-                        </p>
-                    </div>
-
-                    <span className="rounded-full bg-slate-900 border border-slate-800 px-4 py-2 text-sm text-slate-300">
-                        Toplam: {events.length}
-                    </span>
                 </div>
 
-                {events.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center">
-                        <p className="text-slate-300 font-semibold">
-                            Etkinlik bulunamadı.
-                        </p>
-                        <p className="text-slate-500 text-sm mt-1">
-                            Yeni etkinlik oluşturabilir veya tarih filtresini değiştirebilirsin.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {events.map((event) => (
-                            <div
-                                key={event.id}
-                                className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 hover:border-sky-500/40 transition"
-                            >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h3 className="font-semibold text-lg">
-                                            {event.title}
-                                        </h3>
-
-                                        <p className="text-xs mt-2 inline-flex rounded-full bg-sky-500/10 text-sky-300 px-3 py-1">
-                                            {eventTypeLabels[event.eventType]}
-                                        </p>
-                                    </div>
-
-                                    <span
-                                        className={
-                                            event.status === "ACTIVE"
-                                                ? "rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"
-                                                : "rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300"
-                                        }
-                                    >
-                                        {event.status === "ACTIVE" ? "Aktif" : "İptal"}
-                                    </span>
-                                </div>
-
-                                <div className="mt-4 space-y-2 text-sm text-slate-400">
-                                    <p>
-                                        Tarih:{" "}
-                                        <span className="text-slate-200">
-                                            {event.startDateTime.slice(0, 10)}
-                                        </span>
-                                    </p>
-
-                                    <p>
-                                        Saat:{" "}
-                                        <span className="text-slate-200">
-                                            {event.startDateTime.slice(11, 16)} -{" "}
-                                            {event.endDateTime.slice(11, 16)}
-                                        </span>
-                                    </p>
-
-                                    <p>
-                                        Departman:{" "}
-                                        <span className="text-slate-200">
-                                            {getDepartmentName(event.departmentId)}
-                                        </span>
-                                    </p>
-
-                                    {event.location && (
-                                        <p>
-                                            Konum:{" "}
-                                            <span className="text-slate-200">
-                                                {event.location}
-                                            </span>
-                                        </p>
-                                    )}
-
-                                    {event.onlineMeetingUrl && (
-                                        <p className="break-all">
-                                            Link:{" "}
-                                            <span className="text-sky-300">
-                                                {event.onlineMeetingUrl}
-                                            </span>
-                                        </p>
-                                    )}
-
-                                    <p>
-                                        Katılımcı:{" "}
-                                        <span className="text-slate-200">
-                                            {event.participants?.length ?? 0}
-                                        </span>
-                                    </p>
-                                </div>
-
-                                <div className="flex gap-2 mt-5">
-                                    <button
-                                        className="rounded-xl bg-slate-700 hover:bg-slate-600 px-4 py-2 text-xs font-semibold"
-                                        onClick={() => handleEditEvent(event)}
-                                    >
-                                        Düzenle
-                                    </button>
-
-                                    {event.status !== "CANCELLED" && (
-                                        <button
-                                            className="rounded-xl bg-red-500 hover:bg-red-400 px-4 py-2 text-xs font-semibold text-white"
-                                            onClick={() => handleCancelEvent(event.id)}
-                                        >
-                                            İptal
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                {message && (
+                    <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">
+                        {message}
                     </div>
                 )}
-            </section>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-                    <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto staffly-scroll rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4 mb-6">
-                            <div>
-                                <h2 className="text-xl font-semibold">
-                                    {selectedEvent
-                                        ? "Etkinlik Düzenle"
-                                        : "Yeni Etkinlik Oluştur"}
-                                </h2>
-                                <p className="text-sm text-slate-400 mt-1">
-                                    Etkinlik bilgilerini, tarih-saat aralığını ve katılımcıları belirle.
-                                </p>
-                            </div>
+                {error && (
+                    <div className="mt-5 rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+                        {error}
+                    </div>
+                )}
 
-                            <button
-                                className={secondaryButtonClass}
-                                onClick={closeModal}
-                            >
-                                Kapat
-                            </button>
-                        </div>
+                <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
+                    <main className="min-w-0">
+                        <section className="mb-5 rounded-3xl border border-slate-800/80 bg-slate-950/70 p-5 shadow-[0_0_35px_rgba(15,23,42,0.75)]">
+                            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.2fr_0.75fr_0.75fr_0.9fr_auto_auto]">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                                    <input
+                                        className={`${inputClass} pr-12`}
+                                        placeholder="Etkinlik adına göre ara..."
+                                        value={filter.search}
+                                        onChange={(e) =>
+                                            setFilter((prev) => ({
+                                                ...prev,
+                                                search: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Başlık
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    placeholder="Örn: Sprint Planlama Toplantısı"
-                                    value={eventForm.title}
-                                    onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            title: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Etkinlik Türü
-                                </label>
                                 <select
                                     className={inputClass}
-                                    value={eventForm.eventType}
+                                    value={filter.eventType}
                                     onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            eventType: e.target.value as EventType,
-                                        })
+                                        setFilter((prev) => ({
+                                            ...prev,
+                                            eventType: e.target.value,
+                                        }))
                                     }
                                 >
+                                    <option value="ALL">Tüm Türler</option>
                                     {eventTypes.map((type) => (
                                         <option key={type} value={type}>
                                             {eventTypeLabels[type]}
                                         </option>
                                     ))}
                                 </select>
-                            </div>
 
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Başlangıç Tarih/Saat
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    type="datetime-local"
-                                    value={eventForm.startDateTime}
-                                    onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            startDateTime: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Bitiş Tarih/Saat
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    type="datetime-local"
-                                    value={eventForm.endDateTime}
-                                    onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            endDateTime: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Konum
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    placeholder="Örn: Toplantı Odası A"
-                                    value={eventForm.location}
-                                    onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            location: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Online Toplantı Linki
-                                </label>
-                                <input
-                                    className={inputClass}
-                                    placeholder="Google Meet / Teams linki"
-                                    value={eventForm.onlineMeetingUrl}
-                                    onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            onlineMeetingUrl: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Departman
-                                </label>
                                 <select
                                     className={inputClass}
-                                    value={eventForm.departmentId}
+                                    value={filter.departmentId}
                                     onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
+                                        setFilter((prev) => ({
+                                            ...prev,
                                             departmentId: e.target.value,
-                                        })
+                                        }))
                                     }
                                 >
-                                    <option value="">Departman seç</option>
+                                    <option value="ALL">Tüm Departmanlar</option>
                                     {departments.map((department) => (
                                         <option key={department.id} value={department.id}>
                                             {department.name}
                                         </option>
                                     ))}
                                 </select>
-                            </div>
 
-                            <div>
-                                <label className="mb-2 block text-xs font-semibold text-slate-400">
-                                    Açıklama
-                                </label>
-                                <input
+                                <select
                                     className={inputClass}
-                                    placeholder="Kısa açıklama"
-                                    value={eventForm.description}
+                                    value={filter.sort}
                                     onChange={(e) =>
-                                        setEventForm({
-                                            ...eventForm,
-                                            description: e.target.value,
-                                        })
+                                        setFilter((prev) => ({
+                                            ...prev,
+                                            sort: e.target.value as SortType,
+                                        }))
                                     }
-                                />
-                            </div>
-                        </div>
+                                >
+                                    <option value="DATE_ASC">Tarih: Yakından Uzağa</option>
+                                    <option value="DATE_DESC">Tarih: Uzaktan Yakına</option>
+                                </select>
 
-                        <div className="mt-6">
-                            <div className="flex items-center justify-between mb-3">
+                                <button
+                                    type="button"
+                                    onClick={resetFilters}
+                                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-700/80 bg-slate-900 px-5 text-sm font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                                >
+                                    Tüm Filtreleri Kaldır
+                                </button>
+
+                                <button className={buttonClass} onClick={openCreateModal}>
+                                    <Plus className="h-5 w-5" />
+                                    Yeni Etkinlik
+                                </button>
+                            </div>
+                        </section>
+
+                        <section className="overflow-visible rounded-3xl border border-slate-800/80 bg-slate-950/70 shadow-[0_0_35px_rgba(15,23,42,0.75)]">
+                            <div className="flex flex-col gap-4 border-b border-slate-800/80 p-5 lg:flex-row lg:items-center lg:justify-between">
                                 <div>
-                                    <p className="text-sm font-semibold text-slate-300">
-                                        Katılımcılar
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        Etkinliğe katılacak çalışanları seç.
+                                    <h2 className="text-xl font-bold text-white">
+                                        Etkinlikler
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-slate-400">
+                                        Tüm toplantı ve etkinliklerin listesi.
                                     </p>
                                 </div>
 
-                                <span className="rounded-full bg-slate-900 border border-slate-800 px-3 py-1 text-xs text-slate-300">
-                                    Seçili: {eventForm.participantIds.length}
+                                <span className="rounded-full border border-slate-700/80 bg-slate-900 px-4 py-2 text-sm text-slate-300">
+                                    Toplam: {filteredEvents.length}
                                 </span>
                             </div>
 
-                            <div className="max-h-56 overflow-y-auto staffly-scroll grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 pr-2">
-                                {employees.map((employee) => (
-                                    <label
-                                        key={employee.id}
-                                        className="flex items-center gap-3 text-sm text-slate-300 bg-slate-900/70 border border-slate-800 rounded-xl px-3 py-2 hover:border-sky-500/40 transition cursor-pointer"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={eventForm.participantIds.includes(employee.id)}
-                                            onChange={() => toggleParticipant(employee.id)}
-                                        />
+                            <div className="flex gap-3 overflow-x-auto border-b border-slate-800/80 px-5 py-4 staffly-scroll">
+                                <button
+                                    onClick={() =>
+                                        setFilter((prev) => ({
+                                            ...prev,
+                                            eventType: "ALL",
+                                        }))
+                                    }
+                                    className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                                        filter.eventType === "ALL"
+                                            ? "border-sky-400/40 bg-sky-500/10 text-sky-300"
+                                            : "border-slate-700/80 bg-slate-900 text-slate-400 hover:text-white"
+                                    }`}
+                                >
+                                    Tümü ({eventCounts.ALL})
+                                </button>
 
-                                        <span>
-                                            {employee.firstName} {employee.lastName}
-                                        </span>
-                                    </label>
+                                {eventTypes.map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() =>
+                                            setFilter((prev) => ({
+                                                ...prev,
+                                                eventType: type,
+                                            }))
+                                        }
+                                        className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                                            filter.eventType === type
+                                                ? eventTypeConfig[type].badge
+                                                : "border-slate-700/80 bg-slate-900 text-slate-400 hover:text-white"
+                                        }`}
+                                    >
+                                        {eventTypeLabels[type]} ({eventCounts[type]})
+                                    </button>
                                 ))}
                             </div>
+
+                            <div className="overflow-x-auto staffly-scroll">
+                                <table className="w-full min-w-[900px]">
+                                    <thead>
+                                    <tr className="border-b border-slate-800/80 bg-slate-900/70 text-left text-xs uppercase tracking-wide text-slate-400">
+                                        <th className="px-5 py-4">Etkinlik</th>
+                                        <th className="px-4 py-4">Tür</th>
+                                        <th className="px-4 py-4">Tarih & Saat</th>
+                                        <th className="px-4 py-4">Lokasyon</th>
+                                        <th className="px-4 py-4">Durum</th>
+                                        <th className="px-5 py-4 text-right">İşlemler</th>
+                                    </tr>
+                                    </thead>
+
+                                    <tbody>
+                                    {filteredEvents.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="px-5 py-14">
+                                                <div className="rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/50 p-8 text-center">
+                                                    <p className="font-semibold text-slate-200">
+                                                        Etkinlik bulunamadı.
+                                                    </p>
+
+                                                    <p className="mt-1 text-sm text-slate-500">
+                                                        Yeni etkinlik oluşturabilir veya filtreleri değiştirebilirsin.
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredEvents.map((event) => {
+                                            const config =
+                                                eventTypeConfig[event.eventType];
+
+                                            return (
+                                                <tr
+                                                    key={event.id}
+                                                    className="border-b border-slate-800/80 transition hover:bg-slate-900/60"
+                                                >
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${config.iconBox}`}
+                                                            >
+                                                                {config.icon}
+                                                            </div>
+
+                                                            <div>
+                                                                <p className="font-bold text-white">
+                                                                    {event.title}
+                                                                </p>
+
+                                                                <p className="mt-1 text-sm text-slate-400">
+                                                                    {getDepartmentName(
+                                                                        event.departmentId
+                                                                    )}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="px-4 py-4">
+                                                            <span
+                                                                className={`inline-flex rounded-xl border px-3 py-1 text-xs font-bold ${config.badge}`}
+                                                            >
+                                                                {
+                                                                    eventTypeLabels[
+                                                                        event.eventType
+                                                                        ]
+                                                                }
+                                                            </span>
+                                                    </td>
+
+                                                    <td className="px-4 py-4">
+                                                        <p className="font-bold text-white">
+                                                            {formatDate(
+                                                                event.startDateTime
+                                                            )}
+                                                        </p>
+
+                                                        <p className="mt-1 text-sm text-slate-400">
+                                                            {formatTime(
+                                                                event.startDateTime
+                                                            )}{" "}
+                                                            -{" "}
+                                                            {formatTime(
+                                                                event.endDateTime
+                                                            )}
+                                                        </p>
+                                                    </td>
+
+                                                    <td className="px-4 py-4">
+                                                        <div className="flex items-center gap-2 text-sm text-slate-300">
+                                                            {event.onlineMeetingUrl ? (
+                                                                <Video className="h-4 w-4 text-slate-500" />
+                                                            ) : (
+                                                                <MapPin className="h-4 w-4 text-slate-500" />
+                                                            )}
+
+                                                            <span>
+                                                                    {event.location ||
+                                                                        (event.onlineMeetingUrl
+                                                                            ? "Online"
+                                                                            : "Lokasyon yok")}
+                                                                </span>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="px-4 py-4">
+                                                            <span
+                                                                className={`inline-flex rounded-xl border px-3 py-1 text-xs font-bold ${getStatusBadge(
+                                                                    event.status
+                                                                )}`}
+                                                            >
+                                                                {getStatusLabel(
+                                                                    event.status
+                                                                )}
+                                                            </span>
+                                                    </td>
+
+                                                    <td className="relative px-5 py-4 text-right">
+                                                        <div
+                                                            ref={
+                                                                openMenuId === event.id
+                                                                    ? menuRef
+                                                                    : null
+                                                            }
+                                                            className="relative inline-block"
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setOpenMenuId((prev) =>
+                                                                        prev === event.id
+                                                                            ? null
+                                                                            : event.id
+                                                                    )
+                                                                }
+                                                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                                                            >
+                                                                <MoreHorizontal className="h-5 w-5" />
+                                                            </button>
+
+                                                            {openMenuId === event.id && (
+                                                                <div className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            openEditEvent(event)
+                                                                        }
+                                                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                                                                    >
+                                                                        <Edit3 className="h-4 w-4 text-sky-300" />
+                                                                        Düzenle
+                                                                    </button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={
+                                                                            event.status ===
+                                                                            "CANCELLED"
+                                                                        }
+                                                                        onClick={() =>
+                                                                            openCancelConfirm(
+                                                                                event
+                                                                            )
+                                                                        }
+                                                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-amber-300 transition hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    >
+                                                                        <Ban className="h-4 w-4" />
+                                                                        Etkinliği İptal Et
+                                                                    </button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            openDeleteConfirm(
+                                                                                event
+                                                                            )
+                                                                        }
+                                                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                        Sil
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </main>
+
+                    <aside className="h-fit rounded-3xl border border-slate-800/80 bg-slate-950/70 p-5 shadow-[0_0_35px_rgba(15,23,42,0.75)]">
+                        <div className="mb-4">
+                            <h2 className="text-xl font-bold text-white">
+                                Etkinlik Takvimi
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-400">
+                                Etkinlik günlerini takvim üzerinde görüntüle.
+                            </p>
                         </div>
 
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button className={secondaryButtonClass} onClick={closeModal}>
-                                Vazgeç
-                            </button>
+                        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/40 p-3 [&_.react-datepicker]:w-full [&_.react-datepicker]:!border-0 [&_.react-datepicker]:!bg-transparent [&_.react-datepicker__month-container]:w-full">
+                            <DatePicker
+                                selected={calendarDate}
+                                onChange={handleCalendarDateChange}
+                                minDate={todayDate}
+                                locale="tr"
+                                inline
+                                renderDayContents={(day, date) => {
+                                    const currentDate = date ? formatDateValue(date) : "";
+                                    const hasEvent = eventDateSet.has(currentDate);
 
-                            <button
-                                className={buttonClass}
-                                onClick={handleCreateOrUpdateEvent}
-                            >
-                                {selectedEvent ? "Etkinliği Güncelle" : "Etkinliği Oluştur"}
-                            </button>
+                                    return (
+                                        <div className="relative flex h-full w-full items-center justify-center">
+                                            <span>{day}</span>
+
+                                            {hasEvent && (
+                                                <span className="absolute bottom-0 h-1 w-1 rounded-full bg-sky-400" />
+                                            )}
+                                        </div>
+                                    );
+                                }}
+                            />
+                        </div>
+
+                        <div className="mt-4 rounded-2xl border border-slate-800/80 bg-slate-900/50 p-4">
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                Seçili Tarih
+                            </p>
+
+                            <p className="mt-1 text-lg font-black text-white">
+                                {calendarDate.toLocaleDateString("tr-TR", {
+                                    day: "2-digit",
+                                    month: "long",
+                                    year: "numeric",
+                                })}
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-400">
+                                Takvimde nokta olan günlerde etkinlik bulunuyor.
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+
+                {isModalOpen && (
+                    <div
+                        className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-4 py-8 backdrop-blur-md"
+                        onClick={closeModal}
+                    >
+                        <div
+                            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-800/80 bg-slate-950 p-6 shadow-2xl staffly-scroll"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="mb-6 flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">
+                                        {selectedEvent
+                                            ? "Etkinlik Düzenle"
+                                            : "Yeni Etkinlik Oluştur"}
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-slate-400">
+                                        Etkinlik bilgilerini ve tarih-saat aralığını belirle.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Başlık
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        placeholder="Örn: Sprint Planlama Toplantısı"
+                                        value={eventForm.title}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                title: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Etkinlik Türü
+                                    </label>
+
+                                    <select
+                                        className={modalInputClass}
+                                        value={eventForm.eventType}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                eventType: e.target.value as EventType,
+                                            }))
+                                        }
+                                    >
+                                        {eventTypes.map((type) => (
+                                            <option key={type} value={type}>
+                                                {eventTypeLabels[type]}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Başlangıç Tarihi
+                                    </label>
+
+                                    <DatePicker
+                                        selected={eventForm.startDate}
+                                        onChange={handleStartDateChange}
+                                        minDate={todayDate}
+                                        dateFormat="dd.MM.yyyy"
+                                        className={modalInputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Bitiş Tarihi
+                                    </label>
+
+                                    <DatePicker
+                                        selected={eventForm.endDate}
+                                        onChange={handleEndDateChange}
+                                        minDate={eventForm.startDate}
+                                        dateFormat="dd.MM.yyyy"
+                                        className={modalInputClass}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Başlangıç Saati
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        type="time"
+                                        value={eventForm.startTime}
+                                        onChange={(e) =>
+                                            handleStartTimeChange(e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Bitiş Saati
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        type="time"
+                                        value={eventForm.endTime}
+                                        min={
+                                            formatDateValue(eventForm.startDate) ===
+                                            formatDateValue(eventForm.endDate)
+                                                ? eventForm.startTime
+                                                : undefined
+                                        }
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                endTime: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Konum
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        placeholder="Örn: Toplantı Odası A"
+                                        value={eventForm.location}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                location: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Online Toplantı Linki
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        placeholder="Google Meet / Teams linki"
+                                        value={eventForm.onlineMeetingUrl}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                onlineMeetingUrl: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Departman
+                                    </label>
+
+                                    <select
+                                        className={modalInputClass}
+                                        value={eventForm.departmentId}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                departmentId: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="">Departman seç</option>
+                                        {departments.map((department) => (
+                                            <option
+                                                key={department.id}
+                                                value={department.id}
+                                            >
+                                                {department.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-xs font-bold text-slate-400">
+                                        Açıklama
+                                    </label>
+
+                                    <input
+                                        className={modalInputClass}
+                                        placeholder="Kısa açıklama"
+                                        value={eventForm.description}
+                                        onChange={(e) =>
+                                            setEventForm((prev) => ({
+                                                ...prev,
+                                                description: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    className={secondaryButtonClass}
+                                    onClick={closeModal}
+                                    disabled={confirmModalLoading}
+                                >
+                                    Vazgeç
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className={buttonClass}
+                                    onClick={openSaveConfirm}
+                                    disabled={confirmModalLoading}
+                                >
+                                    {selectedEvent
+                                        ? "Etkinliği Güncelle"
+                                        : "Etkinliği Oluştur"}
+                                </button>
+                            </div>
                         </div>
                     </div>
+                )}
+
+                <ConfirmModal
+                    isOpen={confirmModalOpen}
+                    variant={confirmProps.variant}
+                    title={confirmProps.title}
+                    description={confirmProps.description}
+                    detailText={confirmProps.detailText}
+                    itemName={confirmProps.itemName}
+                    confirmText={confirmProps.confirmText}
+                    cancelText="Vazgeç"
+                    isLoading={confirmModalLoading}
+                    onClose={closeConfirmModal}
+                    onConfirm={handleConfirmAction}
+                />
+            </div>
+        </div>
+    );
+};
+
+const StatCard = ({
+                      icon,
+                      iconClass,
+                      title,
+                      value,
+                      subtitle,
+                      subtitleClass,
+                  }: {
+    icon: JSX.Element;
+    iconClass: string;
+    title: string;
+    value: number;
+    subtitle: string;
+    subtitleClass: string;
+}) => {
+    return (
+        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/50 p-5 shadow-xl">
+            <div className="flex items-center gap-4">
+                <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconClass}`}
+                >
+                    {icon}
                 </div>
-            )}
+
+                <div>
+                    <p className="text-xs font-bold text-slate-300">
+                        {title}
+                    </p>
+
+                    <p className="mt-1 text-3xl font-black text-white">
+                        {value}
+                    </p>
+
+                    <p className={`text-xs font-semibold ${subtitleClass}`}>
+                        {subtitle}
+                    </p>
+                </div>
+            </div>
         </div>
     );
 };

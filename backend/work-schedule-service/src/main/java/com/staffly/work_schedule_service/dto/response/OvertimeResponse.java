@@ -17,7 +17,6 @@ public class OvertimeResponse {
 
     private Long employeeId;
     private Long departmentId;
-
     private LocalDate overtimeDate;
 
     private LocalTime startTime;
