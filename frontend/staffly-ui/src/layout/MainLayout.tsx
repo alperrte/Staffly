@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./MainSideBar";
-import { Bell, ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
     ROLE_DEPARTMENT_MANAGER,
@@ -54,7 +54,12 @@ const searchablePages = [
         label: "Görevler",
         path: "/app/tasks",
         keywords: ["görev", "task"],
-        roles: [ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+        ],
     },
     {
         label: "Görevlerim",
@@ -150,6 +155,18 @@ const searchablePages = [
         label: "Ayarlar",
         path: "/app/settings",
         keywords: ["ayar", "settings"],
+        roles: [
+            ROLE_SYSTEM_ADMIN,
+            ROLE_HR_MANAGER,
+            ROLE_DEPARTMENT_MANAGER,
+            ROLE_MANAGER,
+            ROLE_EMPLOYEE,
+        ],
+    },
+    {
+        label: "Destek",
+        path: "/app/support",
+        keywords: ["destek", "support", "ticket"],
         roles: [
             ROLE_SYSTEM_ADMIN,
             ROLE_HR_MANAGER,
@@ -259,16 +276,6 @@ const MainLayout = () => {
                             </div>
 
                             <div className="ml-auto flex items-center gap-4">
-                                <button
-                                    type="button"
-                                    className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-slate-900/80 transition hover:border-sky-400/60 hover:bg-slate-900"
-                                >
-                                    <Bell className="h-4 w-4 text-slate-200" />
-                                    <span className="absolute -right-1 -top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[0.6rem] font-bold">
-                                        1
-                                    </span>
-                                </button>
-
                                 <button
                                     type="button"
                                     className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs transition hover:border-sky-400/60 hover:bg-slate-900"

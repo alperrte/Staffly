@@ -19,6 +19,9 @@ CREATE TABLE support.tickets (
 
                                  is_deleted BIT DEFAULT 0,
 
+                                 department_id BIGINT NULL,
+                                 resolution NVARCHAR(MAX) NULL,
+
                                  CONSTRAINT fk_ticket_status
                                      FOREIGN KEY (status_id)
                                          REFERENCES support.ticket_status(id),

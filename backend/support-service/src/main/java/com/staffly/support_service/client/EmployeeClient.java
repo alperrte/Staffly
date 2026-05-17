@@ -21,6 +21,9 @@ public class EmployeeClient {
         @Value("${auth.service.url}")
         private String authServiceUrl;
 
+        @Value("${employee.service.url}")
+        private String employeeServiceUrl;
+
         private final JwtService jwtService;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -78,6 +81,44 @@ public class EmployeeClient {
             throw new RuntimeException(
                     "Auth service error: " + e.getMessage()
             );
+        }
+    }
+
+    public Long getCurrentDepartmentId(String authHeader) {
+        try {
+            ResponseEntity<Map> response =
+                    restTemplate.exchange(
+                            employeeServiceUrl + "/api/v1/employees/me",
+                            HttpMethod.GET,
+                            authorizedEntity(authHeader),
+                            Map.class
+                    );
+
+            Map<String, Object> body = response.getBody();
+
+            if (body != null && body.get("departmentId") != null) {
+                return Long.valueOf(body.get("departmentId").toString());
+            }
+
+            return null;
+        } catch (RestClientException e) {
+            return null;
+        }
+    }
+
+    public Map<String, Object> getEmployeeById(String authHeader, Long employeeId) {
+        try {
+            ResponseEntity<Map> response =
+                    restTemplate.exchange(
+                            employeeServiceUrl + "/api/v1/employees/" + employeeId,
+                            HttpMethod.GET,
+                            authorizedEntity(authHeader),
+                            Map.class
+                    );
+
+            return response.getBody();
+        } catch (RestClientException e) {
+            return null;
         }
     }
 }

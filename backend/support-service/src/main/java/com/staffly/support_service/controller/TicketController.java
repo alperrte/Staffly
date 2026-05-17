@@ -47,7 +47,8 @@ public class TicketController {
         return ResponseEntity.ok(
                 ticketService.updateTicketStatus(
                         ticketId,
-                        request.getStatusId()
+                        request.getStatusId(),
+                        request.getResolution()
                 )
         );
     }
@@ -65,6 +66,14 @@ public class TicketController {
                         request.getEmployeeId()
                 )
         );
+    }
+
+    @PutMapping("/{ticketId}/claim")
+    public ResponseEntity<TicketResponse> claimTicket(
+            @PathVariable Long ticketId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(ticketService.claimTicket(ticketId, authHeader));
     }
 
     // GET BY ID
@@ -93,10 +102,12 @@ public class TicketController {
 
     // ALL TICKETS
     @GetMapping
-    public ResponseEntity<List<TicketResponse>> getAllTickets() {
+    public ResponseEntity<List<TicketResponse>> getAllTickets(
+            @RequestHeader("Authorization") String authHeader
+    ) {
 
         return ResponseEntity.ok(
-                ticketService.getAllTickets()
+                ticketService.getDepartmentPool(authHeader)
         );
     }
 }

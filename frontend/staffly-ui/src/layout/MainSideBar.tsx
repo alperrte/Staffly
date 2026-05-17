@@ -39,6 +39,7 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+
     const isLeaveServiceActive = location.pathname === "/app/leaveService";
 
     const handleLogout = () => {
@@ -53,7 +54,7 @@ const Sidebar = () => {
 
     return (
         <aside className="flex h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-slate-950/95 p-4 text-gray-300 shadow-[18px_0_50px_rgba(2,6,23,0.45)]">
-            <div className="mb-6 rounded-3xl border border-white/10 bg-slate-900/45 p-4">
+            <div className="shrink-0 rounded-3xl border border-white/10 bg-slate-900/45 p-4 shadow-[0_18px_45px_rgba(2,6,23,0.35)]">
                 <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-sky-400/40 bg-slate-950 shadow-[0_0_24px_rgba(14,165,233,0.45)]">
                         <img
@@ -67,181 +68,378 @@ const Sidebar = () => {
                         <div className="text-sm font-bold tracking-[0.35em] text-white">
                             STAFFLY
                         </div>
-                        <div className="mt-1 text-[0.58rem] font-medium tracking-[0.28em] text-sky-300 uppercase">
+                        <div className="mt-1 text-[0.58rem] font-medium uppercase tracking-[0.28em] text-sky-300">
                             HR MANAGEMENT SYSTEM
                         </div>
                     </div>
                 </div>
             </div>
 
-            <nav className="staffly-scroll min-h-0 flex-1 overflow-y-auto pr-1">
-                <div className="flex flex-col gap-1 pb-4">
-                <NavLink to="/app" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaHome /> Ana Sayfa
-                </NavLink>
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
-                    <NavLink to="/app/employees" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaUsers /> Çalışanlar
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
-                    <>
-                        {hasAnyRole([ROLE_EMPLOYEE]) && (
-                            <NavLink to="/app/payroll/salary-tracking" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                                <FaMoneyBillWave /> Maaş Takibi
-                            </NavLink>
-                        )}
-
-                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]) && (
-                            <NavLink to="/app/payroll/advance-requests" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                                <FaMoneyBillWave /> Avans Talepleri
-                            </NavLink>
-                        )}
-
-                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_ACCOUNTING]) && (
-                            <NavLink to="/app/payroll/salary-assignment" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                                <FaMoneyBillWave /> Maaş Ataması
-                            </NavLink>
-                        )}
-                    </>
-                )}
-
-                <NavLink to="/app/leaveService?view=create" className={() => `${linkBase} ${isLeaveServiceActive ? linkActive : linkInactive}`}>
-                    <FaFileAlt /> İzin Talepleri
-                </NavLink>
-                {isLeaveServiceActive && (
-                    <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
-                        <NavLink
-                            to="/app/leaveService?view=create"
-                            className={({ isActive }) =>
-                                `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=create") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
-                            }
-                        >
-                            Talep Oluştur
-                        </NavLink>
-                        <NavLink
-                            to="/app/leaveService?view=mine"
-                            className={({ isActive }) =>
-                                `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=mine") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
-                            }
-                        >
-                            Taleplerim
-                        </NavLink>
-                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
-                            <NavLink
-                                to="/app/leaveService?view=approval"
-                                className={({ isActive }) =>
-                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=approval") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
-                                }
-                            >
-                                Talep Onay
-                            </NavLink>
-                        )}
-                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
-                            <NavLink
-                                to="/app/leaveService?view=quota"
-                                className={({ isActive }) =>
-                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=quota") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
-                                }
-                            >
-                                Yıllık İzin Kotası
-                            </NavLink>
-                        )}
-                    </div>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
-                    <NavLink to="/app/transport" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaBus /> Ulaşım
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
-                    <NavLink to="/app/applications" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaFileAlt /> Başvurular
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
-                    <NavLink to="/app/departments/manage" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaBuilding /> Departman Yönetimi
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_DEPARTMENT_MANAGER]) && (
-                    <NavLink to="/app/departments" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaBuilding /> Departmanlarım
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
-                    <>
-                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]) && (
-                            <NavLink to="/app/tasks" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                                <FaTasks /> Görevler
-                            </NavLink>
-                        )}
-
-                    <NavLink to="/app/tasks/mytasks" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaClipboardList /> Görevlerim
-                    </NavLink>
-                    </>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN]) && (
-                    <NavLink to="/app/users" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaUsers /> Kullanıcılar
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
-                    <NavLink to="/app/job-postings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaFileAlt /> İş İlanları
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
-                    <NavLink to="/app/work-schedules" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaCalendarAlt /> Çalışma Takvimi
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
-                    <NavLink to="/app/meetings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaCalendarAlt /> Toplantı Planlama
-                    </NavLink>
-                )}
-
-                {hasAnyRole([ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]) && (
-                    <NavLink to="/app/my-schedule" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                        <FaCalendarAlt /> Takvimim
-                    </NavLink>
-                )}
-
-                <NavLink to="/app/support" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
-                    <FaHeadset /> Destek
-                </NavLink>
-                </div>
-
-                {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER]) && (
+            <nav className="staffly-scroll mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1 pb-5">
                     <NavLink
-                        to="/app/support/all"
+                        to="/app"
+                        end
                         className={({ isActive }) =>
                             `${linkBase} ${isActive ? linkActive : linkInactive}`
                         }
                     >
-                        <FaHeadset /> Destek Yönetimi
+                        <FaHome /> Ana Sayfa
                     </NavLink>
-                )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                    ]) && (
+                        <NavLink
+                            to="/app/employees"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaUsers /> Çalışanlar
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_ACCOUNTING,
+                        ROLE_MANAGER,
+                        ROLE_EMPLOYEE,
+                    ]) && (
+                        <>
+                            {hasAnyRole([ROLE_EMPLOYEE]) && (
+                                <NavLink
+                                    to="/app/payroll/salary-tracking"
+                                    className={({ isActive }) =>
+                                        `${linkBase} ${
+                                            isActive ? linkActive : linkInactive
+                                        }`
+                                    }
+                                >
+                                    <FaMoneyBillWave /> Maaş Takibi
+                                </NavLink>
+                            )}
+
+                            {hasAnyRole([
+                                ROLE_SYSTEM_ADMIN,
+                                ROLE_HR_MANAGER,
+                                ROLE_ACCOUNTING,
+                            ]) && (
+                                <NavLink
+                                    to="/app/payroll/advance-requests"
+                                    className={({ isActive }) =>
+                                        `${linkBase} ${
+                                            isActive ? linkActive : linkInactive
+                                        }`
+                                    }
+                                >
+                                    <FaMoneyBillWave /> Avans Talepleri
+                                </NavLink>
+                            )}
+
+                            {hasAnyRole([
+                                ROLE_SYSTEM_ADMIN,
+                                ROLE_HR_MANAGER,
+                                ROLE_ACCOUNTING,
+                            ]) && (
+                                <NavLink
+                                    to="/app/payroll/salary-assignment"
+                                    className={({ isActive }) =>
+                                        `${linkBase} ${
+                                            isActive ? linkActive : linkInactive
+                                        }`
+                                    }
+                                >
+                                    <FaMoneyBillWave /> Maaş Ataması
+                                </NavLink>
+                            )}
+                        </>
+                    )}
+
+                    <NavLink
+                        to="/app/leaveService?view=create"
+                        className={() =>
+                            `${linkBase} ${
+                                isLeaveServiceActive ? linkActive : linkInactive
+                            }`
+                        }
+                    >
+                        <FaFileAlt /> İzin Talepleri
+                    </NavLink>
+
+                    {isLeaveServiceActive && (
+                        <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                            <NavLink
+                                to="/app/leaveService?view=create"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                        isActive &&
+                                        location.search.includes("view=create")
+                                            ? "bg-sky-500/15 text-white"
+                                            : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                                    }`
+                                }
+                            >
+                                Talep Oluştur
+                            </NavLink>
+
+                            <NavLink
+                                to="/app/leaveService?view=mine"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                        isActive &&
+                                        location.search.includes("view=mine")
+                                            ? "bg-sky-500/15 text-white"
+                                            : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                                    }`
+                                }
+                            >
+                                Taleplerim
+                            </NavLink>
+
+                            {hasAnyRole([
+                                ROLE_SYSTEM_ADMIN,
+                                ROLE_HR_MANAGER,
+                                ROLE_DEPARTMENT_MANAGER,
+                            ]) && (
+                                <NavLink
+                                    to="/app/leaveService?view=approval"
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                            isActive &&
+                                            location.search.includes("view=approval")
+                                                ? "bg-sky-500/15 text-white"
+                                                : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                                        }`
+                                    }
+                                >
+                                    Talep Onay
+                                </NavLink>
+                            )}
+
+                            {hasAnyRole([
+                                ROLE_SYSTEM_ADMIN,
+                                ROLE_HR_MANAGER,
+                                ROLE_DEPARTMENT_MANAGER,
+                            ]) && (
+                                <NavLink
+                                    to="/app/leaveService?view=quota"
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                            isActive &&
+                                            location.search.includes("view=quota")
+                                                ? "bg-sky-500/15 text-white"
+                                                : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                                        }`
+                                    }
+                                >
+                                    Yıllık İzin Kotası
+                                </NavLink>
+                            )}
+                        </div>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                        ROLE_MANAGER,
+                        ROLE_EMPLOYEE,
+                    ]) && (
+                        <NavLink
+                            to="/app/transport"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaBus /> Ulaşım
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
+                        <NavLink
+                            to="/app/applications"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaFileAlt /> Başvurular
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
+                        <NavLink
+                            to="/app/departments/manage"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaBuilding /> Departman Yönetimi
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([ROLE_DEPARTMENT_MANAGER]) && (
+                        <NavLink
+                            to="/app/departments"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaBuilding /> Departmanlarım
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                        ROLE_MANAGER,
+                        ROLE_EMPLOYEE,
+                    ]) && (
+                        <>
+                            {hasAnyRole([
+                                ROLE_SYSTEM_ADMIN,
+                                ROLE_HR_MANAGER,
+                                ROLE_DEPARTMENT_MANAGER,
+                                ROLE_MANAGER,
+                            ]) && (
+                                <NavLink
+                                    to="/app/tasks"
+                                    end
+                                    className={({ isActive }) =>
+                                        `${linkBase} ${
+                                            isActive ? linkActive : linkInactive
+                                        }`
+                                    }
+                                >
+                                    <FaTasks /> Görevler
+                                </NavLink>
+                            )}
+
+                            <NavLink
+                                to="/app/tasks/mytasks"
+                                className={({ isActive }) =>
+                                    `${linkBase} ${
+                                        isActive ? linkActive : linkInactive
+                                    }`
+                                }
+                            >
+                                <FaClipboardList /> Görevlerim
+                            </NavLink>
+                        </>
+                    )}
+
+                    {hasAnyRole([ROLE_SYSTEM_ADMIN]) && (
+                        <NavLink
+                            to="/app/users"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaUsers /> Kullanıcılar
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]) && (
+                        <NavLink
+                            to="/app/job-postings"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaFileAlt /> İş İlanları
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                    ]) && (
+                        <NavLink
+                            to="/app/work-schedules"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaCalendarAlt /> Çalışma Takvimi
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                    ]) && (
+                        <NavLink
+                            to="/app/meetings"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaCalendarAlt /> Toplantı Planlama
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([ROLE_DEPARTMENT_MANAGER, ROLE_EMPLOYEE]) && (
+                        <NavLink
+                            to="/app/my-schedule"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaCalendarAlt /> Takvimim
+                        </NavLink>
+                    )}
+
+                    {hasAnyRole([
+                        ROLE_SYSTEM_ADMIN,
+                        ROLE_HR_MANAGER,
+                        ROLE_DEPARTMENT_MANAGER,
+                        ROLE_MANAGER,
+                    ]) && (
+                        <NavLink
+                            to="/app/support/all"
+                            className={({ isActive }) =>
+                                `${linkBase} ${isActive ? linkActive : linkInactive}`
+                            }
+                        >
+                            <FaHeadset /> Destek Havuzu
+                        </NavLink>
+                    )}
+                </div>
             </nav>
 
             <div className="shrink-0 border-t border-white/10 pt-4">
-                <NavLink to="/app/profile" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                <NavLink
+                    to="/app/profile"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
                     <FaUser /> Profil
                 </NavLink>
 
-                <NavLink to="/app/settings" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                <NavLink
+                    to="/app/support"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
+                    <FaHeadset /> Destek Talebi
+                </NavLink>
+
+
+
+                <NavLink
+                    to="/app/settings"
+                    className={({ isActive }) =>
+                        `${linkBase} ${isActive ? linkActive : linkInactive}`
+                    }
+                >
                     <FaCog /> Ayarlar
                 </NavLink>
 
@@ -253,6 +451,7 @@ const Sidebar = () => {
                     Çıkış Yap
                 </button>
             </div>
+
             {showLogoutModal && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/95 p-6 shadow-[0_0_60px_rgba(15,23,42,0.9)]">
@@ -290,7 +489,6 @@ const Sidebar = () => {
                     </div>
                 </div>
             )}
-
         </aside>
     );
 };

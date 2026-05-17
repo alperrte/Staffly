@@ -25,6 +25,8 @@ public class Ticket {
 
     private Long employeeId;
 
+    private Long departmentId;
+
     private Long assignedTo;
 
     private String priority;
@@ -36,6 +38,9 @@ public class Ticket {
     private LocalDateTime updatedAt;
 
     private LocalDateTime resolvedAt;
+
+    @Column(columnDefinition = "NVARCHAR(MAX)")
+    private String resolution;
 
     @ManyToOne
     @JoinColumn(name = "status_id")

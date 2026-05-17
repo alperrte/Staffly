@@ -51,6 +51,7 @@ public class TicketService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .employeeId(employeeId)
+                .departmentId(request.getDepartmentId())
                 .priority(request.getPriority())
                 .status(openStatus)
                 .category(category)
@@ -81,10 +82,15 @@ public class TicketService {
     }
 
     // ALL TICKETS
-    public List<TicketResponse> getAllTickets() {
+    public List<TicketResponse> getDepartmentPool(String authHeader) {
+        Long departmentId = employeeClient.getCurrentDepartmentId(authHeader);
+
+        if (departmentId == null) {
+            return List.of();
+        }
 
         return ticketRepository
-                .findByIsDeletedFalseOrderByCreatedAtDesc()
+                .findByDepartmentIdAndIsDeletedFalseOrderByCreatedAtDesc(departmentId)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -93,7 +99,8 @@ public class TicketService {
     // UPDATE STATUS
     public TicketResponse updateTicketStatus(
             Long ticketId,
-            Long statusId
+            Long statusId,
+            String resolution
     ) {
 
         Ticket ticket = ticketRepository.findById(ticketId)
@@ -107,6 +114,7 @@ public class TicketService {
 
         if (status.getName().equals("RESOLVED")) {
             ticket.setResolvedAt(LocalDateTime.now());
+            ticket.setResolution(resolution);
         }
 
         Ticket updated = ticketRepository.save(ticket);
@@ -142,6 +150,8 @@ public class TicketService {
         return TicketCommentResponse.builder()
                 .id(saved.getId())
                 .employeeId(saved.getEmployeeId())
+                .employeeName(getEmployeeName(authHeader, saved.getEmployeeId()))
+                .departmentName(getDepartmentName(authHeader, saved.getEmployeeId()))
                 .comment(saved.getComment())
                 .createdAt(saved.getCreatedAt())
                 .build();
@@ -149,7 +159,8 @@ public class TicketService {
 
     // GET COMMENTS
     public List<TicketCommentResponse> getComments(
-            Long ticketId
+            Long ticketId,
+            String authHeader
     ) {
 
         return commentRepository.findByTicketId(ticketId)
@@ -157,6 +168,8 @@ public class TicketService {
                 .map(comment -> TicketCommentResponse.builder()
                         .id(comment.getId())
                         .employeeId(comment.getEmployeeId())
+                        .employeeName(getEmployeeName(authHeader, comment.getEmployeeId()))
+                        .departmentName(getDepartmentName(authHeader, comment.getEmployeeId()))
                         .comment(comment.getComment())
                         .createdAt(comment.getCreatedAt())
                         .build())
@@ -180,6 +193,11 @@ public class TicketService {
         return mapToResponse(updated);
     }
 
+    public TicketResponse claimTicket(Long ticketId, String authHeader) {
+        Long employeeId = employeeClient.getEmployeeIdByEmail(authHeader);
+        return assignTicket(ticketId, employeeId);
+    }
+
     // GET BY ID
     public TicketResponse getTicketById(Long ticketId) {
 
@@ -200,8 +218,31 @@ public class TicketService {
                 .status(ticket.getStatus().getName())
                 .category(ticket.getCategory().getName())
                 .employeeId(ticket.getEmployeeId())
+                .departmentId(ticket.getDepartmentId())
                 .assignedTo(ticket.getAssignedTo())
+                .resolution(ticket.getResolution())
                 .createdAt(ticket.getCreatedAt())
                 .build();
+    }
+
+    private String getEmployeeName(String authHeader, Long employeeId) {
+        var employee = employeeClient.getEmployeeById(authHeader, employeeId);
+
+        if (employee == null) {
+            return null;
+        }
+
+        String firstName = employee.get("firstName") != null ? employee.get("firstName").toString() : "";
+        String lastName = employee.get("lastName") != null ? employee.get("lastName").toString() : "";
+        String fullName = (firstName + " " + lastName).trim();
+
+        return fullName.isBlank() ? null : fullName;
+    }
+
+    private String getDepartmentName(String authHeader, Long employeeId) {
+        var employee = employeeClient.getEmployeeById(authHeader, employeeId);
+        return employee != null && employee.get("departmentName") != null
+                ? employee.get("departmentName").toString()
+                : null;
     }
 }
