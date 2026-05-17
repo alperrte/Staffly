@@ -37,6 +37,7 @@ import SetPasswordPage from "./pages/auth/SetPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import DepartmentManagementPage from "./pages/department/DepartmentManagementPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 
 import ApplicationPage from "./pages/application/ApplicationPage";
 
@@ -52,7 +53,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 <Route path="/app" element={<MainLayout />}>
-                    <Route index element={<div>Dashboard</div>} />
+                    <Route index element={<DashboardPage />} />
 
                     <Route
                         path="employees"
