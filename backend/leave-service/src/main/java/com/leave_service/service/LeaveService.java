@@ -154,6 +154,12 @@ public class LeaveService {
         String firstName = employee != null && employee.get("firstName") != null ? String.valueOf(employee.get("firstName")) : null;
         String lastName = employee != null && employee.get("lastName") != null ? String.valueOf(employee.get("lastName")) : null;
         String fullName = ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
+        String rejectionReason = "REJECTED".equalsIgnoreCase(entity.getStatus())
+                ? leaveApprovalRepository
+                        .findFirstByLeaveRequest_IdAndActionOrderByCreatedAtDesc(entity.getId(), "REJECTED")
+                        .map(LeaveApproval::getComment)
+                        .orElse(null)
+                : null;
 
         return LeaveResponse.builder()
                 .id(entity.getId())
@@ -168,6 +174,7 @@ public class LeaveService {
                 .employeeFirstName(firstName)
                 .employeeLastName(lastName)
                 .employeeFullName(fullName.isBlank() ? null : fullName)
+                .rejectionReason(rejectionReason)
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
@@ -224,8 +231,9 @@ public class LeaveService {
         int updatedHours = isApproved
                 ? Math.max(totalRemainingHours - leaveHours, 0)
                 : totalRemainingHours + leaveHours;
+        int quotaHours = balance.getRemainingDays() != null ? balance.getRemainingDays() * DAILY_WORK_HOURS : updatedHours;
 
-        balance.setRemainingHours(updatedHours);
+        balance.setRemainingHours(Math.min(updatedHours, quotaHours));
         leaveBalanceRepository.save(balance);
     }
 
@@ -254,9 +262,7 @@ public class LeaveService {
 
     private LeaveBalanceResponse mapToBalanceResponse(Long employeeId, LeaveType leaveType, LeaveBalance balance) {
         Integer quotaDays = balance != null ? balance.getRemainingDays() : null;
-        int totalRemainingHours = quotaDays != null
-                ? Math.max(quotaDays * DAILY_WORK_HOURS - getApprovedAnnualLeaveHours(employeeId), 0)
-                : 0;
+        int totalRemainingHours = balance != null ? getStoredRemainingHours(balance) : 0;
 
         return LeaveBalanceResponse.builder()
                 .employeeId(employeeId)
@@ -278,8 +284,8 @@ public class LeaveService {
     }
 
     private int getStoredRemainingHours(LeaveBalance balance) {
-        if (balance.getRemainingHours() != null && balance.getRemainingHours() > 0) {
-            return balance.getRemainingHours();
+        if (balance.getRemainingHours() != null) {
+            return Math.max(balance.getRemainingHours(), 0);
         }
 
         if (balance.getRemainingDays() != null && balance.getRemainingDays() > 0) {

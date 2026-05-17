@@ -7,6 +7,7 @@ import {
     Camera,
     CheckCircle2,
     Copy,
+    Banknote,
     FileText,
     IdCard,
     Mail,
@@ -25,6 +26,7 @@ import {
     uploadProfileImage,
 } from "../../services/employeeService";
 import type { EmployeeApiResponse, NormalizedEmployee } from "../../types/employeeTypes";
+import { getMyPayrollOverview, type EmployeePayrollOverview } from "../../services/payrollService";
 import {
     getTokenRoles,
     ROLE_DEPARTMENT_MANAGER,
@@ -106,6 +108,18 @@ const formatDate = (value?: string | null) => {
     }).format(date);
 };
 
+const formatMoney = (value?: string | number | null, currency = "TRY") => {
+    if (value == null || value === "") return "Belirtilmemiş";
+    const amount = Number(String(value).replace(",", "."));
+    if (!Number.isFinite(amount)) return String(value);
+
+    return new Intl.NumberFormat("tr-TR", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 2,
+    }).format(amount);
+};
+
 const calculateTenure = (hireDate?: string | null) => {
     if (!hireDate) return "0 yıl 0 ay";
 
@@ -174,6 +188,7 @@ const ProfilePage = () => {
     const [error, setError] = useState("");
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [isImageMenuOpen, setIsImageMenuOpen] = useState(false);
+    const [payrollOverview, setPayrollOverview] = useState<EmployeePayrollOverview | null>(null);
 
     const roles = useMemo(() => getTokenRoles(), []);
     const roleProfile = useMemo(() => resolveRoleProfile(roles), [roles]);
@@ -196,6 +211,22 @@ const ProfilePage = () => {
             .catch((fetchError) => {
                 console.error(fetchError);
                 if (alive) setError("Profil bilgileri alınamadı.");
+            });
+
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let alive = true;
+
+        getMyPayrollOverview()
+            .then((overview) => {
+                if (alive) setPayrollOverview(overview);
+            })
+            .catch((payrollError) => {
+                console.error(payrollError);
             });
 
         return () => {
@@ -276,6 +307,13 @@ const ProfilePage = () => {
     const positionName = empty(profile.organizationInfo.positionName);
     const hireDate = formatDate(profile.hireDate);
     const birthDate = formatDate(profile.birthDate);
+    const currentSalary = payrollOverview?.currentSalary?.baseSalary ?? profile.salary;
+    const salaryCurrency = payrollOverview?.currentSalary?.currency || "TRY";
+    const lastNetSalary = payrollOverview?.lastNetSalary;
+    const lastPayrollPeriod =
+        payrollOverview?.lastPayrollMonth && payrollOverview?.lastPayrollYear
+            ? `${payrollOverview.lastPayrollMonth}/${payrollOverview.lastPayrollYear}`
+            : "Belirtilmemiş";
     const contactItems: Array<{
         icon: ComponentType<{ className?: string }>;
         value: string;
@@ -460,6 +498,30 @@ const ProfilePage = () => {
                                     <p className="text-sm text-slate-400">Departman</p>
                                     <p className="mt-1 break-words text-lg font-bold text-white">{departmentName}</p>
                                     <p className="mt-1 text-sm text-slate-400">{empty(profile.organizationInfo.subDepartmentName)}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 border-t border-white/10 pt-5">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/12 text-emerald-300">
+                                    <Banknote className="h-6 w-6" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm text-slate-400">Maaş Bilgileri</p>
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                        <div className="rounded-2xl border border-white/10 bg-slate-900/45 p-4">
+                                            <p className="text-xs text-slate-500">Güncel brüt maaş</p>
+                                            <p className="mt-1 break-words text-lg font-bold text-white">
+                                                {formatMoney(currentSalary, salaryCurrency)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/10 bg-slate-900/45 p-4">
+                                            <p className="text-xs text-slate-500">Son net maaş</p>
+                                            <p className="mt-1 break-words text-lg font-bold text-white">
+                                                {formatMoney(lastNetSalary, salaryCurrency)}
+                                            </p>
+                                            <p className="mt-1 text-xs text-slate-500">Dönem: {lastPayrollPeriod}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

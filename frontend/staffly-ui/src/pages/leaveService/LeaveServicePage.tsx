@@ -68,7 +68,7 @@ const statusMeta: Record<
         label: "Beklemede",
         badge: "border-amber-400/20 bg-amber-500/12 text-amber-300",
         icon: Clock3,
-        iconBox: "bg-violet-500/15 text-violet-300",
+        iconBox: "bg-sky-500/15 text-sky-300",
     },
     APPROVED: {
         label: "Onaylandı",
@@ -242,9 +242,9 @@ const StatCard = ({
     const Icon = meta.icon;
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_35px_rgba(15,23,42,0.35)]">
+        <div className="rounded-xl border border-white/10 bg-slate-900/45 p-5 shadow-[0_0_35px_rgba(15,23,42,0.35)]">
             <div className="flex items-center gap-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${meta.iconBox}`}>
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${meta.iconBox}`}>
                     <Icon className="h-6 w-6" />
                 </div>
                 <div>
@@ -274,6 +274,13 @@ const StatusBadge = ({ status }: { status: string }) => {
         </span>
     );
 };
+
+const leavePanelClass =
+    "rounded-2xl border border-white/10 bg-slate-900/45 p-5 shadow-[0_0_60px_rgba(15,23,42,0.6)] sm:p-7";
+const leaveSidePanelClass =
+    "rounded-xl border border-white/10 bg-slate-900/45 p-5 shadow-[0_0_35px_rgba(15,23,42,0.35)]";
+const leaveInputClass =
+    "rounded-xl border border-white/10 bg-slate-900/45 text-sm text-white shadow-sm outline-none transition hover:border-sky-400/40 focus:border-sky-400/70 focus:ring-1 focus:ring-sky-500/30";
 
 const LeaveServicePage = () => {
     const canReview = hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]);
@@ -821,7 +828,7 @@ const LeaveServicePage = () => {
                 <button
                     type="button"
                     onClick={() => setDetailLeave(leave)}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-violet-500/35 bg-violet-500/10 px-4 text-sm font-semibold text-violet-200"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-sky-400/35 bg-sky-500/10 px-4 text-sm font-semibold text-sky-100 transition hover:border-sky-400/60 hover:bg-sky-500/15"
                 >
                     <Eye className="h-4 w-4" />
                     Detay
@@ -850,7 +857,7 @@ const LeaveServicePage = () => {
                 <button
                     type="button"
                     onClick={() => setDetailLeave(leave)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15 text-violet-300 transition hover:bg-violet-500/25"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-400/25 bg-sky-500/15 text-sky-300 transition hover:bg-sky-500/25"
                     title="Detay"
                 >
                     <Eye className="h-4 w-4" />
@@ -864,18 +871,17 @@ const LeaveServicePage = () => {
         : `${selectedDays || 0} gün`;
 
     return (
-        <div className="min-h-full bg-[#020817] px-4 py-6 text-white sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-[1540px] space-y-5">
-                <header className="rounded-2xl border border-white/10 bg-slate-950/50 p-5 shadow-[0_0_45px_rgba(15,23,42,0.55)] backdrop-blur-2xl sm:p-7">
+        <div className="min-h-full px-3 py-6 text-white sm:px-6">
+            <div className="mx-auto max-w-none space-y-5">
+                <header className="mb-1 mt-2">
                     <div>
-                        <p className="text-sm font-semibold text-sky-300">İzin Yönetimi</p>
-                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+                        <h1 className="text-2xl font-semibold text-white">
                             {activeView === "create" && "Yeni İzin Talebi Oluştur"}
                             {activeView === "mine" && "İzin Taleplerim"}
                             {activeView === "approval" && "İzin Taleplerini Yönet"}
                             {activeView === "quota" && "Yıllık İzin Kotası"}
                         </h1>
-                        <p className="mt-2 max-w-3xl text-sm text-slate-400">
+                        <p className="mt-1 max-w-3xl text-sm text-slate-400">
                             {activeView === "create" && "İzin bilgilerinizi girin ve talebinizi yöneticinize gönderin."}
                             {activeView === "mine" && "Oluşturduğunuz izin taleplerini görüntüleyebilir ve durumlarını takip edebilirsiniz."}
                             {activeView === "approval" && "HR ve departman yöneticileri bekleyen izin taleplerini onaylayabilir veya neden girerek reddedebilir."}
@@ -884,21 +890,22 @@ const LeaveServicePage = () => {
                     </div>
 
                     {(error || success) && (
-                        <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${error ? "border-rose-400/25 bg-rose-500/10 text-rose-200" : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"}`}>
+                        <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${error ? "border-rose-400/25 bg-rose-500/10 text-rose-200" : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"}`}>
                             {error || success}
                         </div>
                     )}
                 </header>
 
                 {activeView === "create" && (
-                    <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,0.75fr)]">
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl sm:p-7">
+                    <section className={`${leavePanelClass} min-h-[calc(100vh-150px)]`}>
+                        <div className="grid h-full gap-7 xl:grid-cols-[minmax(560px,0.95fr)_minmax(380px,0.62fr)_minmax(300px,0.5fr)]">
+                        <div className="flex min-h-full flex-col">
                             <div className="mb-6 flex items-center gap-3 border-b border-white/10 pb-5">
-                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white">1</span>
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">1</span>
                                 <h2 className="text-xl font-bold text-white">İzin Bilgileri</h2>
                             </div>
 
-                            <div className="grid gap-5 lg:grid-cols-2">
+                            <div className="grid flex-1 content-start gap-5 lg:grid-cols-2">
                                 <label className="block lg:col-span-2">
                                     <span className="text-sm font-medium text-slate-300">İzin Türü *</span>
                                     <div className="relative mt-2">
@@ -915,7 +922,7 @@ const LeaveServicePage = () => {
                                                             : current.endDate,
                                                 }))
                                             }
-                                            className="h-14 w-full appearance-none rounded-2xl border border-white/10 bg-slate-900/70 pl-12 pr-12 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                            className={`${leaveInputClass} h-12 w-full appearance-none pl-12 pr-12 font-semibold`}
                                         >
                                             <option value="">İzin türü seçin</option>
                                             {leaveTypes.map((type) => (
@@ -932,12 +939,12 @@ const LeaveServicePage = () => {
                                     <button
                                         type="button"
                                         onClick={() => showDateOnCalendar("start")}
-                                        className={`mt-2 flex h-14 w-full items-center justify-between rounded-2xl border bg-slate-900/70 px-4 text-left text-sm font-semibold outline-none transition ${
-                                            activeDateField === "start" ? "border-violet-400/70 text-white" : "border-white/10 text-white hover:border-violet-400/45"
+                                        className={`mt-2 flex h-12 w-full items-center justify-between px-4 text-left font-semibold ${leaveInputClass} ${
+                                            activeDateField === "start" ? "border-sky-400/70 ring-1 ring-sky-500/30" : ""
                                         }`}
                                     >
                                         <span>{formData.startDate ? formatDate(`${formData.startDate}T00:00:00`) : "Tarih seçin"}</span>
-                                        <CalendarDays className="h-4 w-4 text-violet-300" />
+                                        <CalendarDays className="h-4 w-4 text-sky-300" />
                                     </button>
                                 </label>
 
@@ -947,12 +954,12 @@ const LeaveServicePage = () => {
                                         type="button"
                                         disabled={isHalfDayLeave}
                                         onClick={() => showDateOnCalendar("end")}
-                                        className={`mt-2 flex h-14 w-full items-center justify-between rounded-2xl border bg-slate-900/70 px-4 text-left text-sm font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                                            activeDateField === "end" ? "border-violet-400/70 text-white" : "border-white/10 text-white hover:border-violet-400/45"
+                                        className={`mt-2 flex h-12 w-full items-center justify-between px-4 text-left font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${leaveInputClass} ${
+                                            activeDateField === "end" ? "border-sky-400/70 ring-1 ring-sky-500/30" : ""
                                         }`}
                                     >
                                         <span>{formData.endDate ? formatDate(`${formData.endDate}T00:00:00`) : "Tarih seçin"}</span>
-                                        <CalendarDays className="h-4 w-4 text-violet-300" />
+                                        <CalendarDays className="h-4 w-4 text-sky-300" />
                                     </button>
                                 </label>
 
@@ -963,7 +970,7 @@ const LeaveServicePage = () => {
                                             <select
                                                 value={formData.startTime}
                                                 onChange={(event) => setFormData((current) => ({ ...current, startTime: event.target.value }))}
-                                                className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                                className={`${leaveInputClass} mt-2 h-12 w-full px-4 font-semibold`}
                                             >
                                                 {timeSlots.slice(0, -1).map((slot) => (
                                                     <option key={slot} value={slot}>
@@ -978,7 +985,7 @@ const LeaveServicePage = () => {
                                             <select
                                                 value={formData.endTime}
                                                 onChange={(event) => setFormData((current) => ({ ...current, endTime: event.target.value }))}
-                                                className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                                className={`${leaveInputClass} mt-2 h-12 w-full px-4 font-semibold`}
                                             >
                                                 {timeSlots
                                                     .filter((slot) => timeValue(slot) > timeValue(formData.startTime))
@@ -999,7 +1006,7 @@ const LeaveServicePage = () => {
                                         maxLength={500}
                                         onChange={(event) => setFormData((current) => ({ ...current, reason: event.target.value }))}
                                         placeholder="Talebinizle ilgili açıklama giriniz..."
-                                        className="mt-2 min-h-40 w-full resize-none rounded-2xl border border-white/10 bg-slate-900/70 p-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-2 min-h-40 w-full resize-none p-4 placeholder:text-slate-500`}
                                     />
                                     <p className="mt-2 text-right text-xs text-slate-500">{formData.reason.length}/500</p>
                                 </label>
@@ -1010,7 +1017,7 @@ const LeaveServicePage = () => {
                                     type="button"
                                     onClick={submitLeave}
                                     disabled={saving}
-                                    className="inline-flex h-12 items-center gap-2 rounded-2xl bg-violet-600 px-6 text-sm font-bold text-white shadow-[0_0_26px_rgba(124,58,237,0.3)] transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex h-12 items-center gap-2 rounded-xl bg-sky-500 px-6 text-sm font-semibold text-white shadow-[0_0_28px_rgba(56,189,248,0.25)] transition hover:bg-sky-400 hover:shadow-[0_0_36px_rgba(56,189,248,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                     Talebi Gönder
@@ -1018,16 +1025,16 @@ const LeaveServicePage = () => {
                             </div>
                         </div>
 
-                        <aside className="space-y-5">
-                            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl">
+                        <div className="flex min-h-full flex-col border-t border-white/10 pt-6 xl:border-l xl:border-t-0 xl:pl-7 xl:pt-0">
+                            <div className="flex-1">
                                 <div className="mb-5 flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
                                             <CalendarDays className="h-5 w-5" />
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-white">İzin Takvimi Önizleme</h3>
-                                            <p className="mt-1 text-xs font-semibold text-violet-300">
+                                            <p className="mt-1 text-xs font-semibold text-sky-300">
                                                 {activeDateField === "start" ? "Başlangıç tarihi seçiliyor" : "Bitiş tarihi seçiliyor"}
                                             </p>
                                         </div>
@@ -1038,7 +1045,7 @@ const LeaveServicePage = () => {
                                     <button
                                         type="button"
                                         onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-violet-400/45 hover:text-white"
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/45 text-slate-300 transition hover:border-sky-400/45 hover:text-white"
                                         title="Önceki ay"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
@@ -1047,7 +1054,7 @@ const LeaveServicePage = () => {
                                     <button
                                         type="button"
                                         onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-violet-400/45 hover:text-white"
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/45 text-slate-300 transition hover:border-sky-400/45 hover:text-white"
                                         title="Sonraki ay"
                                     >
                                         <ChevronRight className="h-4 w-4" />
@@ -1082,9 +1089,9 @@ const LeaveServicePage = () => {
                                                 onClick={() => selectCalendarDate(day.value)}
                                                 className={`flex aspect-square items-center justify-center rounded-xl text-xs font-bold transition ${
                                                     isStart || isEnd
-                                                        ? "bg-violet-600 text-white shadow-[0_0_18px_rgba(124,58,237,0.35)]"
+                                                        ? "bg-sky-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.35)]"
                                                         : inRange
-                                                            ? "bg-violet-500/20 text-violet-100"
+                                                            ? "bg-sky-500/20 text-sky-100"
                                                             : day.isWeekend
                                                                 ? "text-slate-500"
                                                                 : "text-slate-200"
@@ -1093,7 +1100,7 @@ const LeaveServicePage = () => {
                                                 } ${
                                                     disabled
                                                         ? "cursor-not-allowed opacity-25"
-                                                        : "hover:bg-violet-500/25 hover:text-white"
+                                                        : "hover:bg-sky-500/20 hover:text-sky-100"
                                                 }`}
                                             >
                                                 {day.date.getDate()}
@@ -1104,7 +1111,7 @@ const LeaveServicePage = () => {
 
                                 <div className="mt-5 flex flex-wrap gap-3 text-[11px] text-slate-400">
                                     <span className="flex items-center gap-2">
-                                        <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                                        <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
                                         Seçili aralık
                                     </span>
                                     <span className="flex items-center gap-2">
@@ -1113,10 +1120,12 @@ const LeaveServicePage = () => {
                                     </span>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl">
+                        <aside className="flex min-h-full flex-col gap-6 border-t border-white/10 pt-6 xl:border-l xl:border-t-0 xl:pl-7 xl:pt-0">
+                            <div>
                                 <div className="mb-5 flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
                                         <CalendarCheck className="h-5 w-5" />
                                     </div>
                                     <h3 className="text-lg font-bold text-white">İzin Bakiye Bilgileri</h3>
@@ -1128,13 +1137,13 @@ const LeaveServicePage = () => {
                                     </div>
                                     <div className="flex justify-between text-slate-300">
                                         <span>Kalan yıllık izin</span>
-                                        <strong className="text-lg text-violet-300">{myStats.remaining == null ? "Girilmedi" : myStats.remaining}</strong>
+                                        <strong className="text-lg text-sky-300">{myStats.remaining == null ? "Girilmedi" : myStats.remaining}</strong>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 p-5 text-center shadow-[0_0_45px_rgba(124,58,237,0.2)]">
-                                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600/40 text-violet-100">
+                            <div className="border-t border-white/10 pt-6 text-center">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/25 text-sky-100">
                                     <CalendarDays className="h-7 w-7" />
                                 </div>
                                 <p className="text-sm text-slate-300">Seçilen Tarih Aralığı</p>
@@ -1154,18 +1163,19 @@ const LeaveServicePage = () => {
                                 <p className="mt-4 text-xs text-slate-500">{selectedLeaveType ? formatName(selectedLeaveType.name) : "İzin türü seçilmedi"}</p>
                             </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 text-sm leading-7 text-slate-400">
+                            <div className="border-t border-white/10 pt-6 text-sm leading-7 text-slate-400">
                                 <p className="font-semibold text-white">Bilgilendirme</p>
                                 <p className="mt-2">Talebiniz yöneticiniz tarafından değerlendirilecek ve sonucu sistem üzerinden takip edebileceksiniz.</p>
                             </div>
                         </aside>
+                        </div>
                     </section>
                 )}
 
                 {activeView === "quota" && (
-                    <section className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_45px_rgba(15,23,42,0.45)] backdrop-blur-2xl sm:p-7">
+                    <section className={leavePanelClass}>
                         <div className="mb-6 flex items-center gap-3 border-b border-white/10 pb-5">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
                                 <Save className="h-5 w-5" />
                             </div>
                             <div>
@@ -1181,7 +1191,7 @@ const LeaveServicePage = () => {
                                     <select
                                         value={quotaForm.employeeId}
                                         onChange={(event) => setQuotaForm((current) => ({ ...current, employeeId: event.target.value }))}
-                                        className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-2 h-12 w-full px-4 font-semibold`}
                                     >
                                         {quotaEmployees.length === 0 ? (
                                             <option value="">Yetkili çalışan bulunamadı</option>
@@ -1200,7 +1210,7 @@ const LeaveServicePage = () => {
                                     <select
                                         value={annualLeaveType?.id ?? ""}
                                         onChange={() => undefined}
-                                        className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-2 h-12 w-full px-4 font-semibold`}
                                     >
                                         <option value={annualLeaveType?.id ?? ""}>{annualLeaveType ? formatName(annualLeaveType.name) : "Yıllık İzin"}</option>
                                     </select>
@@ -1213,7 +1223,7 @@ const LeaveServicePage = () => {
                                         min={0}
                                         value={quotaForm.quotaDays}
                                         onChange={(event) => setQuotaForm((current) => ({ ...current, quotaDays: event.target.value }))}
-                                        className="mt-2 h-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-2 h-12 w-full px-4 font-semibold`}
                                     />
                                 </label>
                             </div>
@@ -1222,7 +1232,7 @@ const LeaveServicePage = () => {
                                 type="button"
                                 onClick={saveQuota}
                                 disabled={saving || quotaEmployees.length === 0}
-                                className="inline-flex h-14 items-center justify-center gap-2 self-end rounded-2xl bg-sky-600 px-6 text-sm font-bold text-white shadow-[0_0_26px_rgba(14,165,233,0.25)] transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex h-12 items-center justify-center gap-2 self-end rounded-xl bg-sky-500 px-6 text-sm font-semibold text-white shadow-[0_0_28px_rgba(56,189,248,0.25)] transition hover:bg-sky-400 hover:shadow-[0_0_36px_rgba(56,189,248,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                 Kotayı Kaydet
@@ -1240,14 +1250,14 @@ const LeaveServicePage = () => {
                             <StatCard label="Tümü" count={stats.all.count} days={stats.all.days} status="ALL" />
                         </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 shadow-[0_0_35px_rgba(15,23,42,0.35)]">
+                        <div className="rounded-xl border border-white/10 bg-slate-900/45 p-4 shadow-[0_0_35px_rgba(15,23,42,0.35)]">
                             <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_auto]">
                                 <label>
                                     <span className="text-xs text-slate-400">Durum</span>
                                     <select
                                         value={filters.status}
                                         onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-                                        className="mt-1 h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-1 h-12 w-full px-3 font-semibold`}
                                     >
                                         <option value="ALL">Tümü</option>
                                         <option value="PENDING">Beklemede</option>
@@ -1260,7 +1270,7 @@ const LeaveServicePage = () => {
                                     <select
                                         value={filters.leaveType}
                                         onChange={(event) => setFilters((current) => ({ ...current, leaveType: event.target.value }))}
-                                        className="mt-1 h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 text-sm font-semibold text-white outline-none focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-1 h-12 w-full px-3 font-semibold`}
                                     >
                                         <option value="ALL">Tümü</option>
                                         {leaveTypes.map((type) => (
@@ -1276,13 +1286,13 @@ const LeaveServicePage = () => {
                                         value={filters.search}
                                         onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
                                         placeholder="İzin türü, durum, kişi, tarih..."
-                                        className="mt-1 h-12 w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-violet-400/70"
+                                        className={`${leaveInputClass} mt-1 h-12 w-full px-3 font-semibold placeholder:text-slate-500`}
                                     />
                                 </label>
                                 <button
                                     type="button"
                                     onClick={resetFilters}
-                                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-5 text-sm font-bold text-slate-200 transition hover:bg-slate-800"
+                                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-900/45 px-5 text-sm font-semibold text-slate-200 transition hover:border-sky-400/40 hover:bg-slate-800/80"
                                 >
                                     <Filter className="h-4 w-4" />
                                     Filtreleri Temizle
@@ -1290,10 +1300,10 @@ const LeaveServicePage = () => {
                             </div>
                         </div>
 
-                        <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45 shadow-[0_0_45px_rgba(15,23,42,0.4)]">
+                        <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/45 shadow-[0_0_45px_rgba(15,23,42,0.4)]">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[980px]">
-                                    <thead className="border-b border-white/10 bg-slate-950/70 text-left text-xs font-bold uppercase tracking-wide text-slate-400">
+                                    <thead className="border-b border-white/10 bg-slate-950/45 text-left text-xs font-bold uppercase tracking-wide text-slate-400">
                                         <tr>
                                             {activeView === "approval" && <th className="px-5 py-4">Çalışan</th>}
                                             <th className="px-5 py-4">İzin Türü</th>
@@ -1328,7 +1338,7 @@ const LeaveServicePage = () => {
                                                     )}
                                                     <td className="px-5 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300">
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300">
                                                                 <Plane className="h-5 w-5" />
                                                             </div>
                                                             <span className="font-bold text-white">{formatName(leave.leaveTypeName)}</span>
@@ -1359,7 +1369,7 @@ const LeaveServicePage = () => {
 
                 {detailLeave && (
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-                        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-[0_0_60px_rgba(0,0,0,0.55)]">
+                        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-[0_0_60px_rgba(0,0,0,0.55)]">
                             <h3 className="text-xl font-bold text-white">İzin Detayı</h3>
                             <div className="mt-5 space-y-4 text-sm">
                                 <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
@@ -1372,16 +1382,24 @@ const LeaveServicePage = () => {
                                 </div>
                                 <div>
                                     <span className="text-slate-400">İzin alma sebebi</span>
-                                    <p className="mt-2 rounded-2xl border border-white/10 bg-slate-900/70 p-4 leading-6 text-slate-100">
+                                    <p className="mt-2 rounded-xl border border-white/10 bg-slate-950/35 p-4 leading-6 text-slate-100">
                                         {detailLeave.reason?.trim() || "Sebep belirtilmemiş."}
                                     </p>
                                 </div>
+                                {normalizeStatus(detailLeave.status) === "REJECTED" && (
+                                    <div>
+                                        <span className="text-slate-400">Reddedilme nedeni</span>
+                                        <p className="mt-2 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 leading-6 text-rose-100">
+                                            {detailLeave.rejectionReason?.trim() || "Reddedilme nedeni belirtilmemiş."}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="mt-6 flex justify-end">
                                 <button
                                     type="button"
                                     onClick={() => setDetailLeave(null)}
-                                    className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-200 transition hover:bg-slate-800"
+                                    className="rounded-xl border border-white/10 bg-slate-900/45 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-sky-400/40 hover:bg-slate-800"
                                 >
                                     Kapat
                                 </button>
@@ -1392,7 +1410,7 @@ const LeaveServicePage = () => {
 
                 {reviewTarget && (
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-                        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-[0_0_60px_rgba(0,0,0,0.55)]">
+                        <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-[0_0_60px_rgba(0,0,0,0.55)]">
                             <h3 className="text-xl font-bold text-white">
                                 {reviewTarget.action === "APPROVED" ? "İzin talebini onayla" : "İzin talebini reddet"}
                             </h3>
@@ -1406,7 +1424,7 @@ const LeaveServicePage = () => {
                                     <textarea
                                         value={rejectReason}
                                         onChange={(event) => setRejectReason(event.target.value)}
-                                        className="mt-2 min-h-32 w-full resize-none rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-rose-400/70"
+                                        className="mt-2 min-h-32 w-full resize-none rounded-xl border border-white/10 bg-slate-950/35 p-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-rose-400/70"
                                         placeholder="Reddetme nedenini giriniz..."
                                     />
                                 </label>
@@ -1419,7 +1437,7 @@ const LeaveServicePage = () => {
                                         setReviewTarget(null);
                                         setRejectReason("");
                                     }}
-                                    className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-200 transition hover:bg-slate-800"
+                                    className="rounded-xl border border-white/10 bg-slate-900/45 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-sky-400/40 hover:bg-slate-800"
                                 >
                                     Vazgeç
                                 </button>
@@ -1427,7 +1445,7 @@ const LeaveServicePage = () => {
                                     type="button"
                                     onClick={submitReview}
                                     disabled={saving}
-                                    className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${reviewTarget.action === "APPROVED" ? "bg-emerald-600 hover:bg-emerald-500" : "bg-rose-600 hover:bg-rose-500"}`}
+                                    className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60 ${reviewTarget.action === "APPROVED" ? "bg-emerald-600 hover:bg-emerald-500" : "bg-rose-600 hover:bg-rose-500"}`}
                                 >
                                     {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                     {reviewTarget.action === "APPROVED" ? "Onayla" : "Reddet"}

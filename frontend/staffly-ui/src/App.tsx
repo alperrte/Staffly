@@ -74,7 +74,7 @@ function App() {
                     <Route
                         path="departments"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]}>
+                            <ProtectedRoute allowedRoles={[ROLE_DEPARTMENT_MANAGER]}>
                                 <DepartmentsPage />
                             </ProtectedRoute>
                         }
@@ -82,7 +82,7 @@ function App() {
                     <Route
                         path="departments/manage"
                         element={
-                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN]}>
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER]}>
                                 <DepartmentManagementPage />
                             </ProtectedRoute>
                         }
