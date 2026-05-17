@@ -25,8 +25,6 @@ type EmployeeProfile = {
 };
 
 const emptyForm = {
-    employeeDistrict: "",
-    employeeNeighborhood: "",
     preferredRouteId: "",
     note: "",
 };
@@ -147,6 +145,16 @@ export default function TransportPage() {
         setFormOpen(true);
     };
 
+    const openBlankRequestForm = () => {
+        const firstRoute = routes[0] ?? null;
+        setSelectedRoute(firstRoute);
+        setForm((prev) => ({
+            ...prev,
+            preferredRouteId: firstRoute ? String(firstRoute.id) : "",
+        }));
+        setFormOpen(true);
+    };
+
     const closeRequestForm = () => {
         setFormOpen(false);
         setSelectedRoute(null);
@@ -192,11 +200,6 @@ export default function TransportPage() {
             return;
         }
 
-        if (!form.employeeDistrict.trim()) {
-            setError("İlçe zorunludur.");
-            return;
-        }
-
         const route = routes.find((item) => item.id === Number(form.preferredRouteId));
         const employeeName = [currentEmployee.firstName, currentEmployee.lastName].filter(Boolean).join(" ").trim() || currentEmployee.email || `Employee ${currentEmployee.id}`;
 
@@ -212,8 +215,6 @@ export default function TransportPage() {
             await createTransportRequest({
                 employeeId: currentEmployee.id,
                 employeeName,
-                employeeDistrict: form.employeeDistrict.trim(),
-                employeeNeighborhood: form.employeeNeighborhood.trim(),
                 preferredRouteId: route.id,
                 note: form.note.trim(),
             });
@@ -266,67 +267,19 @@ export default function TransportPage() {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label className="mb-2 block text-xs font-medium text-slate-400">
-                                        Çalışan
-                                    </label>
-                                    <input
-                                        value={
-                                            [currentEmployee?.firstName, currentEmployee?.lastName]
-                                                .filter(Boolean)
-                                                .join(" ") || currentEmployee?.email || `Employee ${currentEmployee?.id ?? "-"}`
-                                        }
-                                        disabled
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white opacity-80"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-xs font-medium text-slate-400">
-                                        Çalışan ID
-                                    </label>
-                                    <input
-                                        value={currentEmployee?.id ?? "-"}
-                                        disabled
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white opacity-80"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label className="mb-2 block text-xs font-medium text-slate-400">
-                                        İlçe
-                                    </label>
-                                    <input
-                                        value={form.employeeDistrict}
-                                        onChange={(e) => setForm((prev) => ({ ...prev, employeeDistrict: e.target.value }))}
-                                        placeholder="Gebze"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-xs font-medium text-slate-400">
-                                        Mahalle / Bölge
-                                    </label>
-                                    <input
-                                        value={form.employeeNeighborhood}
-                                        onChange={(e) => setForm((prev) => ({ ...prev, employeeNeighborhood: e.target.value }))}
-                                        placeholder="Darıca / Şekerpınar"
-                                        className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-400 focus:outline-none"
-                                    />
-                                </div>
-                            </div>
-
                             <div>
                                 <label className="mb-2 block text-xs font-medium text-slate-400">
                                     Seçilen Rota
                                 </label>
                                 <select
                                     value={form.preferredRouteId}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, preferredRouteId: e.target.value }))}
+                                    onChange={(e) => {
+                                        const preferredRouteId = e.target.value;
+                                        setForm((prev) => ({ ...prev, preferredRouteId }));
+                                        setSelectedRoute(
+                                            routes.find((route) => route.id === Number(preferredRouteId)) ?? null
+                                        );
+                                    }}
                                     className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-sky-400 focus:outline-none"
                                 >
                                     <option value="">Rota seçin</option>
@@ -563,8 +516,7 @@ export default function TransportPage() {
                                                         {request.preferredRouteCode || "Rota"} - {request.preferredRouteName || "Servis Rotası"}
                                                     </p>
                                                     <p className="mt-1 text-xs text-slate-400">
-                                                        {request.employeeDistrict}
-                                                        {request.employeeNeighborhood ? ` / ${request.employeeNeighborhood}` : ""}
+                                                        {request.preferredRouteCode || "Rota seçimi"}
                                                     </p>
                                                     <p className="mt-2 text-xs text-slate-500">
                                                         Oluşturulma: {formatDateTR(request.createdAt)}
@@ -599,7 +551,7 @@ export default function TransportPage() {
                                     1. Servis havuzunda aktif bir hat seçilir.
                                 </div>
                                 <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                                    2. Çalışanın ilçe ve mahalle bilgisi girilir.
+                                    2. Aktif rotalardan uygun hat seçilir.
                                 </div>
                                 <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
                                     3. Uygunluk kontrolünden sonra talep beklemeye alınır.
@@ -609,7 +561,7 @@ export default function TransportPage() {
 
                         <button
                             type="button"
-                            onClick={() => setFormOpen(true)}
+                            onClick={openBlankRequestForm}
                             className="w-full rounded-3xl border border-sky-500/30 bg-sky-500/10 p-6 text-left transition hover:border-sky-400/60 hover:bg-sky-500/15"
                         >
                             <div className="flex items-center gap-3 text-sky-200">
@@ -617,7 +569,7 @@ export default function TransportPage() {
                                 Yeni servis talebi
                             </div>
                             <p className="mt-2 text-sm text-slate-400">
-                                Bir çalışan için yeni ulaşım talebi oluştur.
+                                Kendiniz için yeni ulaşım talebi oluştur.
                             </p>
                         </button>
                     </div>

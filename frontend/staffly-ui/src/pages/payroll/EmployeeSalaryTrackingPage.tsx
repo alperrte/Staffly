@@ -13,7 +13,7 @@ import {
     type EmployeePayrollOverview,
     type PayrollResponse,
 } from "../../services/payrollService";
-import { getTokenUserId } from "../../utils/auth";
+import { getTokenEmployeeId } from "../../utils/auth";
 
 const panelClass = "rounded-[26px] border border-white/10 bg-slate-950/45 p-5 shadow-[0_0_34px_rgba(15,23,42,0.35)]";
 
@@ -89,7 +89,7 @@ const EmployeeSalaryTrackingPage = () => {
 
     const handleAdvance = async () => {
         const amount = Number(advanceAmount.replace(",", "."));
-        const employeeId = getTokenUserId();
+        const employeeId = getTokenEmployeeId();
 
         if (!employeeId) {
             setMessage("Employee bilgisi bulunamadı.");

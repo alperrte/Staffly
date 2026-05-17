@@ -46,15 +46,11 @@ public class TransportRequestService {
             throw new IllegalArgumentException("Selected route is not active");
         }
 
-        if (!transportRouteService.routeSupportsArea(route, request.getEmployeeDistrict(), request.getEmployeeNeighborhood())) {
-            throw new IllegalArgumentException("This route does not cover the employee area");
-        }
-
         TransportRequest transportRequest = TransportRequest.builder()
                 .employeeId(request.getEmployeeId())
                 .employeeName(request.getEmployeeName().trim())
-                .employeeDistrict(request.getEmployeeDistrict().trim())
-                .employeeNeighborhood(trimToNull(request.getEmployeeNeighborhood()))
+                .employeeDistrict(route.getOriginArea())
+                .employeeNeighborhood(null)
                 .preferredRoute(route)
                 .status(TransportRequestStatus.PENDING)
                 .note(trimToNull(request.getNote()))

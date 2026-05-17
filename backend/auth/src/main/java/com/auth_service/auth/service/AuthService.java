@@ -136,7 +136,7 @@ public class AuthService {
                                 .toList()
                 );
 
-        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        String accessToken = jwtService.generateToken(userDetails, user.getId(), user.getEmployeeId());
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
@@ -160,7 +160,7 @@ public class AuthService {
                                 .toList()
                 );
 
-        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        String accessToken = jwtService.generateToken(userDetails, user.getId(), user.getEmployeeId());
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -203,7 +203,7 @@ public class AuthService {
                                 .toList()
                 );
 
-        String accessToken = jwtService.generateToken(userDetails, user.getId());
+        String accessToken = jwtService.generateToken(userDetails, user.getId(), user.getEmployeeId());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return AuthResponse.builder()

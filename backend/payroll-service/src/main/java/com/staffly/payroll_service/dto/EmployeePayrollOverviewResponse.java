@@ -12,6 +12,10 @@ import java.math.BigDecimal;
 public class EmployeePayrollOverviewResponse {
 
     private Salary currentSalary;
+    private BigDecimal currentMonthTotalBonus;
+    private BigDecimal currentMonthTotalDeduction;
+    private BigDecimal currentMonthApprovedAdvance;
+    private BigDecimal currentProjectedNetSalary;
 
     private Integer lastPayrollMonth;
     private Integer lastPayrollYear;
@@ -30,6 +34,10 @@ public class EmployeePayrollOverviewResponse {
     public static EmployeePayrollOverviewResponse from(
             Payroll last,
             Salary salary,
+            BigDecimal currentMonthTotalBonus,
+            BigDecimal currentMonthTotalDeduction,
+            BigDecimal currentMonthApprovedAdvance,
+            BigDecimal currentProjectedNetSalary,
             long payrollCount,
             long bonusCount,
             long deductionCount,
@@ -38,6 +46,10 @@ public class EmployeePayrollOverviewResponse {
     ) {
         EmployeePayrollOverviewResponseBuilder b = builder()
                 .currentSalary(salary)
+                .currentMonthTotalBonus(currentMonthTotalBonus)
+                .currentMonthTotalDeduction(currentMonthTotalDeduction)
+                .currentMonthApprovedAdvance(currentMonthApprovedAdvance)
+                .currentProjectedNetSalary(currentProjectedNetSalary)
                 .payrollRecordCount(payrollCount)
                 .bonusEntryCount(bonusCount)
                 .deductionEntryCount(deductionCount)

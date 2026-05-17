@@ -45,11 +45,12 @@ public class JwtService {
                 .getBody();
     }
 
-    public String generateToken(UserDetails userDetails, Long userId){
+    public String generateToken(UserDetails userDetails, Long userId, Long employeeId){
 
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .claim("userId", userId)
+                .claim("employeeId", employeeId)
                 .claim("roles",
                         userDetails.getAuthorities()
                                 .stream()

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -24,12 +25,41 @@ public class PayrollService {
     public EmployeePayrollOverviewResponse getEmployeeOverview(Long employeeId) {
 
         Salary salary = salaryRepository
-                .findTopByEmployeeIdOrderByEffectiveDateDesc(employeeId)
+                .findTopByEmployeeIdOrderByEffectiveDateDescCreatedAtDescIdDesc(employeeId)
                 .orElse(null);
 
         Payroll lastPayroll = payrollRepository
                 .findFirstByEmployeeIdOrderByYearDescMonthDesc(employeeId)
                 .orElse(null);
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime currentMonthStart = today.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime nextMonthStart = today.withDayOfMonth(1).plusMonths(1).atStartOfDay();
+
+        BigDecimal currentMonthTotalBonus = bonusRepository
+                .findByEmployeeIdAndCreatedAtBetween(employeeId, currentMonthStart, nextMonthStart)
+                .stream()
+                .map(Bonus::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal currentMonthTotalDeduction = deductionRepository
+                .findByEmployeeIdAndCreatedAtBetween(employeeId, currentMonthStart, nextMonthStart)
+                .stream()
+                .map(Deduction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal currentMonthApprovedAdvance = salaryAdvanceRepository
+                .findByEmployeeIdAndApprovedTrueAndCreatedAtBetween(employeeId, currentMonthStart, nextMonthStart)
+                .stream()
+                .map(SalaryAdvance::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal currentProjectedNetSalary = salary == null
+                ? null
+                : salary.getBaseSalary()
+                    .add(currentMonthTotalBonus)
+                    .subtract(currentMonthTotalDeduction)
+                    .subtract(currentMonthApprovedAdvance);
 
         long payrollCount = payrollRepository.countByEmployeeId(employeeId);
         long bonusCount = bonusRepository.countByEmployeeId(employeeId);
@@ -41,6 +71,10 @@ public class PayrollService {
         return EmployeePayrollOverviewResponse.from(
                 lastPayroll,
                 salary,
+                currentMonthTotalBonus,
+                currentMonthTotalDeduction,
+                currentMonthApprovedAdvance,
+                currentProjectedNetSalary,
                 payrollCount,
                 bonusCount,
                 deductionCount,
@@ -65,6 +99,10 @@ public class PayrollService {
         return payrollRepository.findByEmployeeIdOrderByYearDescMonthDescCreatedAtDesc(employeeId);
     }
 
+    public java.util.List<Salary> getSalaries(Long employeeId) {
+        return salaryRepository.findByEmployeeIdOrderByEffectiveDateDescCreatedAtDescIdDesc(employeeId);
+    }
+
     public PayrollResponse createPayroll(PayrollRequest request) {
 
         Long employeeId = request.getEmployeeId();
@@ -82,7 +120,7 @@ public class PayrollService {
 
         // 🔥 salary çek
         Salary salary = salaryRepository
-                .findTopByEmployeeIdOrderByEffectiveDateDesc(employeeId)
+                .findTopByEmployeeIdOrderByEffectiveDateDescCreatedAtDescIdDesc(employeeId)
                 .orElseThrow(() -> new RuntimeException("Salary not found"));
 
         BigDecimal base = salary.getBaseSalary();
