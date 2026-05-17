@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
     FaHome,
@@ -37,7 +37,9 @@ const linkActive =
 
 const Sidebar = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const isLeaveServiceActive = location.pathname === "/app/leaveService";
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -77,7 +79,6 @@ const Sidebar = () => {
                 <NavLink to="/app" end className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                     <FaHome /> Ana Sayfa
                 </NavLink>
-
                 {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
                     <NavLink to="/app/employees" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
                         <FaUsers /> Çalışanlar
@@ -106,9 +107,49 @@ const Sidebar = () => {
                     </>
                 )}
 
-                <NavLink to="/app/leaveService" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>
+                <NavLink to="/app/leaveService?view=create" className={() => `${linkBase} ${isLeaveServiceActive ? linkActive : linkInactive}`}>
                     <FaFileAlt /> İzin Talepleri
                 </NavLink>
+                {isLeaveServiceActive && (
+                    <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                        <NavLink
+                            to="/app/leaveService?view=create"
+                            className={({ isActive }) =>
+                                `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=create") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
+                            }
+                        >
+                            Talep Oluştur
+                        </NavLink>
+                        <NavLink
+                            to="/app/leaveService?view=mine"
+                            className={({ isActive }) =>
+                                `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=mine") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
+                            }
+                        >
+                            Taleplerim
+                        </NavLink>
+                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
+                            <NavLink
+                                to="/app/leaveService?view=approval"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=approval") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
+                                }
+                            >
+                                Talep Onay
+                            </NavLink>
+                        )}
+                        {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER]) && (
+                            <NavLink
+                                to="/app/leaveService?view=quota"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${isActive && location.search.includes("view=quota") ? "bg-sky-500/15 text-white" : "text-slate-400 hover:bg-slate-800/70 hover:text-white"}`
+                                }
+                            >
+                                Yıllık İzin Kotası
+                            </NavLink>
+                        )}
+                    </div>
+                )}
 
                 {hasAnyRole([ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_DEPARTMENT_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE]) && (
                     <NavLink to="/app/transport" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkInactive}`}>

@@ -237,7 +237,14 @@ function App() {
                         }
                     />
 
-                    <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                    <Route
+                        path="profile"
+                        element={
+                            <ProtectedRoute allowedRoles={[ROLE_SYSTEM_ADMIN, ROLE_HR_MANAGER, ROLE_MANAGER, ROLE_EMPLOYEE, ROLE_DEPARTMENT_MANAGER]}>
+                                <ProfilePage />
+                            </ProtectedRoute>
+                        }
+                    />
 
                     <Route path="settings" element={<ProtectedRoute><div>Settings</div></ProtectedRoute>} />
                 </Route>

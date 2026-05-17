@@ -65,6 +65,14 @@ public class EmployeeController {
         return employeeService.uploadProfileImage(email, file);
     }
 
+    @PatchMapping("/me/profile-image/remove")
+    public EmployeeResponse removeMyProfileImage(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        return employeeService.removeProfileImage(email);
+    }
+
     @PreAuthorize("""
         hasAnyAuthority(
             'ROLE_SYSTEM_ADMIN',

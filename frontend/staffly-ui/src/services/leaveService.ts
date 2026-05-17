@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const leaveApi = axios.create({
-    baseURL: "http://localhost:8089/api", //
+    baseURL: "http://localhost:8089/api",
 });
 
 leaveApi.interceptors.request.use((config) => {
@@ -14,7 +14,38 @@ leaveApi.interceptors.request.use((config) => {
     return config;
 });
 
-// 🔹 TYPES
+export type Leave = {
+    id: number;
+    employeeId: number;
+    leaveTypeName: string;
+    startDatetime: string;
+    endDatetime: string;
+    totalDays?: number | null;
+    totalHours?: number | null;
+    status: string;
+    reason?: string | null;
+    employeeFirstName?: string | null;
+    employeeLastName?: string | null;
+    employeeFullName?: string | null;
+    createdAt?: string | null;
+};
+
+export type LeaveType = {
+    id: number;
+    name: string;
+    description?: string | null;
+    isHourly?: boolean;
+};
+
+export type LeaveBalance = {
+    employeeId: number;
+    leaveTypeId: number;
+    leaveTypeName: string;
+    quotaDays?: number | null;
+    remainingDays?: number | null;
+    remainingHours?: number | null;
+};
+
 type CreateLeaveRequest = {
     employeeId: number;
     leaveTypeId: number;
@@ -23,29 +54,44 @@ type CreateLeaveRequest = {
     reason: string;
 };
 
-// 🔹 GET all leaves
-export const getAllLeaves = async (employeeId: number) => {
+export type LeaveApprovalPayload = {
+    leaveRequestId: number;
+    managerId: number;
+    action: "APPROVED" | "REJECTED";
+    comment: string;
+};
+
+export const getEmployeeLeaves = async (employeeId: number): Promise<Leave[]> => {
     const response = await leaveApi.get(`/leaves/employee/${employeeId}`);
     return response.data;
 };
 
-// 🔹 CREATE leave
-export const createLeave = async (data: CreateLeaveRequest) => {
+export const getAllLeaves = async (): Promise<Leave[]> => {
+    const response = await leaveApi.get("/leaves");
+    return response.data;
+};
+
+export const getAnnualLeaveBalance = async (employeeId: number): Promise<LeaveBalance> => {
+    const response = await leaveApi.get(`/leaves/employee/${employeeId}/annual-balance`);
+    return response.data;
+};
+
+export const updateAnnualLeaveQuota = async (employeeId: number, quotaDays: number): Promise<LeaveBalance> => {
+    const response = await leaveApi.put(`/leaves/employee/${employeeId}/annual-quota`, { quotaDays });
+    return response.data;
+};
+
+export const createLeave = async (data: CreateLeaveRequest): Promise<Leave> => {
     const response = await leaveApi.post("/leaves", data);
     return response.data;
 };
 
-// 🔹 GET leave types
-export const getLeaveTypes = async () => {
+export const getLeaveTypes = async (): Promise<LeaveType[]> => {
     const response = await leaveApi.get("/leave-types");
     return response.data;
 };
 
-export const approveLeave = async (data: any) => {
-    return await leaveApi.post("/leaves/approve", data);
+export const reviewLeave = async (data: LeaveApprovalPayload) => {
+    const response = await leaveApi.post("/leaves/approve", data);
+    return response.data;
 };
-
-export const rejectLeave = async (data: any) => {
-    return await leaveApi.post("/leaves/approve", data);
-};
-

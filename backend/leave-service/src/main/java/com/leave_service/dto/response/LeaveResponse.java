@@ -20,4 +20,10 @@ public class LeaveResponse {
     private Integer totalHours;
 
     private String status;
+    private String reason;
+    private String employeeFirstName;
+    private String employeeLastName;
+    private String employeeFullName;
+
+    private LocalDateTime createdAt;
 }
