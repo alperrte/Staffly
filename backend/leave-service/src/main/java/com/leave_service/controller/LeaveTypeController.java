@@ -16,7 +16,7 @@ public class LeaveTypeController {
 
     private final LeaveTypeService leaveTypeService;
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'MANAGER', 'EMPLOYEE')")
     @GetMapping
     public List<LeaveTypeResponse> getAllLeaveTypes() {
         return leaveTypeService.getAllLeaveTypes();

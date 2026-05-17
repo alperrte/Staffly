@@ -307,6 +307,14 @@ export const uploadProfileImage = async (
     return response.data;
 };
 
+export const removeProfileImage = async () => {
+    const response = await employeeApi.patch(
+        "/employees/me/profile-image/remove"
+    );
+
+    return response.data;
+};
+
 export const uploadEmployeeProfileImage = async (
     id: number,
     file: File

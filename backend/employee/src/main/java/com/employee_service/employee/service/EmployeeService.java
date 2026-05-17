@@ -153,6 +153,7 @@ public class EmployeeService {
             file.transferTo(new java.io.File(filePath));
 
             employee.setProfileImage(dbPath);
+            employee.setUpdatedAt(LocalDateTime.now());
 
             employeeRepository.save(employee);
 
@@ -171,6 +172,27 @@ public class EmployeeService {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public EmployeeResponse removeProfileImage(String email) {
+
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        employee.setProfileImage(null);
+        employee.setUpdatedAt(LocalDateTime.now());
+
+        employeeRepository.save(employee);
+
+        EmployeePersonalInfo personalInfo =
+                personalInfoRepository.findByEmployeeId(employee.getId())
+                        .orElse(null);
+
+        EmployeeJobInfo jobInfo =
+                jobInfoRepository.findByEmployeeId(employee.getId())
+                        .orElse(null);
+
+        return buildEmployeeResponse(employee, personalInfo, jobInfo);
     }
 
     public EmployeeResponse getEmployeeByEmail(String email) {
