@@ -26,19 +26,19 @@ public class PayrollController {
     private final SalaryRepository salaryRepository; // 🔥 EKLEDİK
         private final JwtService jwtService;
 
-        private Long extractUserId(String authHeader) {
+        private Long extractEmployeeId(String authHeader) {
                 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                         throw new RuntimeException("Authorization token is required");
                 }
 
                 String jwt = authHeader.substring(7);
-                Long userId = jwtService.extractUserId(jwt);
+                Long employeeId = jwtService.extractEmployeeId(jwt);
 
-                if (userId == null) {
-                        throw new RuntimeException("userId claim is missing in token");
+                if (employeeId == null) {
+                        throw new RuntimeException("employeeId claim is missing in token");
                 }
 
-                return userId;
+                return employeeId;
         }
 
     @GetMapping("/employees/{employeeId}/overview")
@@ -81,12 +81,20 @@ public class PayrollController {
         return ResponseEntity.ok(payrollService.getPayrolls(employeeId));
     }
 
+    @GetMapping("/employees/{employeeId}/salaries")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','ACCOUNTING','MANAGER')")
+    public ResponseEntity<java.util.List<Salary>> getSalaries(
+            @PathVariable Long employeeId
+    ) {
+        return ResponseEntity.ok(payrollService.getSalaries(employeeId));
+    }
+
         @GetMapping("/me/overview")
         @PreAuthorize("hasRole('EMPLOYEE')")
         public ResponseEntity<EmployeePayrollOverviewResponse> getMyOverview(
                         @RequestHeader("Authorization") String authHeader
         ) {
-                return ResponseEntity.ok(payrollService.getEmployeeOverview(extractUserId(authHeader)));
+                return ResponseEntity.ok(payrollService.getEmployeeOverview(extractEmployeeId(authHeader)));
         }
 
         @GetMapping("/me/bonuses")
@@ -94,7 +102,7 @@ public class PayrollController {
         public ResponseEntity<java.util.List<Bonus>> getMyBonuses(
                         @RequestHeader("Authorization") String authHeader
         ) {
-                return ResponseEntity.ok(payrollService.getBonuses(extractUserId(authHeader)));
+                return ResponseEntity.ok(payrollService.getBonuses(extractEmployeeId(authHeader)));
         }
 
         @GetMapping("/me/deductions")
@@ -102,7 +110,7 @@ public class PayrollController {
         public ResponseEntity<java.util.List<Deduction>> getMyDeductions(
                         @RequestHeader("Authorization") String authHeader
         ) {
-                return ResponseEntity.ok(payrollService.getDeductions(extractUserId(authHeader)));
+                return ResponseEntity.ok(payrollService.getDeductions(extractEmployeeId(authHeader)));
         }
 
         @GetMapping("/me/advances")
@@ -110,7 +118,7 @@ public class PayrollController {
         public ResponseEntity<java.util.List<SalaryAdvance>> getMyAdvances(
                         @RequestHeader("Authorization") String authHeader
         ) {
-                return ResponseEntity.ok(payrollService.getAdvances(extractUserId(authHeader)));
+                return ResponseEntity.ok(payrollService.getAdvances(extractEmployeeId(authHeader)));
         }
 
         @GetMapping("/me/payrolls")
@@ -118,7 +126,7 @@ public class PayrollController {
         public ResponseEntity<java.util.List<Payroll>> getMyPayrolls(
                         @RequestHeader("Authorization") String authHeader
         ) {
-                return ResponseEntity.ok(payrollService.getPayrolls(extractUserId(authHeader)));
+                return ResponseEntity.ok(payrollService.getPayrolls(extractEmployeeId(authHeader)));
         }
 
         @GetMapping("/advances/pending")
@@ -172,7 +180,7 @@ public class PayrollController {
                                 .anyMatch(a -> "ROLE_EMPLOYEE".equals(a.getAuthority()));
 
                 if (isEmployee) {
-                        advance.setEmployeeId(extractUserId(authHeader));
+                        advance.setEmployeeId(extractEmployeeId(authHeader));
                 }
 
         return ResponseEntity.ok(

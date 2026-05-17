@@ -29,6 +29,12 @@ public class JwtService {
         return claims.get("userId", Long.class);
     }
 
+    public Long extractEmployeeId(String token) {
+        Claims claims = extractAllClaims(token);
+        Long employeeId = claims.get("employeeId", Long.class);
+        return employeeId != null ? employeeId : claims.get("userId", Long.class);
+    }
+
     public boolean isTokenValid(String token) {
         try {
             String username = extractUsername(token);

@@ -69,6 +69,7 @@ public class EmployeeController {
         hasAnyAuthority(
             'ROLE_SYSTEM_ADMIN',
             'ROLE_HR_MANAGER',
+            'ROLE_ACCOUNTING',
             'ROLE_DEPARTMENT_MANAGER',
             'ROLE_MANAGER'
         )
@@ -87,6 +88,7 @@ public class EmployeeController {
         hasAnyAuthority(
             'ROLE_SYSTEM_ADMIN',
             'ROLE_HR_MANAGER',
+            'ROLE_ACCOUNTING',
             'ROLE_DEPARTMENT_MANAGER',
             'ROLE_MANAGER'
         )
@@ -105,6 +107,7 @@ public class EmployeeController {
         hasAnyAuthority(
             'ROLE_SYSTEM_ADMIN',
             'ROLE_HR_MANAGER',
+            'ROLE_ACCOUNTING',
             'ROLE_DEPARTMENT_MANAGER',
             'ROLE_MANAGER'
         )

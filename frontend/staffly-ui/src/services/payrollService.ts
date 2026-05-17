@@ -68,6 +68,10 @@ export type SalaryRecord = {
 
 export type EmployeePayrollOverview = {
     currentSalary: SalaryRecord | null;
+    currentMonthTotalBonus: string | number | null;
+    currentMonthTotalDeduction: string | number | null;
+    currentMonthApprovedAdvance: string | number | null;
+    currentProjectedNetSalary: string | number | null;
     lastPayrollMonth: number | null;
     lastPayrollYear: number | null;
     lastNetSalary: string | number | null;
@@ -164,6 +168,11 @@ export const getEmployeeAdvances = async (employeeId: number) => {
 
 export const getEmployeePayrolls = async (employeeId: number) => {
     const res = await payrollApi.get<PayrollResponse[]>(`/payrolls/employees/${employeeId}/payrolls`);
+    return Array.isArray(res.data) ? res.data : [];
+};
+
+export const getEmployeeSalaries = async (employeeId: number) => {
+    const res = await payrollApi.get<SalaryRecord[]>(`/payrolls/employees/${employeeId}/salaries`);
     return Array.isArray(res.data) ? res.data : [];
 };
 

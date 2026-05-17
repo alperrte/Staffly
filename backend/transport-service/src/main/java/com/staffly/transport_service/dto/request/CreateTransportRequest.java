@@ -13,7 +13,6 @@ public class CreateTransportRequest {
     @NotBlank
     private String employeeName;
 
-    @NotBlank
     private String employeeDistrict;
 
     private String employeeNeighborhood;

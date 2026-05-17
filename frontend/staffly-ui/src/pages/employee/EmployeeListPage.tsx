@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Building2, Calendar, CalendarClock, ChevronDown, Filter, Home, Mail, Plus, Search, UserCheck, UserX, Users, X } from "lucide-react";
+import { Activity, Building2, Calendar, ChevronDown, Filter, Mail, Plus, Search, UserCheck, UserX, Users, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -146,8 +146,6 @@ const EmployeeListPage = () => {
             total: employees.length,
             active: employees.filter((employee) => employee.status === "ACTIVE").length,
             passive: employees.filter((employee) => employee.status === "PASSIVE" || employee.status === "INACTIVE").length,
-            homeOffice: employees.filter((employee) => String(employee.workType || "").toUpperCase().includes("HOME")).length,
-            leave: employees.filter((employee) => String(employee.status).includes("LEAVE")).length,
         }),
         [employees]
     );
@@ -349,22 +347,92 @@ const EmployeeListPage = () => {
                         )}
                     </AnimatePresence>
 
-                    <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="mb-10 grid grid-cols-1 gap-4 xl:grid-cols-3">
                         {[
-                            { label: "Toplam Çalışan", value: stats.total, icon: Users, gradient: "from-cyan-500 to-blue-500" },
-                            { label: "Aktif Çalışan", value: stats.active, icon: UserCheck, gradient: "from-emerald-500 to-green-500" },
-                            { label: "Pasif Çalışan", value: stats.passive, icon: UserX, gradient: "from-red-500 to-pink-500" },
-                            { label: "Home Office", value: stats.homeOffice, icon: Home, gradient: "from-purple-500 to-indigo-500" },
-                            { label: "İzinli", value: stats.leave, icon: CalendarClock, gradient: "from-amber-500 to-orange-500" },
-                        ].map((item, index) => (
-                            <motion.div key={item.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: index * 0.08 }} whileHover={{ scale: 1.03 }} className="group relative overflow-hidden rounded-3xl border border-slate-800/50 bg-gradient-to-br from-slate-900/80 to-slate-800/40 p-6 shadow-[0_0_40px_rgba(59,130,246,0.08)] backdrop-blur-2xl transition">
-                                <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${item.gradient} opacity-90`}>
-                                    <item.icon className="h-7 w-7 text-white" />
-                                </div>
-                                <div className="mb-2 text-3xl font-bold text-white">{item.value}</div>
-                                <div className="text-sm text-slate-400 transition group-hover:text-slate-300">{item.label}</div>
-                            </motion.div>
-                        ))}
+                            {
+                                label: "Toplam Çalışan",
+                                value: stats.total,
+                                description: "Sistemde kayıtlı çalışanlar",
+                                icon: Users,
+                                color: "blue",
+                            },
+                            {
+                                label: "Aktif Çalışan",
+                                value: stats.active,
+                                description: "Aktif olarak çalışan personeller",
+                                icon: UserCheck,
+                                color: "emerald",
+                            },
+                            {
+                                label: "Pasif Çalışan",
+                                value: stats.passive,
+                                description: "Pasife alınmış çalışanlar",
+                                icon: UserX,
+                                color: "rose",
+                            },
+                        ].map((item, index) => {
+                            const Icon = item.icon;
+
+                            const styles = {
+                                blue: {
+                                    card: "border-blue-400/25 bg-blue-500/10",
+                                    icon: "bg-blue-500/15 text-blue-300 shadow-[0_0_32px_rgba(37,99,235,0.28)]",
+                                    text: "text-blue-200",
+                                    arrow: "bg-blue-500/15 text-blue-300",
+                                },
+                                emerald: {
+                                    card: "border-emerald-400/25 bg-emerald-500/10",
+                                    icon: "bg-emerald-500/15 text-emerald-300 shadow-[0_0_32px_rgba(16,185,129,0.22)]",
+                                    text: "text-emerald-200",
+                                    arrow: "bg-emerald-500/15 text-emerald-300",
+                                },
+                                rose: {
+                                    card: "border-rose-400/25 bg-rose-500/10",
+                                    icon: "bg-rose-500/15 text-rose-300 shadow-[0_0_32px_rgba(244,63,94,0.18)]",
+                                    text: "text-rose-200",
+                                    arrow: "bg-rose-500/15 text-rose-300",
+                                },
+                                amber: {
+                                    card: "border-amber-400/25 bg-amber-500/10",
+                                    icon: "bg-amber-500/15 text-amber-300 shadow-[0_0_32px_rgba(245,158,11,0.18)]",
+                                    text: "text-amber-200",
+                                    arrow: "bg-amber-500/15 text-amber-300",
+                                },
+                            }[item.color as "blue" | "emerald" | "rose" | "amber"];
+
+                            return (
+                                <motion.button
+                                    key={item.label}
+                                    type="button"
+                                    initial={{ opacity: 0, y: 14 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.35, delay: index * 0.06 }}
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    className={`rounded-2xl border p-5 text-left transition hover:border-white/20 hover:bg-white/[0.04] ${styles.card}`}
+                                >
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-5">
+                                            <div className={`flex h-16 w-16 items-center justify-center rounded-full ${styles.icon}`}>
+                                                <Icon className="h-8 w-8" />
+                                            </div>
+
+                                            <div>
+                                                <p className={`text-sm font-bold ${styles.text}`}>
+                                                    {item.label}
+                                                </p>
+                                                <p className="mt-1 text-3xl font-extrabold text-white">
+                                                    {item.value}
+                                                </p>
+                                                <p className="mt-1 text-sm text-slate-400">
+                                                    {item.description}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.button>
+                            );
+                        })}
                     </div>
 
                     <div className="mb-10 rounded-3xl border border-slate-800/50 bg-gradient-to-br from-slate-900/80 to-slate-800/40 p-6 shadow-[0_0_40px_rgba(59,130,246,0.08)] backdrop-blur-2xl">
@@ -413,95 +481,95 @@ const EmployeeListPage = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[1280px]">
                                 <thead className="sticky top-0 z-20 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/90 to-slate-800/90">
-                                    <tr className="text-left text-sm font-medium text-slate-400">
-                                        <th className="px-8 py-6 font-semibold">Çalışan</th>
-                                        <th className="px-8 py-6 font-semibold">Email</th>
-                                        <th className="px-8 py-6 font-semibold">Departman</th>
-                                        <th className="px-8 py-6 font-semibold">Pozisyon</th>
-                                        <th className="px-8 py-6 font-semibold">İşe Başlama</th>
-                                        <th className="px-8 py-6 font-semibold">Durum</th>
-                                        <th className="px-8 py-6 text-right font-semibold">İşlemler</th>
-                                    </tr>
+                                <tr className="text-left text-sm font-medium text-slate-400">
+                                    <th className="px-8 py-6 font-semibold">Çalışan</th>
+                                    <th className="px-8 py-6 font-semibold">Email</th>
+                                    <th className="px-8 py-6 font-semibold">Departman</th>
+                                    <th className="px-8 py-6 font-semibold">Pozisyon</th>
+                                    <th className="px-8 py-6 font-semibold">İşe Başlama</th>
+                                    <th className="px-8 py-6 font-semibold">Durum</th>
+                                    <th className="px-8 py-6 text-right font-semibold">İşlemler</th>
+                                </tr>
                                 </thead>
 
                                 <tbody>
-                                    {filteredEmployees.map((employee, index) => (
-                                        <motion.tr key={employee.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: index * 0.04 }} whileHover={{ backgroundColor: "rgba(15,23,42,0.64)" }} onClick={() => setSelectedEmployee(employee)} className="cursor-pointer border-b border-slate-800/30 transition-all duration-200 hover:border-cyan-500/20">
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative">
-                                                        <div className="flex h-14 w-14 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 shadow-[0_0_25px_rgba(6,182,212,0.22)]">
-                                                            {(employee.profilePhotoUrl || employee.profileImage) ? (
-                                                                <img
-                                                                    src={`${employee.profilePhotoUrl || employee.profileImage}?t=${Date.now()}`}
-                                                                    alt={employee.basicInfo.fullName}
-                                                                    className="h-full w-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-white">{employee.mediaInfo.initials || initials(employee.firstName, employee.lastName)}</div>
-                                                            )}
-                                                        </div>
-                                                        <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#020817] bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                {filteredEmployees.map((employee, index) => (
+                                    <motion.tr key={employee.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: index * 0.04 }} whileHover={{ backgroundColor: "rgba(15,23,42,0.64)" }} onClick={() => setSelectedEmployee(employee)} className="cursor-pointer border-b border-slate-800/30 transition-all duration-200 hover:border-cyan-500/20">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative">
+                                                    <div className="flex h-14 w-14 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 shadow-[0_0_25px_rgba(6,182,212,0.22)]">
+                                                        {(employee.profilePhotoUrl || employee.profileImage) ? (
+                                                            <img
+                                                                src={`${employee.profilePhotoUrl || employee.profileImage}?t=${Date.now()}`}
+                                                                alt={employee.basicInfo.fullName}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-white">{employee.mediaInfo.initials || initials(employee.firstName, employee.lastName)}</div>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <div className="text-base font-semibold text-white">{employee.basicInfo.fullName}</div>
-                                                        <div className="font-mono text-sm text-slate-500">{employee.basicInfo.employeeCode}</div>
-                                                    </div>
+                                                    <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#020817] bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                                                 </div>
-                                            </td>
-
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="h-4 w-4 text-slate-500" />
-                                                    <span className="text-slate-300">{emptyPlaceholder(employee.contactInfo.email)}</span>
+                                                <div>
+                                                    <div className="text-base font-semibold text-white">{employee.basicInfo.fullName}</div>
+                                                    <div className="font-mono text-sm text-slate-500">{employee.basicInfo.employeeCode}</div>
                                                 </div>
-                                            </td>
+                                            </div>
+                                        </td>
 
-                                            <td className="px-8 py-6">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-2">
+                                                <Mail className="h-4 w-4 text-slate-500" />
+                                                <span className="text-slate-300">{emptyPlaceholder(employee.contactInfo.email)}</span>
+                                            </div>
+                                        </td>
+
+                                        <td className="px-8 py-6">
                                                 <span className="inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-300">
                                                     {emptyPlaceholder(employee.organizationInfo.departmentName)}
                                                 </span>
-                                            </td>
+                                        </td>
 
-                                            <td className="px-8 py-6">
-                                                <div className="space-y-1">
-                                                    <div className="text-sm font-medium text-white">{emptyPlaceholder(employee.organizationInfo.positionName)}</div>
-                                                    <div className="text-xs text-slate-500">{emptyPlaceholder(employee.organizationInfo.subDepartmentName)}</div>
-                                                </div>
-                                            </td>
+                                        <td className="px-8 py-6">
+                                            <div className="space-y-1">
+                                                <div className="text-sm font-medium text-white">{emptyPlaceholder(employee.organizationInfo.positionName)}</div>
+                                                <div className="text-xs text-slate-500">{emptyPlaceholder(employee.organizationInfo.subDepartmentName)}</div>
+                                            </div>
+                                        </td>
 
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2 text-slate-400">
-                                                    <Calendar className="h-4 w-4" />
-                                                    <span className="text-sm">{emptyPlaceholder(employee.workInfo.hireDate)}</span>
-                                                </div>
-                                            </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <Calendar className="h-4 w-4" />
+                                                <span className="text-sm">{emptyPlaceholder(employee.workInfo.hireDate)}</span>
+                                            </div>
+                                        </td>
 
-                                            <td className="px-8 py-6">
+                                        <td className="px-8 py-6">
                                                 <span className={`inline-flex rounded-full px-4 py-2 text-xs font-bold ${statusStyles[employee.status] || "border border-white/10 bg-white/5 text-slate-200"}`}>
                                                     {statusLabelTR[employee.status] ?? employee.status}
                                                 </span>
-                                            </td>
+                                        </td>
 
-                                            <td className="px-8 py-6 text-right">
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        setSelectedEmployee(employee);
-                                                    }}
-                                                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-400 transition hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-300"
-                                                >
-                                                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                                                        <circle cx="12" cy="5" r="2" />
-                                                        <circle cx="12" cy="12" r="2" />
-                                                        <circle cx="12" cy="19" r="2" />
-                                                    </svg>
-                                                </motion.button>
-                                            </td>
-                                        </motion.tr>
-                                    ))}
+                                        <td className="px-8 py-6 text-right">
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setSelectedEmployee(employee);
+                                                }}
+                                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-400 transition hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-300"
+                                            >
+                                                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="5" r="2" />
+                                                    <circle cx="12" cy="12" r="2" />
+                                                    <circle cx="12" cy="19" r="2" />
+                                                </svg>
+                                            </motion.button>
+                                        </td>
+                                    </motion.tr>
+                                ))}
                                 </tbody>
                             </table>
                         </div>

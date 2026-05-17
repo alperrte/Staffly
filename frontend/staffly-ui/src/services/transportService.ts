@@ -47,8 +47,6 @@ export type TransportRequest = {
 export type CreateTransportRequestPayload = {
     employeeId: number;
     employeeName: string;
-    employeeDistrict: string;
-    employeeNeighborhood?: string;
     preferredRouteId: number;
     note?: string;
 };

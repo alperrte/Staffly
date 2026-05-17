@@ -5,6 +5,7 @@ type JwtPayload = {
     authorities?: string[] | string;
     role?: string;
     userId?: number | string;
+    employeeId?: number | string;
     sub?: string;
     email?: string;
 };
@@ -45,6 +46,21 @@ export const getTokenUserId = (): number | null => {
     try {
         const decoded = jwtDecode<JwtPayload>(token as string);
         const raw = decoded.userId;
+        if (raw == null) return null;
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+export const getTokenEmployeeId = (): number | null => {
+    const token = getToken();
+    if (!token) return null;
+
+    try {
+        const decoded = jwtDecode<JwtPayload>(token as string);
+        const raw = decoded.employeeId ?? decoded.userId;
         if (raw == null) return null;
         const parsed = Number(raw);
         return Number.isFinite(parsed) ? parsed : null;

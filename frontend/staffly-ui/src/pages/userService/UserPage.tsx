@@ -428,75 +428,93 @@ const UserPage = () => {
             </div>
 
             {/* STATS */}
-            <div className="mb-10 grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <button
-                    type="button"
-                    onClick={() => goToListWithFilter("ALL")}
-                    className="group relative overflow-hidden rounded-3xl border border-slate-800/50 bg-gradient-to-br from-slate-900/80 to-slate-800/40 p-6 text-left shadow-[0_0_30px_rgba(59,130,246,0.06)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-400/35"
-                >
-                    <div className="flex items-center justify-between gap-5">
-                        <div className="flex items-center gap-6">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 opacity-90">
-                                <FaUsers className="text-2xl text-white" />
+            <div className="mb-10 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                {[
+                    {
+                        label: "Toplam Kullanıcı",
+                        value: counts.total,
+                        description: "Sistemde kayıtlı toplam kullanıcı",
+                        icon: FaUsers,
+                        color: "blue",
+                        filter: "ALL" as StatusFilter,
+                    },
+                    {
+                        label: "Aktif Kullanıcılar",
+                        value: counts.active,
+                        description: "Sisteme erişimi açık kullanıcılar",
+                        icon: FaUserCheck,
+                        color: "emerald",
+                        filter: "ACTIVE" as StatusFilter,
+                    },
+                    {
+                        label: "Pasif Kullanıcılar",
+                        value: counts.passive,
+                        description: "Sisteme erişimi kapalı kullanıcılar",
+                        icon: FaUserSlash,
+                        color: "rose",
+                        filter: "PASSIVE" as StatusFilter,
+                    },
+                ].map((item) => {
+                    const Icon = item.icon;
+
+                    const styles = {
+                        blue: {
+                            card: "border-blue-400/25 bg-blue-500/10",
+                            icon: "bg-blue-500/15 text-blue-300 shadow-[0_0_32px_rgba(37,99,235,0.28)]",
+                            text: "text-blue-200",
+                            arrow: "bg-blue-500/15 text-blue-300",
+                        },
+                        emerald: {
+                            card: "border-emerald-400/25 bg-emerald-500/10",
+                            icon: "bg-emerald-500/15 text-emerald-300 shadow-[0_0_32px_rgba(16,185,129,0.22)]",
+                            text: "text-emerald-200",
+                            arrow: "bg-emerald-500/15 text-emerald-300",
+                        },
+                        rose: {
+                            card: "border-rose-400/25 bg-rose-500/10",
+                            icon: "bg-rose-500/15 text-rose-300 shadow-[0_0_32px_rgba(244,63,94,0.18)]",
+                            text: "text-rose-200",
+                            arrow: "bg-rose-500/15 text-rose-300",
+                        },
+                    }[item.color as "blue" | "emerald" | "rose"];
+
+                    const isActive = statusFilter === item.filter;
+
+                    return (
+                        <button
+                            key={item.label}
+                            type="button"
+                            onClick={() => goToListWithFilter(item.filter)}
+                            className={`rounded-2xl border p-5 text-left transition ${
+                                styles.card
+                            } ${
+                                isActive
+                                    ? "ring-1 ring-white/20"
+                                    : "hover:border-white/20 hover:bg-white/[0.04]"
+                            }`}
+                        >
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-5">
+                                    <div className={`flex h-16 w-16 items-center justify-center rounded-full ${styles.icon}`}>
+                                        <Icon className="text-3xl" />
+                                    </div>
+
+                                    <div>
+                                        <p className={`text-sm font-bold ${styles.text}`}>
+                                            {item.label}
+                                        </p>
+                                        <p className="mt-1 text-3xl font-extrabold text-white">
+                                            {item.value}
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-400">
+                                            {item.description}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-
-                            <div>
-                                <p className="text-base font-medium text-slate-300">Toplam Kullanıcı</p>
-                                <p className="mt-1 text-4xl font-extrabold text-white">{counts.total}</p>
-                                <p className="mt-2 text-sm text-slate-400">
-                                    Sistemde kayıtlı toplam kullanıcı
-                                </p>
-                            </div>
-                        </div>
-
-                    </div>
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => goToListWithFilter("ACTIVE")}
-                    className="group relative overflow-hidden rounded-3xl border border-slate-800/50 bg-gradient-to-br from-slate-900/80 to-slate-800/40 p-6 text-left shadow-[0_0_30px_rgba(59,130,246,0.06)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-emerald-400/35"
-                >
-                    <div className="flex items-center justify-between gap-5">
-                        <div className="flex items-center gap-6">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 opacity-90">
-                                <FaUserCheck className="text-2xl text-white" />
-                            </div>
-
-                            <div>
-                                <p className="text-base font-medium text-slate-300">Aktif Kullanıcılar</p>
-                                <p className="mt-1 text-4xl font-extrabold text-white">{counts.active}</p>
-                                <p className="mt-2 text-sm text-slate-400">
-                                    Sisteme erişimi açık kullanıcılar
-                                </p>
-                            </div>
-                        </div>
-
-                    </div>
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => goToListWithFilter("PASSIVE")}
-                    className="group relative overflow-hidden rounded-3xl border border-slate-800/50 bg-gradient-to-br from-slate-900/80 to-slate-800/40 p-6 text-left shadow-[0_0_30px_rgba(59,130,246,0.06)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-rose-400/35"
-                >
-                    <div className="flex items-center justify-between gap-5">
-                        <div className="flex items-center gap-6">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 opacity-90">
-                                <FaUserSlash className="text-2xl text-white" />
-                            </div>
-
-                            <div>
-                                <p className="text-base font-medium text-slate-300">Pasif Kullanıcılar</p>
-                                <p className="mt-1 text-4xl font-extrabold text-white">{counts.passive}</p>
-                                <p className="mt-2 text-sm text-slate-400">
-                                    Sisteme erişimi kapalı kullanıcılar
-                                </p>
-                            </div>
-                        </div>
-
-                    </div>
-                </button>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* FILTERS */}
