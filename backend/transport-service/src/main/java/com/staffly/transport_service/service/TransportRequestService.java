@@ -38,6 +38,13 @@ public class TransportRequestService {
                 .collect(Collectors.toList());
     }
 
+    public List<TransportRequestResponse> getPendingRequests() {
+        return transportRequestRepository.findByStatusOrderByCreatedAtDesc(TransportRequestStatus.PENDING)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public TransportRequestResponse createRequest(CreateTransportRequest request) {
         TransportRoute route = transportRouteRepository.findById(request.getPreferredRouteId())
                 .orElseThrow(() -> new IllegalArgumentException("Route not found"));

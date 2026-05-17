@@ -27,8 +27,15 @@ public class TransportRequestController {
     private final TransportRequestService transportRequestService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER')")
     public List<TransportRequestResponse> getAllRequests() {
         return transportRequestService.getAllRequests();
+    }
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER')")
+    public List<TransportRequestResponse> getPendingRequests() {
+        return transportRequestService.getPendingRequests();
     }
 
     @GetMapping("/employee/{employeeId}")
@@ -43,7 +50,7 @@ public class TransportRequestController {
     }
 
     @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER')")
     public TransportRequestResponse approveRequest(
             @PathVariable Long id,
             @RequestBody(required = false) ReviewTransportRequest request
@@ -52,7 +59,7 @@ public class TransportRequestController {
     }
 
     @PatchMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER','MANAGER')")
     public TransportRequestResponse rejectRequest(
             @PathVariable Long id,
             @RequestBody(required = false) ReviewTransportRequest request

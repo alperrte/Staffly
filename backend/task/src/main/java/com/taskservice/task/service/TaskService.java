@@ -171,9 +171,7 @@ public class TaskService {
         if (currentUser != null) {
             employeeId = currentUser.getEmployeeId();
 
-            boolean hasValidEmployeeId = employeeId != null
-                    && employeeId > 0
-                    && employeeClient.isEmployeeExists(authHeader, employeeId);
+            boolean hasValidEmployeeId = employeeId != null && employeeId > 0;
 
             if (!hasValidEmployeeId && currentUser.getEmail() != null) {
                 EmployeeLookupResponse employee = employeeClient.getEmployeeByEmail(authHeader, currentUser.getEmail());
@@ -286,9 +284,7 @@ public class TaskService {
         }
 
         Long employeeId = currentUser.getEmployeeId();
-        boolean validEmployeeId = employeeId != null
-                && employeeId > 0
-                && employeeClient.isEmployeeExists(authHeader, employeeId);
+        boolean validEmployeeId = employeeId != null && employeeId > 0;
 
         if (validEmployeeId) {
             return employeeId;

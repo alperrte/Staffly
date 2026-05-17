@@ -306,6 +306,15 @@ export const getDepartmentWorkSchedules = async (): Promise<
     return response.data;
 };
 
+export const getDepartmentWorkSchedulesByDepartment = async (
+    departmentId: number
+): Promise<DepartmentWorkScheduleResponse[]> => {
+    const response = await workScheduleApi.get(
+        `/department-work-schedules/department/${departmentId}`
+    );
+    return response.data;
+};
+
 export const updateDepartmentWorkSchedule = async (
     id: number,
     data: CreateDepartmentWorkScheduleRequest

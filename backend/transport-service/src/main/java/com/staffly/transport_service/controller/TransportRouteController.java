@@ -44,7 +44,7 @@ public class TransportRouteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN','HR_MANAGER')")
     public TransportRouteResponse createRoute(@Valid @RequestBody CreateTransportRouteRequest request) {
         return transportRouteService.createRoute(request);
     }

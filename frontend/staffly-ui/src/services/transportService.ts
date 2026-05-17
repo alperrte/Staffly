@@ -51,6 +51,17 @@ export type CreateTransportRequestPayload = {
     note?: string;
 };
 
+export type CreateTransportRoutePayload = {
+    routeCode: string;
+    routeName: string;
+    description?: string;
+    originArea: string;
+    destinationArea: string;
+    serviceAreas: string[];
+    capacity: number;
+    active?: boolean;
+};
+
 export type TransportRouteStop = {
     routeId: number;
     routeCode: string;
@@ -73,8 +84,34 @@ export const getTransportRequestsByEmployee = async (
     return Array.isArray(response.data) ? response.data : [];
 };
 
+export const getPendingTransportRequests = async (): Promise<TransportRequest[]> => {
+    const response = await transportApi.get("/transport-requests/pending");
+    return Array.isArray(response.data) ? response.data : [];
+};
+
 export const createTransportRequest = async (payload: CreateTransportRequestPayload) => {
     const response = await transportApi.post("/transport-requests", payload);
+    return response.data;
+};
+
+export const createTransportRoute = async (payload: CreateTransportRoutePayload) => {
+    const response = await transportApi.post<TransportRoute>("/transport-routes", payload);
+    return response.data;
+};
+
+export const approveTransportRequest = async (requestId: number, note?: string) => {
+    const response = await transportApi.patch<TransportRequest>(
+        `/transport-requests/${requestId}/approve`,
+        note ? { note } : undefined
+    );
+    return response.data;
+};
+
+export const rejectTransportRequest = async (requestId: number, note?: string) => {
+    const response = await transportApi.patch<TransportRequest>(
+        `/transport-requests/${requestId}/reject`,
+        note ? { note } : undefined
+    );
     return response.data;
 };
 

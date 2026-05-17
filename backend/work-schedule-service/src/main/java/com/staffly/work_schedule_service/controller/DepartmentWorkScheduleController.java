@@ -37,7 +37,7 @@ public class DepartmentWorkScheduleController {
         return departmentWorkScheduleService.getActive();
     }
 
-    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER')")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE')")
     @GetMapping("/department/{departmentId}")
     public List<DepartmentWorkScheduleResponse> getByDepartment(
             @PathVariable Long departmentId
