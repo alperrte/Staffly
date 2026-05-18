@@ -55,7 +55,7 @@ type DashboardData = {
 
 type StatCardProps = {
     title: string;
-    value: string | number;
+    value?: string | number | null;
     detail: string;
     icon: React.ComponentType<{ className?: string }>;
     tone: "sky" | "violet" | "emerald" | "amber" | "rose" | "cyan";
@@ -68,12 +68,36 @@ type QuickAction = {
 
 const panelClass = "rounded-2xl border border-white/10 bg-slate-900/45 shadow-[0_0_45px_rgba(15,23,42,0.42)]";
 const toneClass = {
-    sky: "bg-sky-500/15 text-sky-300",
-    violet: "bg-violet-500/15 text-violet-300",
-    emerald: "bg-emerald-500/15 text-emerald-300",
-    amber: "bg-amber-500/15 text-amber-300",
-    rose: "bg-rose-500/15 text-rose-300",
-    cyan: "bg-cyan-500/15 text-cyan-300",
+    sky: {
+        card: "border-sky-400/25 bg-sky-500/10",
+        icon: "bg-sky-500/15 text-sky-300 shadow-[0_0_32px_rgba(14,165,233,0.18)]",
+        text: "text-sky-200",
+    },
+    violet: {
+        card: "border-violet-400/25 bg-violet-500/10",
+        icon: "bg-violet-500/15 text-violet-300 shadow-[0_0_32px_rgba(139,92,246,0.18)]",
+        text: "text-violet-200",
+    },
+    emerald: {
+        card: "border-emerald-400/25 bg-emerald-500/10",
+        icon: "bg-emerald-500/15 text-emerald-300 shadow-[0_0_32px_rgba(16,185,129,0.18)]",
+        text: "text-emerald-200",
+    },
+    amber: {
+        card: "border-amber-400/25 bg-amber-500/10",
+        icon: "bg-amber-500/15 text-amber-300 shadow-[0_0_32px_rgba(245,158,11,0.18)]",
+        text: "text-amber-200",
+    },
+    rose: {
+        card: "border-rose-400/25 bg-rose-500/10",
+        icon: "bg-rose-500/15 text-rose-300 shadow-[0_0_32px_rgba(244,63,94,0.18)]",
+        text: "text-rose-200",
+    },
+    cyan: {
+        card: "border-cyan-400/25 bg-cyan-500/10",
+        icon: "bg-cyan-500/15 text-cyan-300 shadow-[0_0_32px_rgba(6,182,212,0.18)]",
+        text: "text-cyan-200",
+    },
 };
 
 const safe = async <T,>(factory: () => Promise<T>, fallback: T): Promise<T> => {
@@ -94,13 +118,13 @@ const asArray = <T,>(value: unknown): T[] => {
 };
 
 const fullName = (employee?: EmployeeApiResponse | NormalizedEmployee | null) => {
-    if (!employee) return "KullanÄ±cÄ±";
-    if ("basicInfo" in employee) return employee.basicInfo.fullName;
-    return `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim() || employee.email || "KullanÄ±cÄ±";
+    if (!employee) return "Kullanıcı";
+    if ("basicInfo" in employee) return (employee as NormalizedEmployee).basicInfo.fullName;
+    return `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim() || employee.email || "Kullanıcı";
 };
 
 const statusText = (value: unknown) => String(value ?? "").toLocaleUpperCase("tr-TR");
-const isActive = (employee: NormalizedEmployee) => ["ACTIVE", "AKTIF", "AKTÄ°F"].includes(statusText(employee.status));
+const isActive = (employee: NormalizedEmployee) => ["ACTIVE", "AKTIF", "AKTİF"].includes(statusText(employee.status));
 const isPending = (status: unknown) => {
     const text = statusText(status);
     return text.includes("PENDING") || text.includes("WAIT") || text.includes("BEKLE") || text.includes("ONAY");
@@ -113,43 +137,25 @@ const getTaskStatus = (task: unknown) => {
 };
 const getTaskTitle = (task: unknown, index: number) => {
     const record = task as Record<string, unknown>;
-    return String(record.title ?? record.name ?? record.description ?? `GÃ¶rev #${index + 1}`);
-};
-const getTaskAssignee = (task: unknown) => {
-    const record = task as Record<string, unknown>;
-    const employee = record.employee && typeof record.employee === "object" ? record.employee as Record<string, unknown> : null;
-    const assignee = record.assignee && typeof record.assignee === "object" ? record.assignee as Record<string, unknown> : null;
-    const firstName = String(employee?.firstName ?? assignee?.firstName ?? record.employeeFirstName ?? record.assigneeFirstName ?? "").trim();
-    const lastName = String(employee?.lastName ?? assignee?.lastName ?? record.employeeLastName ?? record.assigneeLastName ?? "").trim();
-    return String(record.employeeName ?? record.assigneeName ?? `${firstName} ${lastName}`.trim() ?? "").trim() || "KullanÄ±cÄ± belirtilmemiÅŸ";
+    return String(record.title ?? record.name ?? record.description ?? `Görev #${index + 1}`);
 };
 const getTaskDateValue = (task: unknown) => {
     const record = task as Record<string, unknown>;
     return String(record.dueDate ?? record.deadline ?? record.endDate ?? record.endDateTime ?? record.createdAt ?? "");
 };
-const getTaskState = (task: unknown) => {
-    const status = statusText(getTaskStatus(task));
-    const dateValue = getTaskDateValue(task);
-    const dueDate = dateValue ? new Date(dateValue) : null;
-    const isDone = status.includes("DONE") || status.includes("TAMAM") || status.includes("COMPLETED") || status.includes("YAPILDI");
-
-    if (isDone) return "YapÄ±lmÄ±ÅŸ";
-    if (dueDate && !Number.isNaN(dueDate.getTime()) && dueDate.getTime() < Date.now()) return "YapÄ±lmamÄ±ÅŸ";
-    return "YapÄ±lacak";
-};
 const getEmployeeRoles = (employee: NormalizedEmployee) => {
     const raw = employee.raw as Record<string, unknown>;
-    const roleValue = raw.roleNames ?? raw.roles ?? raw.roleName ?? raw.role ?? "Ã‡alÄ±ÅŸan";
+    const roleValue = raw.roleNames ?? raw.roles ?? raw.roleName ?? raw.role ?? "Çalışan";
     if (Array.isArray(roleValue)) {
         return roleValue
             .map((role) => (typeof role === "object" && role != null ? String((role as Record<string, unknown>).name ?? "") : String(role)))
             .filter(Boolean)
             .join(", ");
     }
-    return String(roleValue || "Ã‡alÄ±ÅŸan");
+    return String(roleValue || "Çalışan");
 };
 const leaveEmployeeName = (leave: Leave) =>
-    leave.employeeFullName || `${leave.employeeFirstName ?? ""} ${leave.employeeLastName ?? ""}`.trim() || `Ã‡alÄ±ÅŸan #${leave.employeeId}`;
+    leave.employeeFullName || `${leave.employeeFirstName ?? ""} ${leave.employeeLastName ?? ""}`.trim() || `Çalışan #${leave.employeeId}`;
 const formatDate = (value?: string | null) => {
     if (!value) return "-";
     const date = new Date(value);
@@ -160,27 +166,30 @@ const formatDate = (value?: string | null) => {
 const roleLabelText = (role: string) => {
     const normalized = role.replace(/^ROLE_/, "").toLocaleUpperCase("tr-TR");
     const labels: Record<string, string> = {
-        SYSTEM_ADMIN: "Sistem YÃ¶neticisi",
+        SYSTEM_ADMIN: "Sistem Yöneticisi",
         HR_MANAGER: "HR Manager",
-        DEPARTMENT_MANAGER: "Departman YÃ¶neticisi",
-        MANAGER: "YÃ¶netici",
-        EMPLOYEE: "Ã‡alÄ±ÅŸan",
+        DEPARTMENT_MANAGER: "Departman Yöneticisi",
+        MANAGER: "Yönetici",
+        EMPLOYEE: "Çalışan",
         ACCOUNTING: "Muhasebe",
     };
     return labels[normalized] ?? role.replace(/^ROLE_/, "");
 };
 const userRoleLabels = (user: User) => user.roles?.map((role) => roleLabelText(role.name)).join(", ") || "Rol yok";
-
 const StatCard = ({ title, value, detail, icon: Icon, tone }: StatCardProps) => (
-    <div className={`${panelClass} p-5`}>
-        <div className="flex items-start gap-4">
-            <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${toneClass[tone]}`}>
+    <div className={`h-full min-h-[132px] rounded-2xl border p-5 ${toneClass[tone].card}`}>
+        <div className="flex h-full items-center gap-5">
+            <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${toneClass[tone].icon}`}>
                 <Icon className="h-7 w-7" />
             </div>
-            <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-300">{title}</p>
-                <p className="mt-1 text-3xl font-bold text-white">{value}</p>
-                <p className="mt-3 text-xs text-slate-400">{detail}</p>
+            <div className="flex min-h-[92px] min-w-0 flex-1 flex-col justify-center">
+                <p className={`min-h-[20px] text-sm font-bold ${toneClass[tone].text}`}>{title}</p>
+                {value != null && value !== "" && (
+                    <p className="mt-1 min-h-[36px] text-3xl font-extrabold text-white">{value}</p>
+                )}
+                <p className={`${value != null && value !== "" ? "mt-1" : "mt-3"} min-h-[20px] text-sm text-slate-400`}>
+                    {detail}
+                </p>
             </div>
         </div>
     </div>
@@ -313,60 +322,64 @@ const DashboardPage = () => {
     ).sort((a, b) => b[1] - a[1]);
 
     const name = fullName(data.profile);
-    const roleLabel = roleType === "admin" ? "Sistem YÃ¶neticisi Paneli" : roleType === "hr" ? "HR Manager Dashboard" : roleType === "department" ? "Departman YÃ¶neticisi Dashboard" : "Ã‡alÄ±ÅŸan Dashboard";
-    const greeting = roleType === "employee" ? `GÃ¼naydÄ±n, ${name}` : `HoÅŸ geldin, ${name}`;
+    const roleLabel = roleType === "admin" ? "Sistem Yöneticisi Paneli" : roleType === "hr" ? "HR Manager Dashboard" : roleType === "department" ? "Departman Yöneticisi Dashboard" : "Çalışan Dashboard";
+    const greeting = `Hoş geldin, ${name}`;
     const adminQuickActions: QuickAction[] = [
-        { label: "Yeni KullanÄ±cÄ±", path: "/app/users" },
+        { label: "Yeni Kullanıcı", path: "/app/users" },
         { label: "Departman Ekle", path: "/app/departments/manage" },
-        { label: "Ä°ÅŸ Ä°lanÄ± OluÅŸtur", path: "/app/job-postings" },
-        { label: "ToplantÄ± Planla", path: "/app/meetings" },
-        { label: "Ã‡alÄ±ÅŸma Takvimi", path: "/app/work-schedules" },
-        { label: "MaaÅŸ AtamasÄ±", path: "/app/payroll/salary-assignment" },
+        { label: "İş İlanı Oluştur", path: "/app/job-postings" },
+        { label: "Toplantı Planla", path: "/app/meetings" },
+        { label: "Çalışma Takvimi", path: "/app/work-schedules" },
+        { label: "Maaş Ataması", path: "/app/payroll/salary-assignment" },
         { label: "Avans Talepleri", path: "/app/payroll/advance-requests" },
-        { label: "Ä°zin Talepleri", path: "/app/leaveService" },
+        { label: "İzin Talepleri", path: "/app/leaveService" },
     ];
     const hrQuickActions: QuickAction[] = [
-        { label: "Yeni Ã‡alÄ±ÅŸan Ekle", path: "/app/employees/create" },
-        { label: "Ä°ÅŸ Ä°lanÄ± OluÅŸtur", path: "/app/job-postings" },
-        { label: "KullanÄ±cÄ± HesabÄ± AÃ§", path: "/app/employees/create" },
+        { label: "Yeni Çalışan Ekle", path: "/app/employees/create" },
+        { label: "İş İlanı Oluştur", path: "/app/job-postings" },
+        { label: "Kullanıcı Hesabı Aç", path: "/app/employees/create" },
         { label: "Departmana Ata", path: "/app/employees" },
-        { label: "ToplantÄ± OluÅŸtur", path: "/app/meetings" },
-        { label: "Ä°zin Talepleri OluÅŸtur", path: "/app/leaveService?view=create" },
+        { label: "Toplantı Oluştur", path: "/app/meetings" },
+        { label: "İzin Talepleri Oluştur", path: "/app/leaveService?view=create" },
     ];
     const departmentQuickActions: QuickAction[] = [
-        { label: "GÃ¶rev Ata", path: "/app/tasks" },
-        { label: "Mesai PlanÄ± OluÅŸtur", path: "/app/work-schedules" },
-        { label: "Ä°zin Onayla", path: "/app/leaveService?view=approval" },
-        { label: "ToplantÄ± OluÅŸtur", path: "/app/meetings" },
-        { label: "Duyuru GÃ¶nder", path: "/app/support" },
+        { label: "Görev Ata", path: "/app/tasks" },
+        { label: "Mesai Planı Oluştur", path: "/app/work-schedules" },
+        { label: "İzin Onayla", path: "/app/leaveService?view=approval" },
+        { label: "Toplantı Oluştur", path: "/app/meetings" },
+        { label: "Duyuru Gönder", path: "/app/support" },
     ];
     const employeeQuickActions: QuickAction[] = [
-        { label: "Ä°zin Talebi OluÅŸtur", path: "/app/leaveService?view=create" },
-        { label: "Destek Talebi AÃ§", path: "/app/support" },
+        { label: "İzin Talebi Oluştur", path: "/app/leaveService?view=create" },
+        { label: "Destek Talebi Aç", path: "/app/support" },
     ];
 
     if (loading) {
-        return <div className="flex min-h-full items-center justify-center text-slate-300">Dashboard yÃ¼kleniyor...</div>;
+        return <div className="flex min-h-full items-center justify-center text-slate-300">Dashboard yükleniyor...</div>;
     }
 
     const commonStats =
         roleType === "employee"
             ? [
-                  { title: "Aktif GÃ¶rev", value: openTasks.length, detail: "Size atanan aÃ§Ä±k gÃ¶rev", icon: ClipboardList, tone: "sky" as const },
-                  { title: "Ä°zin Bakiyem", value: `${Math.round(data.leaveBalance?.remainingDays ?? 0)} GÃ¼n`, detail: "YÄ±llÄ±k Ã¼cretli izin", icon: CalendarCheck, tone: "cyan" as const },
-                  { title: "Destek Taleplerim", value: data.tickets.length, detail: `${openTickets.length} aÃ§Ä±k talep`, icon: LifeBuoy, tone: "violet" as const },
-                  { title: "Bordro Durumu", value: data.payroll?.lastPayrollStatus ?? "-", detail: data.payroll?.lastNetSalary ? `Son net: â‚º${data.payroll.lastNetSalary}` : "Mevcut bordro Ã¶zeti", icon: WalletCards, tone: "amber" as const },
+                  { title: "Aktif Görev", value: openTasks.length, detail: "Size atanan açık görev", icon: ClipboardList, tone: "sky" as const },
+                  { title: "İzin Bakiyem", value: `${Math.round(data.leaveBalance?.remainingDays ?? 0)} Gün`, detail: "Yıllık ücretli izin", icon: CalendarCheck, tone: "cyan" as const },
+                  { title: "Destek Taleplerim", value: data.tickets.length, detail: `${openTickets.length} açık talep`, icon: LifeBuoy, tone: "violet" as const },
+                  { title: "Bordro Durumu", value: null, detail: data.payroll?.lastNetSalary ? `Son net: ₺${data.payroll.lastNetSalary}` : "Son net maaş bulunmuyor", icon: WalletCards, tone: "amber" as const },
               ]
             : [
-                  { title: roleType === "admin" ? "Toplam KullanÄ±cÄ±" : "Ã‡alÄ±ÅŸanlar", value: scopedEmployees.length, detail: `${activeEmployees.length} aktif Ã§alÄ±ÅŸan`, icon: Users, tone: "sky" as const },
+                  { title: roleType === "admin" ? "Toplam Kullanıcı" : "Çalışanlar", value: scopedEmployees.length, detail: `${activeEmployees.length} aktif çalışan`, icon: Users, tone: "sky" as const },
                   { title: "Toplam Departman", value: data.departments.length, detail: `${data.departments.filter((department) => !department.deleted).length} aktif departman`, icon: Building2, tone: "emerald" as const },
-                  ...(roleType === "department" ? [] : [{ title: roleType === "hr" ? "Ä°ÅŸe AlÄ±m" : "AÃ§Ä±k GÃ¶revler", value: roleType === "hr" ? data.applications.length : openTasks.length, detail: roleType === "hr" ? "Mevcut baÅŸvuru" : `${data.tasks.length} toplam gÃ¶rev`, icon: BriefcaseBusiness, tone: "violet" as const }]),
-                  { title: "Bekleyen Ä°zin", value: pendingLeaves.length, detail: "Onay bekleyen talep", icon: CalendarCheck, tone: "amber" as const },
-                  { title: "AÃ§Ä±k Destek", value: openTickets.length, detail: `${data.tickets.length} toplam talep`, icon: LifeBuoy, tone: "rose" as const },
+                  ...(roleType === "department" ? [] : [{ title: roleType === "hr" ? "İşe Alım" : "Açık Görevler", value: roleType === "hr" ? data.applications.length : openTasks.length, detail: roleType === "hr" ? "Mevcut başvuru" : `${data.tasks.length} toplam görev`, icon: BriefcaseBusiness, tone: "violet" as const }]),
+                  { title: "Bekleyen İzin", value: pendingLeaves.length, detail: "Onay bekleyen talep", icon: CalendarCheck, tone: "amber" as const },
+                  { title: "Açık Destek", value: openTickets.length, detail: `${data.tickets.length} toplam talep`, icon: LifeBuoy, tone: "rose" as const },
               ];
+    const statGridClass =
+        roleType === "employee" || roleType === "department"
+            ? "md:grid-cols-2 xl:grid-cols-4"
+            : "md:grid-cols-2 xl:grid-cols-5";
 
     return (
-        <div className="space-y-5 px-3 pb-8 text-white sm:px-6">
+        <div className="min-w-0 overflow-x-hidden space-y-5 px-3 pb-8 pt-5 text-white sm:px-6">
             <header className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">{greeting}</h1>
@@ -374,16 +387,16 @@ const DashboardPage = () => {
                 </div>
             </header>
 
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <section className={`grid gap-4 ${statGridClass}`}>
                 {commonStats.map((stat) => (
                     <StatCard key={stat.title} {...stat} />
                 ))}
             </section>
 
             {roleType === "admin" && (
-                <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr_1fr]">
-                    <section className={`${panelClass} p-5`}>
-                        <h2 className="text-lg font-bold">KullanÄ±cÄ± ve Departman DaÄŸÄ±lÄ±mÄ±</h2>
+                <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                    <section className={`${panelClass} min-w-0 p-5`}>
+                        <h2 className="text-lg font-bold">Kullanıcı ve Departman Dağılımı</h2>
                         <div className="mt-5 grid gap-5 md:grid-cols-[150px_1fr]">
                             <Donut value={Math.min(100, data.departments.length * 4)} label="Departman" />
                             <div className="space-y-4">
@@ -393,7 +406,7 @@ const DashboardPage = () => {
                             </div>
                         </div>
                     </section>
-                    <RecentPeople employees={data.employees} title="Son Eklenen KullanÄ±cÄ±lar" />
+                    <RecentPeople employees={data.employees} title="Son Eklenen Kullanıcılar" />
                     <QuickPanel actions={adminQuickActions} onNavigate={navigate} />
                 </div>
             )}
@@ -401,7 +414,7 @@ const DashboardPage = () => {
             {roleType === "hr" && (
                 <div className="grid gap-5 xl:grid-cols-[1fr_1fr_360px]">
                     <ApplicationsPanel applications={data.applications} />
-                    <LeavePanel leaves={pendingLeaves} title="Bekleyen Ä°zin Talepleri" />
+                    <LeavePanel leaves={pendingLeaves} title="Bekleyen İzin Talepleri" />
                     <QuickPanel actions={hrQuickActions} onNavigate={navigate} />
                 </div>
             )}
@@ -409,9 +422,9 @@ const DashboardPage = () => {
             {roleType === "department" && (
                 <div className="grid gap-5 xl:grid-cols-[1fr_1fr_340px]">
                     <section className={`${panelClass} p-5`}>
-                        <h2 className="text-lg font-bold">Ekibim - Genel BakÄ±ÅŸ</h2>
+                        <h2 className="text-lg font-bold">Ekibim - Genel Bakış</h2>
                         <div className="mt-5 flex items-center gap-6">
-                            <Donut value={scopedEmployees.length} label="Ã‡alÄ±ÅŸan" />
+                            <Donut value={scopedEmployees.length} label="Çalışan" />
                             <div className="flex-1 space-y-4">
                                 {departmentGroups.slice(0, 5).map(([department, count]) => (
                                     <MiniBar key={department} label={department} value={count} total={scopedEmployees.length} />
@@ -419,14 +432,14 @@ const DashboardPage = () => {
                             </div>
                         </div>
                     </section>
-                    <LeavePanel leaves={pendingLeaves} title="Bekleyen Ä°zin Talepleri" />
+                    <LeavePanel leaves={pendingLeaves} title="Bekleyen İzin Talepleri" />
                     <QuickPanel actions={departmentQuickActions} onNavigate={navigate} />
                 </div>
             )}
 
             {roleType === "employee" && (
                 <div className="grid gap-5 xl:grid-cols-[0.85fr_0.85fr_360px]">
-                    <TaskPanel tasks={data.tasks} title="GÃ¶revlerim" />
+                    <TaskPanel tasks={data.tasks} title="Görevlerim" />
                     <UsedLeavesPanel leaves={data.leaves} />
                     <QuickPanel actions={employeeQuickActions} onNavigate={navigate} />
                 </div>
@@ -442,10 +455,10 @@ const DashboardPage = () => {
                 ) : roleType === "hr" ? (
                     <div className="grid gap-5 md:grid-cols-2">
                         <ApplicationsPanel applications={data.applications} />
-                        <LeavePanel leaves={pendingLeaves} title="Bekleyen Ä°zin Talepleri" />
+                        <LeavePanel leaves={pendingLeaves} title="Bekleyen İzin Talepleri" />
                     </div>
                 ) : (
-                    <TaskPanel tasks={data.tasks} title="GÃ¶rev DaÄŸÄ±lÄ±mÄ±" />
+                    <TaskPanel tasks={data.tasks} title="Görev Dağılımı" />
                 )}
                 <ActivityPanel leaves={data.leaves} tickets={data.tickets} applications={data.applications} />
             </div>
@@ -454,7 +467,7 @@ const DashboardPage = () => {
 };
 
 const RecentPeople = ({ employees, title }: { employees: NormalizedEmployee[]; title: string }) => (
-    <section className={`${panelClass} overflow-hidden`}>
+    <section className={`${panelClass} min-w-0 overflow-hidden`}>
         <div className="border-b border-white/10 px-5 py-4">
             <h2 className="text-lg font-bold">{title}</h2>
         </div>
@@ -486,7 +499,7 @@ const LeavePanel = ({ leaves, title }: { leaves: Leave[]; title: string }) => (
                         <p className="font-semibold text-white">{leaveEmployeeName(leave)}</p>
                         <p className="text-xs text-slate-400">{formatDate(leave.startDatetime)} - {formatDate(leave.endDatetime)}</p>
                     </div>
-                    <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">{leave.totalDays ?? 1} gÃ¼n</span>
+                    <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">{leave.totalDays ?? 1} gün</span>
                 </div>
             ))}
             {leaves.length === 0 && <div className="px-5 py-8 text-center text-sm text-slate-400">Bekleyen talep bulunmuyor.</div>}
@@ -504,12 +517,12 @@ const TaskPanel = ({ tasks, title }: { tasks: unknown[]; title: string }) => (
                 <div key={String((task as Record<string, unknown>).id ?? index)} className="grid grid-cols-[1fr_auto] gap-4 px-5 py-3 text-sm">
                     <div className="min-w-0">
                         <p className="truncate font-semibold text-white">{getTaskTitle(task, index)}</p>
-                        <p className="truncate text-xs text-slate-400">{getTaskStatus(task) || "Durum belirtilmemiÅŸ"}</p>
+                        <p className="truncate text-xs text-slate-400">{getTaskStatus(task) || "Durum belirtilmemiş"}</p>
                     </div>
                     <CheckCircle2 className="h-5 w-5 text-sky-300" />
                 </div>
             ))}
-            {tasks.length === 0 && <div className="px-5 py-8 text-center text-sm text-slate-400">GÃ¶rev bulunmuyor.</div>}
+            {tasks.length === 0 && <div className="px-5 py-8 text-center text-sm text-slate-400">Görev bulunmuyor.</div>}
         </div>
     </section>
 );
@@ -517,7 +530,7 @@ const TaskPanel = ({ tasks, title }: { tasks: unknown[]; title: string }) => (
 const UpcomingTaskPanel = ({ tasks }: { tasks: unknown[] }) => (
     <section className={`${panelClass} overflow-hidden`}>
         <div className="border-b border-white/10 px-5 py-4">
-            <h2 className="text-lg font-bold">YaklaÅŸan GÃ¶revler</h2>
+            <h2 className="text-lg font-bold">Yaklaşan Görevler</h2>
         </div>
         <div className="divide-y divide-white/10">
             {tasks.slice(0, 5).map((task, index) => (
@@ -526,7 +539,7 @@ const UpcomingTaskPanel = ({ tasks }: { tasks: unknown[] }) => (
                     <span className="text-slate-400">{formatDate(getTaskDateValue(task))}</span>
                 </div>
             ))}
-            {tasks.length === 0 && <div className="px-5 py-8 text-center text-sm text-slate-400">YaklaÅŸan gÃ¶rev bulunmuyor.</div>}
+            {tasks.length === 0 && <div className="px-5 py-8 text-center text-sm text-slate-400">Yaklaşan görev bulunmuyor.</div>}
         </div>
     </section>
 );
@@ -566,22 +579,22 @@ const EventsPanel = ({ events }: { events: CalendarEventResponse[] }) => (
 );
 
 const RecentUsersTable = ({ users, employees }: { users: User[]; employees: NormalizedEmployee[] }) => (
-    <section className={`${panelClass} overflow-hidden`}>
+    <section className={`${panelClass} min-w-0 overflow-hidden`}>
         <div className="border-b border-white/10 px-5 py-4">
             <h2 className="text-lg font-bold">Son Eklenen Kullanıcılar</h2>
         </div>
-        <div className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 border-b border-white/10 bg-slate-950/35 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+        <div className="grid min-w-[640px] grid-cols-[1fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 border-b border-white/10 bg-slate-950/35 px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">
             <span>Kullanıcı</span>
             <span>E-posta</span>
             <span>Rol</span>
             <span>Oluşturulma</span>
             <span>Durum</span>
         </div>
-        <div className="divide-y divide-white/10">
+        <div className="divide-y divide-white/10 overflow-x-auto">
             {(users.length ? users : employees.map((employee) => ({ email: employee.email, active: isActive(employee), employeeId: employee.id, roles: [] }))).slice(0, 6).map((user) => {
                 const employee = employees.find((item) => item.id === user.employeeId || item.email === user.email);
                 return (
-                    <div key={user.email} className="grid grid-cols-[1fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 px-5 py-3 text-sm">
+                    <div key={user.email} className="grid min-w-[640px] grid-cols-[1fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 px-5 py-3 text-sm">
                         <span className="truncate font-semibold text-white">{employee?.basicInfo.fullName ?? user.email}</span>
                         <span className="truncate text-slate-300">{user.email}</span>
                         <span className="truncate text-slate-300">{user.roles?.length ? userRoleLabels(user) : employee ? getEmployeeRoles(employee) : "Rol yok"}</span>
@@ -642,7 +655,7 @@ const UsedLeavesPanel = ({ leaves }: { leaves: Leave[] }) => (
 );
 const QuickPanel = ({ actions, onNavigate }: { actions: QuickAction[]; onNavigate: (path: string) => void }) => (
     <section className={`${panelClass} p-5`}>
-        <h2 className="text-lg font-bold">HÄ±zlÄ± Ä°ÅŸlemler</h2>
+        <h2 className="text-lg font-bold">Hızlı İşlemler</h2>
         <div className="mt-5 grid grid-cols-2 gap-3">
             {actions.map((action, index) => {
                 const Icon = [UserPlus, CalendarDays, Users, Mail, FileText, BarChart3][index % 6];
@@ -666,9 +679,9 @@ const ActivityPanel = ({ leaves, tickets, applications }: { leaves: Leave[]; tic
     <section className={`${panelClass} p-5`}>
         <h2 className="text-lg font-bold">Son Aktiviteler</h2>
         <div className="mt-4 space-y-3">
-            <ActivityRow icon={CalendarCheck} text={`${leaves.length} izin talebi sistemde kayÄ±tlÄ±`} />
+            <ActivityRow icon={CalendarCheck} text={`${leaves.length} izin talebi sistemde kayıtlı`} />
             <ActivityRow icon={LifeBuoy} text={`${tickets.length} destek talebi takip ediliyor`} />
-            <ActivityRow icon={BriefcaseBusiness} text={`${applications.length} baÅŸvuru mevcut`} />
+            <ActivityRow icon={BriefcaseBusiness} text={`${applications.length} başvuru mevcut`} />
         </div>
     </section>
 );
