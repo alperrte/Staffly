@@ -289,7 +289,7 @@ const MainLayout = () => {
                             </div>
 
                             <div className="ml-auto flex items-center gap-4">
-                                <div className="max-w-[260px] truncate rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs text-slate-100">
+                                <div className="max-w-[360px] truncate rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2.5 text-xs text-slate-100">
                                     <span className="font-semibold uppercase text-sky-300">{currentRoleLabel}:</span>{" "}
                                     {email || "User"}
                                 </div>
